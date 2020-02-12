@@ -1,0 +1,29 @@
+syntax = "proto3";
+
+package payloads;
+
+enum PayloadType {
+  BINARY = 0;
+  TEXT = 1;
+  ACK = 2;
+  SESSION = 3;
+}
+
+message Message {
+  bytes payload = 1;
+  bool encrypted = 2;
+  bytes nonce = 3;
+  bytes encrypted_key = 4;
+}
+
+message Payload {
+  PayloadType type = 1;
+  bytes pid = 2;
+  bytes data = 3;
+  bytes reply_to_pid = 4;
+  bool no_ack = 5;
+}
+
+message TextData {
+  string text = 1;
+}

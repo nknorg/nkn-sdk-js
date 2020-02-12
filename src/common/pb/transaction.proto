@@ -1,0 +1,103 @@
+syntax = "proto3";
+
+package transaction;
+
+message UnsignedTx {
+	Payload   payload    = 1;
+	uint64    nonce      = 2;
+	int64     fee        = 3;
+	bytes     attributes = 4;
+}
+
+message Transaction {
+  UnsignedTx          unsigned_tx = 1;
+  repeated Program    programs   = 2;
+}
+
+message Program {
+	bytes      code       = 1;
+	bytes      parameter  = 2;
+}
+
+enum PayloadType {
+	COINBASE_TYPE       = 0;
+	TRANSFER_ASSET_TYPE = 1;
+	SIG_CHAIN_TXN_TYPE  = 2;
+	REGISTER_NAME_TYPE  = 3;
+	TRANSFER_NAME_TYPE  = 4;
+	DELETE_NAME_TYPE    = 5;
+	SUBSCRIBE_TYPE      = 6;
+	UNSUBSCRIBE_TYPE    = 7;
+	GENERATE_ID_TYPE    = 8;
+	NANO_PAY_TYPE       = 9;
+	ISSUE_ASSET_TYPE    = 10;
+}
+
+message Payload {
+	PayloadType     type   = 1;
+	bytes           data   = 2;
+}
+
+message Coinbase {
+	bytes sender      = 1;
+	bytes recipient   = 2;
+	int64 amount      = 3;
+}
+
+message SigChainTxn {
+	bytes sig_chain     = 1;
+	bytes submitter    = 2;
+}
+
+message RegisterName {
+	bytes  registrant = 1;
+	string name       = 2;
+}
+
+message DeleteName {
+	bytes  registrant  = 1;
+	string name        = 2;
+}
+
+message Subscribe {
+	bytes subscriber   = 1;
+	string identifier  = 2;
+	string topic       = 3;
+	uint32 bucket      = 4 [deprecated = true];
+	uint32 duration    = 5;
+	string meta        = 6;
+}
+
+message Unsubscribe {
+	bytes subscriber   = 1;
+	string identifier  = 2;
+	string topic       = 3;
+}
+
+message TransferAsset {
+	bytes sender    = 1;
+	bytes recipient = 2;
+	int64 amount    = 3;
+}
+
+message GenerateID {
+	bytes public_key       = 1;
+	int64 registration_fee = 2;
+}
+
+message NanoPay {
+	bytes sender = 1;
+	bytes recipient = 2;
+	uint64 id = 3;
+	int64 amount = 4;
+	uint32 txn_expiration = 5;
+	uint32 nano_pay_expiration = 6;
+}
+
+message IssueAsset {
+	bytes sender       = 1;
+	string name        = 2;
+	string symbol      = 3;
+	int64 total_supply = 4;
+	uint32 precision   = 5;
+}

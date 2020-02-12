@@ -1,0 +1,57 @@
+{
+  "name": "nkn-sdk-js",
+  "version": "1.0.0",
+  "description": "NKN client and wallet SDK",
+  "main": "lib/index.js",
+  "exports": {
+    "./": "./lib/"
+  },
+  "browser": {
+    "crypto": false
+  },
+  "scripts": {
+    "build": "babel src --out-dir lib && browserify lib/index.js -s nkn --outfile dist/nkn.js && uglifyjs dist/nkn.js -c -m -o dist/nkn.min.js",
+    "prepublish": "npm run-script build",
+    "test": "jest",
+    "pb": "protoc --js_out=import_style=commonjs,binary:. src/common/pb/*.proto"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/nknorg/nkn-sdk-js.git"
+  },
+  "author": "NKN",
+  "license": "Apache-2.0",
+  "bugs": {
+    "url": "https://github.com/nknorg/nkn-sdk-js/issues"
+  },
+  "homepage": "https://github.com/nknorg/nkn-sdk-js#readme",
+  "dependencies": {
+    "@nkn/ncp": "^1.0.6",
+    "axios": "^0.19.2",
+    "base-x": "^3.0.7",
+    "buffer": "^5.4.3",
+    "core-js-pure": "^3.6.4",
+    "crypto-js": "^3.1.9-1",
+    "decimal.js": "^10.2.0",
+    "ed2curve": "^0.3.0",
+    "google-protobuf": "^3.11.2",
+    "heap": "^0.2.6",
+    "isomorphic-ws": "^4.0.1",
+    "memory-cache": "^0.2.0",
+    "pako": "^1.0.11",
+    "tweetnacl": "^1.0.2"
+  },
+  "devDependencies": {
+    "@babel/cli": "^7.8.3",
+    "@babel/core": "^7.8.3",
+    "@babel/plugin-proposal-class-properties": "^7.8.3",
+    "@babel/plugin-proposal-export-default-from": "^7.8.3",
+    "@babel/plugin-proposal-export-namespace-from": "^7.8.3",
+    "@babel/preset-env": "^7.8.3",
+    "@babel/preset-flow": "^7.8.3",
+    "browserify": "^16.5.0",
+    "flow-bin": "^0.118.0",
+    "jest": "^25.1.0",
+    "uglify-es": "^3.3.9"
+  }
+}
