@@ -5,7 +5,8 @@ import nacl from 'tweetnacl';
 import { maxUintBits } from './serialize';
 
 export function hexToBytes(hex) {
-  for (var bytes = [], c = 0; c < hex.length; c += 2) {
+  let bytes = [];
+  for (let c = 0; c < hex.length; c += 2) {
     bytes.push(parseInt(hex.substr(c, 2), 16));
   }
   return new Uint8Array(bytes);
@@ -40,7 +41,7 @@ export function randomUint64() {
 }
 
 export function mergeTypedArrays(a, b) {
-  var c = new a.constructor(a.length + b.length);
+  let c = new a.constructor(a.length + b.length);
   c.set(a);
   c.set(b, a.length);
   return c;

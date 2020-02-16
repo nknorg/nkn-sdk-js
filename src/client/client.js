@@ -1,3 +1,4 @@
+// @flow
 'use strict';
 
 import nacl from 'tweetnacl';
@@ -7,113 +8,72 @@ import * as common from '../common';
 import * as consts from './consts';
 import * as message from './message';
 
-class ResponseProcessor {
-  pid;
-  deadline;
-  responseHandler;
-  timeoutHandler;
-
-  constructor(pid, timeout, responseHandler, timeoutHandler) {
-    if (pid instanceof Uint8Array) {
-      pid = common.util.bytesToHex(pid);
-    }
-
-    this.pid = pid;
-    this.deadline = Date.now() + timeout;
-    this.responseHandler = responseHandler;
-    this.timeoutHandler = timeoutHandler;
-  }
-
-  checkTimeout(now) {
-    if (!now) {
-      now = Date.now();
-    }
-    return now > this.deadline;
-  }
-
-  handleResponse(data) {
-    if (this.responseHandler) {
-      this.responseHandler(data);
-    }
-  }
-
-  handleTimeout() {
-    if (this.timeoutHandler) {
-      this.timeoutHandler(new Error('Message timeout'));
-    }
-  }
-}
-
-class ResponseManager {
-  responseProcessors;
-  timer;
-
-  constructor() {
-    this.responseProcessors = new Map();
-    this.timer = null;
-    this.checkTimeout();
-  }
-
-  add(proceccor) {
-    this.responseProcessors.set(proceccor.pid, proceccor);
-  }
-
-  clear() {
-    for (let processor of this.responseProcessors.values()) {
-      processor.handleTimeout();
-    }
-    this.responseProcessors = new Map();
-  }
-
-  stop() {
-    clearTimeout(this.timer);
-    this.clear();
-  }
-
-  respond(pid, data) {
-    if (pid instanceof Uint8Array) {
-      pid = common.util.bytesToHex(pid);
-    }
-    if (this.responseProcessors.has(pid)) {
-      this.responseProcessors.get(pid).handleResponse(data);
-      this.responseProcessors.delete(pid);
-    }
-  }
-
-  checkTimeout() {
-    let timeoutProcessors = [];
-    let now = Date.now();
-    for (let processor of this.responseProcessors.values()) {
-      if (processor.checkTimeout(now)) {
-        timeoutProcessors.push(processor);
-      }
-    }
-
-    timeoutProcessors.forEach(p => {
-      p.handleTimeout();
-      this.responseProcessors.delete(p.pid);
-    })
-
-    this.timer = setTimeout(this.checkTimeout.bind(this), consts.checkTimeoutInterval);
-  }
-}
-
+/**
+ * NKN client that sends data to and receives data from other NKN clients.
+ * Typically you might want to use [MultiClient](#multiclient) for better
+ * reliability and lower latency.
+ * @param {Object} [options={}] - Client configuration
+ * @param {string} [options.seed=undefined] - Secret seed (64 hex characters). If empty, a random seed will be used.
+ * @param {string} [options.identifier=undefined] - Identifier used to differentiate multiple clients sharing the same secret seed.
+ * @param {number} [options.reconnectIntervalMin=1000] - Minimal reconnect interval in ms.
+ * @param {number} [options.reconnectIntervalMax=64000] - Maximal reconnect interval in ms.
+ * @param {number} [options.responseTimeout=5000] - Message response timeout in ms. Zero disables timeout.
+ * @param {number} [options.msgHoldingSeconds=0] - Maximal message holding time in second. Message might be cached and held by node up to this duration if destination client is not online. Zero disables cache.
+ * @param {boolean} [options.encrypt=true] - Whether to end to end encrypt message.
+ * @param {string} [options.seedRpcServerAddr='https://mainnet-rpc-node-0001.nkn.org/mainnet/api/wallet'] - Seed RPC server address used to join the network.
+ * @param {boolean} [options.tls=undefined] - Force to use wss instead of ws protocol. If not defined, wss will only be used in https location.
+ */
 export default class Client {
-  options;
-  key;
-  identifier;
-  addr;
-  eventListeners;
-  sigChainBlockHash;
-  shouldReconnect;
-  reconnectInterval;
-  responseManager;
-  ws;
-  node;
-  isReady;
-  isClosed;
+  options: {
+    seed?: string,
+    identifier?: string,
+    reconnectIntervalMin: number,
+    reconnectIntervalMax: number,
+    responseTimeout: number,
+    msgHoldingSeconds: number,
+    encrypt: boolean,
+    seedRpcServerAddr: string,
+    tls?: boolean,
+  };
+  key: common.Key;
+  /**
+   * Address identifier.
+   */
+  identifier: string;
+  /**
+   * Client address, which will be `identifier.pubicKeyHex` if `identifier` is not empty, otherwise just `pubicKeyHex`.
+   */
+  addr: string;
+  eventListeners: {
+    connect: Array<ConnectHandler>,
+    message: Array<MessageHandler>,
+  };
+  sigChainBlockHash: string | null;
+  shouldReconnect: boolean;
+  reconnectInterval: number;
+  responseManager: ResponseManager;
+  ws: WebSocket | null;
+  node: { addr: string } | null;
+  /**
+   * Whether client is ready (connected to a node).
+   */
+  isReady: boolean;
+  /**
+   * Whether client is closed.
+   */
+  isClosed: boolean;
 
-  constructor(options = {}) {
+  constructor(options: {
+    seed?: string,
+    identifier?: string,
+    reconnectIntervalMin?: number,
+    reconnectIntervalMax?: number,
+    responseTimeout?: number,
+    msgHoldingSeconds?: number,
+    encrypt?: boolean,
+    seedRpcServerAddr?: string,
+    tls?: boolean,
+  } = {}) {
     options = common.util.assignDefined({}, consts.defaultOptions, options);
 
     let key = new common.Key(options.seed);
@@ -125,7 +85,10 @@ export default class Client {
     this.key = key;
     this.identifier = identifier;
     this.addr = addr;
-    this.eventListeners = {};
+    this.eventListeners = {
+      connect: [],
+      message: [],
+    };
     this.sigChainBlockHash = null;
     this.shouldReconnect = false;
     this.reconnectInterval = options.reconnectIntervalMin;
@@ -135,19 +98,27 @@ export default class Client {
     this.isReady = false;
     this.isClosed = false;
 
-    this.connect();
+    this._connect();
   }
 
-  getSeed() {
+  /**
+   * Get the secret seed of the client.
+   * @returns Secret seed as hex string.
+   */
+  getSeed(): string {
     return this.key.seed;
   }
 
-  getPublicKey() {
+  /**
+   * Get the public key of the client.
+   * @returns Public key as hex string.
+   */
+  getPublicKey(): string {
     return this.key.publicKey;
   }
 
-  async connect() {
-    let getAddr = this.shouldUseTls() ? common.rpc.getWssAddr : common.rpc.getWsAddr;
+  async _connect() {
+    let getAddr = this._shouldUseTls() ? common.rpc.getWssAddr : common.rpc.getWsAddr;
     let res, error;
     for (let i = 0; i < 3; i++) {
       try {
@@ -156,33 +127,65 @@ export default class Client {
         error = e;
         continue;
       }
-      this.newWsAddr(res);
+      this._newWsAddr(res);
       return;
     }
     console.log('RPC call failed,', error);
     if (this.shouldReconnect) {
-      this.reconnect();
+      this._reconnect();
     }
   };
 
-  reconnect() {
+  _reconnect() {
     console.log('Reconnecting in ' + this.reconnectInterval/1000 + 's...');
-    setTimeout(() => this.connect(), this.reconnectInterval);
+    setTimeout(() => this._connect(), this.reconnectInterval);
     this.reconnectInterval *= 2;
     if (this.reconnectInterval > this.options.reconnectIntervalMax) {
       this.reconnectInterval = this.options.reconnectIntervalMax;
     }
   };
 
-  on(e, func) {
-    if (this.eventListeners[e]) {
-      this.eventListeners[e].push(func);
-    } else {
-      this.eventListeners[e] = [func];
+  /**
+   * @deprecated please use onConnect, onMessage, etc.
+   */
+  on(evt: string, func: (...args: Array<any>) => any) {
+    if (!this.eventListeners[evt]) {
+      this.eventListeners[evt] = [];
     }
+    this.eventListeners[evt].push(func);
   };
 
-  async _send(dest, payload, encrypt = true, maxHoldingSeconds = 0) {
+  /**
+   * Add event listener function that will be called when client is connected to
+   * node. Multiple listeners will be called sequentially in the order of added.
+   */
+  onConnect(func: ConnectHandler) {
+    this.eventListeners.connect.push(func);
+  };
+
+  /**
+   * Add event listener function that will be called when client receives a
+   * message. Multiple listeners will be called sequentially in the order of
+   * added. Can be an async function, in which case each call will wait for
+   * promise to resolve before calling next listener function. If the first
+   * non-null and non-undefined returned value is `Uint8Array` or `string`,
+   * the value will be sent back as reply; if the first non-null and
+   * non-undefined returned value is `false`, no reply or ACK will be sent;
+   * if all handler functions return `null` or `undefined`, an ACK indicating
+   * msg received will be sent back.
+   */
+  onMessage(func: MessageHandler) {
+    this.eventListeners.message.push(func);
+  };
+
+  _wssend(data: Uint8Array) {
+    if (!this.ws) {
+      throw new common.errors.ClientNotReadyError();
+    }
+    this.ws.send(data);
+  };
+
+  async _send(dest: Destination, payload: common.pb.payloads.Payload, encrypt: boolean = true, maxHoldingSeconds: number = 0): Promise<Uint8Array | null> {
     if (Array.isArray(dest)) {
       if (dest.length === 0) {
         return null;
@@ -192,7 +195,7 @@ export default class Client {
       }
     }
 
-    let pldMsg = this.messageFromPayload(payload, encrypt, dest);
+    let pldMsg = this._messageFromPayload(payload, encrypt, dest);
     if (Array.isArray(pldMsg)) {
       pldMsg = pldMsg.map(pld => pld.serializeBinary());
     } else {
@@ -202,7 +205,7 @@ export default class Client {
     let msgs = [];
     if (Array.isArray(pldMsg)) {
       let destList = [], pldList = [], totalSize = 0, size = 0;
-      for (var i = 0; i < pldMsg.length; i++) {
+      for (let i = 0; i < pldMsg.length; i++) {
         size = pldMsg[i].length + dest[i].length + common.key.signatureLength;
         if (size > message.maxClientMessageSize) {
           throw new common.errors.DataSizeTooLargeError('encoded message is greater than ' + message.maxClientMessageSize + ' bytes');
@@ -230,13 +233,18 @@ export default class Client {
     }
 
     msgs.forEach((msg) => {
-      this.ws.send(msg.serializeBinary());
+      this._wssend(msg.serializeBinary());
     });
 
     return payload.getPid();
   }
 
-  async send(dest, data, options = {}) {
+  /**
+   * Send byte or string data to a single or an array of destination.
+   * @param options - Send options that will override client options.
+   * @returns A promise that will be resolved when reply or ACK from destination is received, or reject if send fail or message timeout. If dest is an array with more than one element, or `options.noReply=true`, the promise will resolve with null as soon as send success.
+   */
+  async send(dest: Destination, data: MessageData, options: SendOptions = {}): Promise<ReplyData> {
     options = common.util.assignDefined({}, this.options, options);
     let payload;
     if (typeof data === 'string') {
@@ -250,108 +258,146 @@ export default class Client {
       return null;
     }
 
-    return await new Promise((resolve, reject) => {
+    return await new Promise((resolve: ResponseHandler, reject: TimeoutHandler) => {
       this.responseManager.add(new ResponseProcessor(pid, options.responseTimeout, resolve, reject));
     });
   };
 
-  async sendACK(dest, pid, encrypt) {
+  async _sendACK(dest: Destination, pid: Uint8Array, encrypt: boolean): Promise<void> {
     if (Array.isArray(dest)) {
       if (dest.length === 0) {
         return;
       }
       if (dest.length === 1) {
-        return await this.sendACK(dest[0], pid, encrypt);
+        return await this._sendACK(dest[0], pid, encrypt);
       }
       if (dest.length > 1 && encrypt) {
         console.warn('Encrypted ACK with multicast is not supported, fallback to unicast.')
-        for (var i = 0; i < dest.length; i++) {
-          await this.sendACK(dest[i], pid, encrypt);
+        for (let i = 0; i < dest.length; i++) {
+          await this._sendACK(dest[i], pid, encrypt);
         }
         return;
       }
     }
 
     let payload = message.newAckPayload(pid);
-    let pldMsg = this.messageFromPayload(payload, encrypt, dest);
+    let pldMsg = this._messageFromPayload(payload, encrypt, dest);
+    if (pldMsg instanceof Array) {
+      throw new TypeError('ack payload should not be an array');
+    }
     let msg = await message.newOutboundMessage(this, dest, pldMsg.serializeBinary(), 0);
-    this.ws.send(msg.serializeBinary());
+    this._wssend(msg.serializeBinary());
   };
 
-  getSubscribers(topic, options = {}) {
+  /**
+   * Get subscribers of a topic.
+   * @param options - Get subscribers options.
+   * @param {number} [options.offset=0] - Offset of subscribers to get.
+   * @param {number} [options.limit=1000] - Max number of subscribers to get. This does not affect subscribers in txpool.
+   * @param {boolean} [options.meta=false] - Whether to include metadata of subscribers in the topic.
+   * @param {boolean} [options.txPool=false] - Whether to include subscribers whose subscribe transaction is still in txpool. Enabling this will get subscribers sooner after they send subscribe transactions, but might affect the correctness of subscribers because transactions in txpool is not guaranteed to be packed into a block.
+   * @returns A promise that will be resolved with subscribers info. Note that `options.meta=false/true` will cause results to be an array (of subscriber address) or map (subscriber address -> metadata), respectively.
+   */
+  getSubscribers(topic: string, options: { offset?: number, limit?: number, meta?: boolean, txPool?: boolean } = {}): Promise<{
+    subscribers: Array<string> | { [string]: string },
+    subscribersInTxPool?: Array<string> | { [string]: string },
+  }> {
     return common.rpc.getSubscribers(
       this.options.seedRpcServerAddr,
       { topic, offset: options.offset, limit: options.limit, meta: options.meta, txPool: options.txPool },
     );
   }
 
-  getSubscribersCount(topic) {
+  /**
+   * Get subscribers count of a topic.
+   */
+  getSubscribersCount(topic: string): Promise<number> {
     return common.rpc.getSubscribersCount(this.options.seedRpcServerAddr, { topic });
   }
 
-  getSubscription(topic, subscriber) {
+  /**
+   * Get the subscription details of a subscriber in a topic.
+   */
+  getSubscription(topic: string, subscriber: string): Promise<{ meta: string, expiresAt: number }> {
     return common.rpc.getSubscription(this.options.seedRpcServerAddr, { topic, subscriber });
   }
 
-  async publish(topic, data, options = {}) {
+  /**
+   * Send byte or string data to all subscribers of a topic.
+   * @returns A promise that will be resolved with null when send success.
+   */
+  async publish(topic: string, data: MessageData, options: PublishOptions = {}): Promise<null> {
     let offset = 0;
     let limit = 1000;
     let res = await this.getSubscribers(topic, { offset, limit, txPool: options.txPool || false });
+    if (!(res.subscribers instanceof Array)) {
+      throw new common.errors.InvalidResponseError('subscribers should be an array');
+    }
+    if (res.subscribersInTxPool && !(res.subscribersInTxPool instanceof Array)) {
+      throw new common.errors.InvalidResponseError('subscribersInTxPool should be an array');
+    }
     let subscribers = res.subscribers;
     let subscribersInTxPool = res.subscribersInTxPool;
     while (res.subscribers && res.subscribers.length >= limit) {
       offset += limit;
       res = await this.getSubscribers(topic, { offset, limit });
+      if (!(res.subscribers instanceof Array)) {
+        throw new common.errors.InvalidResponseError('subscribers should be an array');
+      }
       subscribers = subscribers.concat(res.subscribers);
     }
-    if (options.txPool) {
+    if (options.txPool && subscribersInTxPool) {
       subscribers = subscribers.concat(subscribersInTxPool);
     }
     options = common.util.assignDefined({}, options, { noReply: true });
-    return await this.send(subscribers, data, options);
+    await this.send(subscribers, data, options);
+    return null;
   }
 
+  /**
+   * Close the client.
+   */
   close() {
     this.responseManager.stop();
     this.shouldReconnect = false;
     try {
-      this.ws.close();
+      this.ws && this.ws.close();
     } catch (e) {
     }
     this.isClosed = true;
   };
 
-  messageFromPayload(payload, encrypt, dest) {
+  _messageFromPayload(payload: common.pb.payloads.Payload, encrypt: boolean, dest: Destination): common.pb.payloads.Message | Array<common.pb.payloads.Message> {
     if (encrypt) {
-      return this.encryptPayload(payload.serializeBinary(), dest);
+      return this._encryptPayload(payload.serializeBinary(), dest);
     }
     return message.newMessage(payload.serializeBinary(), false);
   }
 
-  async _handleMsg(rawMsg) {
+  async _handleMsg(rawMsg: Uint8Array): Promise<boolean> {
     let msg = common.pb.messages.ClientMessage.deserializeBinary(rawMsg);
     switch (msg.getMessageType()) {
       case common.pb.messages.ClientMessageType.INBOUND_MESSAGE:
         return await this._handleInboundMsg(msg.getMessage());
       default:
-        return false
+        return false;
     }
   }
 
-  async _handleInboundMsg(rawMsg) {
+  async _handleInboundMsg(rawMsg: Uint8Array): Promise<boolean> {
     let msg = common.pb.messages.InboundMessage.deserializeBinary(rawMsg);
 
     let prevSignature = msg.getPrevSignature();
     if (prevSignature.length > 0) {
       prevSignature = common.util.bytesToHex(prevSignature);
       let receipt = await message.newReceipt(this, prevSignature);
-      this.ws.send(receipt.serializeBinary());
+      this._wssend(receipt.serializeBinary());
     }
 
     let pldMsg = common.pb.payloads.Message.deserializeBinary(msg.getPayload());
     let pldBytes;
     if (pldMsg.getEncrypted()) {
-      pldBytes = this.decryptPayload(pldMsg, msg.getSrc());
+      pldBytes = this._decryptPayload(pldMsg, msg.getSrc());
     } else {
       pldBytes = pldMsg.getPayload();
     }
@@ -365,8 +411,8 @@ export default class Client {
         data = textData.getText();
         break;
       case common.pb.payloads.PayloadType.ACK:
-        data = undefined;
-        break;
+        this.responseManager.respond(payload.getReplyToPid(), null, payload.getType());
+        return true;
     }
 
     // handle response if applicable
@@ -381,7 +427,7 @@ export default class Client {
       case common.pb.payloads.PayloadType.BINARY:
       case common.pb.payloads.PayloadType.SESSION:
         let responses = [];
-        if (this.eventListeners.message) {
+        if (this.eventListeners.message.length > 0) {
           responses = await Promise.all(this.eventListeners.message.map(f => {
             try {
               return Promise.resolve(f({
@@ -413,7 +459,7 @@ export default class Client {
           }
         }
         if (!responded) {
-          await this.sendACK(msg.getSrc(), payload.getPid(), pldMsg.getEncrypted());
+          await this._sendACK(msg.getSrc(), payload.getPid(), pldMsg.getEncrypted());
         }
         return true;
       default:
@@ -421,7 +467,7 @@ export default class Client {
     }
   }
 
-  shouldUseTls() {
+  _shouldUseTls(): boolean {
     if (this.options.tls !== undefined) {
       return !!this.options.tls;
     }
@@ -434,23 +480,23 @@ export default class Client {
     return false;
   }
 
-  newWsAddr(nodeInfo) {
+  _newWsAddr(nodeInfo: { addr: string }) {
     if (!nodeInfo.addr) {
       console.log('No address in node info', nodeInfo);
       if (this.shouldReconnect) {
-        this.reconnect();
+        this._reconnect();
       }
       return;
     }
 
-    var ws;
+    let ws;
     try {
-      ws = new WebSocket((this.shouldUseTls() ? 'wss://' : 'ws://') + nodeInfo.addr);
+      ws = new WebSocket((this._shouldUseTls() ? 'wss://' : 'ws://') + nodeInfo.addr);
       ws.binaryType = 'arraybuffer';
     } catch (e) {
       console.log('Create WebSocket failed,', e);
       if (this.shouldReconnect) {
-        this.reconnect();
+        this._reconnect();
       }
       return;
     }
@@ -458,7 +504,7 @@ export default class Client {
     if (this.ws) {
       this.ws.onclose = () => {};
       try {
-        this.ws.close();
+        this.ws && this.ws.close();
       } catch (e) {
       }
     }
@@ -492,10 +538,10 @@ export default class Client {
       if (msg.Error !== undefined && msg.Error !== common.errors.rpcRespErrCodes.success) {
         console.log(msg);
         if (msg.Error === common.errors.rpcRespErrCodes.wrongNode) {
-          this.newWsAddr(msg.Result);
+          this._newWsAddr(msg.Result);
         } else if (msg.Action === 'setClient') {
           try {
-            this.ws.close();
+            this.ws && this.ws.close();
           } catch (e) {
           }
         }
@@ -505,17 +551,12 @@ export default class Client {
         case 'setClient':
           this.sigChainBlockHash = msg.Result.sigChainBlockHash;
           this.isReady = true;
-          if (this.eventListeners.connect) {
+          if (this.eventListeners.connect.length > 0) {
             this.eventListeners.connect.forEach(f => f(msg.Result));
           }
           break;
         case 'updateSigChainBlockHash':
           this.sigChainBlockHash = msg.Result;
-          break;
-        case 'sendRawBlock':
-          if (this.eventListeners.block) {
-            this.eventListeners.block.forEach(f => f(msg.Result));
-          }
           break;
         default:
           console.warn('Unknown msg type:', msg.Action);
@@ -525,7 +566,7 @@ export default class Client {
     ws.onclose = () => {
       if (this.shouldReconnect) {
         console.warn('WebSocket unexpectedly closed.');
-        this.reconnect();
+        this._reconnect();
       }
     };
 
@@ -534,14 +575,14 @@ export default class Client {
     }
   }
 
-  encryptPayload(payload, dest) {
+  _encryptPayload(payload: common.pb.payloads.Payload, dest: Destination): common.pb.payloads.Message | Array<common.pb.payloads.Message> {
     if (Array.isArray(dest)) {
       let nonce = common.util.randomBytes(nacl.secretbox.nonceLength);
       let key = common.util.randomBytes(nacl.secretbox.keyLength);
       let encryptedPayload = nacl.secretbox(payload, nonce, key);
 
-      let msgs = [];
-      for (var i = 0; i < dest.length; i++) {
+      let msgs: Array<common.pb.payloads.Message> = [];
+      for (let i = 0; i < dest.length; i++) {
         let pk = common.util.hexToBytes(message.addrToPubkey(dest[i]));
         let encryptedKey = this.key.encrypt(key, pk);
         let mergedNonce = common.util.mergeTypedArrays(encryptedKey.nonce, nonce);
@@ -556,7 +597,7 @@ export default class Client {
     }
   }
 
-  decryptPayload(msg, srcAddr) {
+  _decryptPayload(msg: common.pb.payloads.Message, srcAddr: string): Uint8Array {
     let rawPayload = msg.getPayload();
     let srcPubkey = common.util.hexToBytes(message.addrToPubkey(srcAddr));
     let nonce = msg.getNonce();
@@ -585,4 +626,175 @@ export default class Client {
     }
     return decryptedPayload;
   }
+}
+
+class ResponseProcessor {
+  pid: string;
+  deadline: ?number;
+  responseHandler: ResponseHandler;
+  timeoutHandler: TimeoutHandler;
+
+  constructor(
+    pid: Uint8Array | string,
+    timeout: ?number,
+    responseHandler: ResponseHandler,
+    timeoutHandler: TimeoutHandler,
+  ) {
+    if (pid instanceof Uint8Array) {
+      pid = common.util.bytesToHex(pid);
+    }
+
+    this.pid = pid;
+    if (timeout) {
+      this.deadline = Date.now() + timeout;
+    }
+    this.responseHandler = responseHandler;
+    this.timeoutHandler = timeoutHandler;
+  }
+
+  checkTimeout(now: number): boolean {
+    if (!this.deadline) {
+      return false;
+    }
+    if (!now) {
+      now = Date.now();
+    }
+    return now > this.deadline;
+  }
+
+  handleResponse(data: ReplyData) {
+    if (this.responseHandler) {
+      this.responseHandler(data);
+    }
+  }
+
+  handleTimeout() {
+    if (this.timeoutHandler) {
+      this.timeoutHandler(new Error('Message timeout'));
+    }
+  }
+}
+
+class ResponseManager {
+  responseProcessors: Map<string, ResponseProcessor>;
+  timer: TimeoutID | null;
+
+  constructor() {
+    this.responseProcessors = new Map();
+    this.timer = null;
+    this.checkTimeout();
+  }
+
+  add(proceccor: ResponseProcessor) {
+    this.responseProcessors.set(proceccor.pid, proceccor);
+  }
+
+  clear() {
+    for (let processor of this.responseProcessors.values()) {
+      processor.handleTimeout();
+    }
+    this.responseProcessors = new Map();
+  }
+
+  stop() {
+    clearTimeout(this.timer);
+    this.clear();
+  }
+
+  respond(pid: Uint8Array | string, data: ReplyData, payloadType?: common.pb.payloads.PayloadType) {
+    if (pid instanceof Uint8Array) {
+      pid = common.util.bytesToHex(pid);
+    }
+    let responseProcessor = this.responseProcessors.get(pid);
+    if (responseProcessor) {
+      responseProcessor.handleResponse(data);
+      this.responseProcessors.delete(pid);
+    }
+  }
+
+  checkTimeout() {
+    let timeoutProcessors = [];
+    let now = Date.now();
+    for (let processor of this.responseProcessors.values()) {
+      if (processor.checkTimeout(now)) {
+        timeoutProcessors.push(processor);
+      }
+    }
+
+    timeoutProcessors.forEach(p => {
+      p.handleTimeout();
+      this.responseProcessors.delete(p.pid);
+    })
+
+    this.timer = setTimeout(this.checkTimeout.bind(this), consts.checkTimeoutInterval);
+  }
+}
+
+type ResponseHandler = (data: ReplyData) => void;
+type TimeoutHandler = (error: Error) => void;
+
+/**
+ * One or multiple NKN address type.
+ */
+export type Destination = string | Array<string>;
+
+/**
+ * Message data type.
+ */
+export type MessageData = Uint8Array | string;
+
+/**
+ * Reply data type, `null` means ACK instead of reply is received.
+ */
+export type ReplyData = MessageData | null;
+
+/**
+ * Message type.
+ */
+export type Message = {
+  src: string,
+  payload: MessageData,
+  payloadType: common.pb.payloads.PayloadType,
+  isEncrypted: boolean,
+  pid: Uint8Array,
+};
+
+/**
+ * Connect handler function type.
+ */
+export type ConnectHandler = ({ addr: string }) => void;
+
+/**
+ * Message handler function type.
+ */
+export type MessageHandler = (Message) => ReplyData | false | void | Promise<ReplyData | false | void>;
+
+/**
+ * Send message options type.
+ * @property {number} [responseTimeout] - Message response timeout in ms. Zero disables timeout.
+ * @property {boolean} [encrypt] - Whether to end to end encrypt message.
+ * @property {number} [msgHoldingSeconds] - Maximal message holding time in second. Message might be cached and held by node up to this duration if destination client is not online. Zero disables cache.
+ * @property {boolean} [noReply=false] - Do not allocate any resources to wait for reply. Returned promise will resolve with null immediately when send success.
+ */
+export type SendOptions = {
+  responseTimeout?: number,
+  encrypt?: boolean,
+  msgHoldingSeconds?: number,
+  noReply?: boolean,
+  pid?: Uint8Array,
+  replyToPid?: Uint8Array,
+}
+
+/**
+ * Publish message options type.
+ * @property {boolean} [txPool=false] - Whether to send message to subscribers whose subscribe transaction is still in txpool. Enabling this will cause subscribers to receive message sooner after sending subscribe transaction, but might affect the correctness of subscribers because transactions in txpool is not guaranteed to be packed into a block.
+ * @property {boolean} [encrypt] - Whether to end to end encrypt message.
+ * @property {number} [msgHoldingSeconds] - Maximal message holding time in second. Message might be cached and held by node up to this duration if destination client is not online. Zero disables cache.
+ */
+export type PublishOptions = {
+  txPool?: boolean,
+  encrypt?: boolean,
+  msgHoldingSeconds?: number,
+  pid?: Uint8Array,
+  replyToPid?: Uint8Array,
 }

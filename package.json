@@ -11,7 +11,8 @@
   },
   "scripts": {
     "build": "babel src --out-dir lib && browserify lib/index.js -s nkn --outfile dist/nkn.js && uglifyjs dist/nkn.js -c -m -o dist/nkn.min.js",
-    "prepublish": "npm run-script build",
+    "docs": "documentation build src/*/*.js -f md -o docs.md --sort-order alpha --shallow",
+    "prepublish": "npm run-script build && npm run-script docs",
     "test": "jest",
     "pb": "protoc --js_out=import_style=commonjs,binary:. src/common/pb/*.proto"
   },
@@ -50,6 +51,7 @@
     "@babel/preset-env": "^7.8.3",
     "@babel/preset-flow": "^7.8.3",
     "browserify": "^16.5.0",
+    "documentation": "^12.1.4",
     "flow-bin": "^0.118.0",
     "jest": "^25.1.0",
     "uglify-es": "^3.3.9"

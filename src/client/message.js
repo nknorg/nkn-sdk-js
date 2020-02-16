@@ -102,7 +102,7 @@ export async function newOutboundMessage(client, dest, payload, maxHoldingSecond
 
   let signatures = [];
   let hex, digest, signature;
-  for (var i = 0; i < dest.length; i++) {
+  for (let i = 0; i < dest.length; i++) {
     sigChain.setDestId(common.util.hexToBytes(addrToID(dest[i])));
     sigChain.setDestPubkey(common.util.hexToBytes(addrToPubkey(dest[i])));
     if (payload.length > 1) {

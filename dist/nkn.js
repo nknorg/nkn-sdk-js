@@ -24,6 +24,721 @@ function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { de
 
 function _defineProperty(obj, key, value) { if (key in obj) { Object.defineProperty(obj, key, { value: value, enumerable: true, configurable: true, writable: true }); } else { obj[key] = value; } return obj; }
 
+/**
+ * NKN client that sends data to and receives data from other NKN clients.
+ * Typically you might want to use [MultiClient](#multiclient) for better
+ * reliability and lower latency.
+ * @param {Object} [options={}] - Client configuration
+ * @param {string} [options.seed=undefined] - Secret seed (64 hex characters). If empty, a random seed will be used.
+ * @param {string} [options.identifier=undefined] - Identifier used to differentiate multiple clients sharing the same secret seed.
+ * @param {number} [options.reconnectIntervalMin=1000] - Minimal reconnect interval in ms.
+ * @param {number} [options.reconnectIntervalMax=64000] - Maximal reconnect interval in ms.
+ * @param {number} [options.responseTimeout=5000] - Message response timeout in ms. Zero disables timeout.
+ * @param {number} [options.msgHoldingSeconds=0] - Maximal message holding time in second. Message might be cached and held by node up to this duration if destination client is not online. Zero disables cache.
+ * @param {boolean} [options.encrypt=true] - Whether to end to end encrypt message.
+ * @param {string} [options.seedRpcServerAddr='https://mainnet-rpc-node-0001.nkn.org/mainnet/api/wallet'] - Seed RPC server address used to join the network.
+ * @param {boolean} [options.tls=undefined] - Force to use wss instead of ws protocol. If not defined, wss will only be used in https location.
+ */
+class Client {
+  /**
+   * Address identifier.
+   */
+
+  /**
+   * Client address, which will be `identifier.pubicKeyHex` if `identifier` is not empty, otherwise just `pubicKeyHex`.
+   */
+
+  /**
+   * Whether client is ready (connected to a node).
+   */
+
+  /**
+   * Whether client is closed.
+   */
+  constructor(options = {}) {
+    _defineProperty(this, "options", void 0);
+
+    _defineProperty(this, "key", void 0);
+
+    _defineProperty(this, "identifier", void 0);
+
+    _defineProperty(this, "addr", void 0);
+
+    _defineProperty(this, "eventListeners", void 0);
+
+    _defineProperty(this, "sigChainBlockHash", void 0);
+
+    _defineProperty(this, "shouldReconnect", void 0);
+
+    _defineProperty(this, "reconnectInterval", void 0);
+
+    _defineProperty(this, "responseManager", void 0);
+
+    _defineProperty(this, "ws", void 0);
+
+    _defineProperty(this, "node", void 0);
+
+    _defineProperty(this, "isReady", void 0);
+
+    _defineProperty(this, "isClosed", void 0);
+
+    options = common.util.assignDefined({}, consts.defaultOptions, options);
+    let key = new common.Key(options.seed);
+    let identifier = options.identifier || '';
+    let pubkey = key.publicKey;
+    let addr = (identifier ? identifier + '.' : '') + pubkey;
+    this.options = options;
+    this.key = key;
+    this.identifier = identifier;
+    this.addr = addr;
+    this.eventListeners = {
+      connect: [],
+      message: []
+    };
+    this.sigChainBlockHash = null;
+    this.shouldReconnect = false;
+    this.reconnectInterval = options.reconnectIntervalMin;
+    this.responseManager = new ResponseManager();
+    this.ws = null;
+    this.node = null;
+    this.isReady = false;
+    this.isClosed = false;
+
+    this._connect();
+  }
+  /**
+   * Get the secret seed of the client.
+   * @returns Secret seed as hex string.
+   */
+
+
+  getSeed() {
+    return this.key.seed;
+  }
+  /**
+   * Get the public key of the client.
+   * @returns Public key as hex string.
+   */
+
+
+  getPublicKey() {
+    return this.key.publicKey;
+  }
+
+  async _connect() {
+    let getAddr = this._shouldUseTls() ? common.rpc.getWssAddr : common.rpc.getWsAddr;
+    let res, error;
+
+    for (let i = 0; i < 3; i++) {
+      try {
+        res = await getAddr(this.options.seedRpcServerAddr, {
+          address: this.addr
+        });
+      } catch (e) {
+        error = e;
+        continue;
+      }
+
+      this._newWsAddr(res);
+
+      return;
+    }
+
+    console.log('RPC call failed,', error);
+
+    if (this.shouldReconnect) {
+      this._reconnect();
+    }
+  }
+
+  _reconnect() {
+    console.log('Reconnecting in ' + this.reconnectInterval / 1000 + 's...');
+    setTimeout(() => this._connect(), this.reconnectInterval);
+    this.reconnectInterval *= 2;
+
+    if (this.reconnectInterval > this.options.reconnectIntervalMax) {
+      this.reconnectInterval = this.options.reconnectIntervalMax;
+    }
+  }
+
+  /**
+   * @deprecated please use onConnect, onMessage, etc.
+   */
+  on(evt, func) {
+    if (!this.eventListeners[evt]) {
+      this.eventListeners[evt] = [];
+    }
+
+    this.eventListeners[evt].push(func);
+  }
+
+  /**
+   * Add event listener function that will be called when client is connected to
+   * node. Multiple listeners will be called sequentially in the order of added.
+   */
+  onConnect(func) {
+    this.eventListeners.connect.push(func);
+  }
+
+  /**
+   * Add event listener function that will be called when client receives a
+   * message. Multiple listeners will be called sequentially in the order of
+   * added. Can be an async function, in which case each call will wait for
+   * promise to resolve before calling next listener function. If the first
+   * non-null and non-undefined returned value is `Uint8Array` or `string`,
+   * the value will be sent back as reply; if the first non-null and
+   * non-undefined returned value is `false`, no reply or ACK will be sent;
+   * if all handler functions return `null` or `undefined`, an ACK indicating
+   * msg received will be sent back.
+   */
+  onMessage(func) {
+    this.eventListeners.message.push(func);
+  }
+
+  _wssend(data) {
+    if (!this.ws) {
+      throw new common.errors.ClientNotReadyError();
+    }
+
+    this.ws.send(data);
+  }
+
+  async _send(dest, payload, encrypt = true, maxHoldingSeconds = 0) {
+    if (Array.isArray(dest)) {
+      if (dest.length === 0) {
+        return null;
+      }
+
+      if (dest.length === 1) {
+        return await this._send(dest[0], payload, encrypt, maxHoldingSeconds);
+      }
+    }
+
+    let pldMsg = this._messageFromPayload(payload, encrypt, dest);
+
+    if (Array.isArray(pldMsg)) {
+      pldMsg = pldMsg.map(pld => pld.serializeBinary());
+    } else {
+      pldMsg = pldMsg.serializeBinary();
+    }
+
+    let msgs = [];
+
+    if (Array.isArray(pldMsg)) {
+      let destList = [],
+          pldList = [],
+          totalSize = 0,
+          size = 0;
+
+      for (let i = 0; i < pldMsg.length; i++) {
+        size = pldMsg[i].length + dest[i].length + common.key.signatureLength;
+
+        if (size > message.maxClientMessageSize) {
+          throw new common.errors.DataSizeTooLargeError('encoded message is greater than ' + message.maxClientMessageSize + ' bytes');
+        }
+
+        if (totalSize + size > message.maxClientMessageSize) {
+          msgs.push((await message.newOutboundMessage(this, destList, pldList, maxHoldingSeconds)));
+          destList = [];
+          pldList = [];
+          totalSize = 0;
+        }
+
+        destList.push(dest[i]);
+        pldList.push(pldMsg[i]);
+        totalSize += size;
+      }
+
+      msgs.push((await message.newOutboundMessage(this, destList, pldList, maxHoldingSeconds)));
+    } else {
+      if (pldMsg.length + dest.length + common.key.signatureLength > message.maxClientMessageSize) {
+        throw new common.errors.DataSizeTooLargeError('encoded message is greater than ' + message.maxClientMessageSize + ' bytes');
+      }
+
+      msgs.push((await message.newOutboundMessage(this, dest, pldMsg, maxHoldingSeconds)));
+    }
+
+    if (msgs.length > 1) {
+      console.log(`Client message size is greater than ${message.maxClientMessageSize} bytes, split into ${msgs.length} batches.`);
+    }
+
+    msgs.forEach(msg => {
+      this._wssend(msg.serializeBinary());
+    });
+    return payload.getPid();
+  }
+  /**
+   * Send byte or string data to a single or an array of destination.
+   * @param options - Send options that will override client options.
+   * @returns A promise that will be resolved when reply or ACK from destination is received, or reject if send fail or message timeout. If dest is an array with more than one element, or `options.noReply=true`, the promise will resolve with null as soon as send success.
+   */
+
+
+  async send(dest, data, options = {}) {
+    options = common.util.assignDefined({}, this.options, options);
+    let payload;
+
+    if (typeof data === 'string') {
+      payload = message.newTextPayload(data, options.replyToPid, options.pid);
+    } else {
+      payload = message.newBinaryPayload(data, options.replyToPid, options.pid);
+    }
+
+    let pid = await this._send(dest, payload, options.encrypt, options.msgHoldingSeconds);
+
+    if (pid === null || options.noReply) {
+      return null;
+    }
+
+    return await new Promise((resolve, reject) => {
+      this.responseManager.add(new ResponseProcessor(pid, options.responseTimeout, resolve, reject));
+    });
+  }
+
+  async _sendACK(dest, pid, encrypt) {
+    if (Array.isArray(dest)) {
+      if (dest.length === 0) {
+        return;
+      }
+
+      if (dest.length === 1) {
+        return await this._sendACK(dest[0], pid, encrypt);
+      }
+
+      if (dest.length > 1 && encrypt) {
+        console.warn('Encrypted ACK with multicast is not supported, fallback to unicast.');
+
+        for (let i = 0; i < dest.length; i++) {
+          await this._sendACK(dest[i], pid, encrypt);
+        }
+
+        return;
+      }
+    }
+
+    let payload = message.newAckPayload(pid);
+
+    let pldMsg = this._messageFromPayload(payload, encrypt, dest);
+
+    if (pldMsg instanceof Array) {
+      throw new TypeError('ack payload should not be an array');
+    }
+
+    let msg = await message.newOutboundMessage(this, dest, pldMsg.serializeBinary(), 0);
+
+    this._wssend(msg.serializeBinary());
+  }
+
+  /**
+   * Get subscribers of a topic.
+   * @param options - Get subscribers options.
+   * @param {number} [options.offset=0] - Offset of subscribers to get.
+   * @param {number} [options.limit=1000] - Max number of subscribers to get. This does not affect subscribers in txpool.
+   * @param {boolean} [options.meta=false] - Whether to include metadata of subscribers in the topic.
+   * @param {boolean} [options.txPool=false] - Whether to include subscribers whose subscribe transaction is still in txpool. Enabling this will get subscribers sooner after they send subscribe transactions, but might affect the correctness of subscribers because transactions in txpool is not guaranteed to be packed into a block.
+   * @returns A promise that will be resolved with subscribers info. Note that `options.meta=false/true` will cause results to be an array (of subscriber address) or map (subscriber address -> metadata), respectively.
+   */
+  getSubscribers(topic, options = {}) {
+    return common.rpc.getSubscribers(this.options.seedRpcServerAddr, {
+      topic,
+      offset: options.offset,
+      limit: options.limit,
+      meta: options.meta,
+      txPool: options.txPool
+    });
+  }
+  /**
+   * Get subscribers count of a topic.
+   */
+
+
+  getSubscribersCount(topic) {
+    return common.rpc.getSubscribersCount(this.options.seedRpcServerAddr, {
+      topic
+    });
+  }
+  /**
+   * Get the subscription details of a subscriber in a topic.
+   */
+
+
+  getSubscription(topic, subscriber) {
+    return common.rpc.getSubscription(this.options.seedRpcServerAddr, {
+      topic,
+      subscriber
+    });
+  }
+  /**
+   * Send byte or string data to all subscribers of a topic.
+   * @returns A promise that will be resolved with null when send success.
+   */
+
+
+  async publish(topic, data, options = {}) {
+    let offset = 0;
+    let limit = 1000;
+    let res = await this.getSubscribers(topic, {
+      offset,
+      limit,
+      txPool: options.txPool || false
+    });
+
+    if (!(res.subscribers instanceof Array)) {
+      throw new common.errors.InvalidResponseError('subscribers should be an array');
+    }
+
+    if (res.subscribersInTxPool && !(res.subscribersInTxPool instanceof Array)) {
+      throw new common.errors.InvalidResponseError('subscribersInTxPool should be an array');
+    }
+
+    let subscribers = res.subscribers;
+    let subscribersInTxPool = res.subscribersInTxPool;
+
+    while (res.subscribers && res.subscribers.length >= limit) {
+      offset += limit;
+      res = await this.getSubscribers(topic, {
+        offset,
+        limit
+      });
+
+      if (!(res.subscribers instanceof Array)) {
+        throw new common.errors.InvalidResponseError('subscribers should be an array');
+      }
+
+      subscribers = subscribers.concat(res.subscribers);
+    }
+
+    if (options.txPool && subscribersInTxPool) {
+      subscribers = subscribers.concat(subscribersInTxPool);
+    }
+
+    options = common.util.assignDefined({}, options, {
+      noReply: true
+    });
+    await this.send(subscribers, data, options);
+    return null;
+  }
+  /**
+   * Close the client.
+   */
+
+
+  close() {
+    this.responseManager.stop();
+    this.shouldReconnect = false;
+
+    try {
+      this.ws && this.ws.close();
+    } catch (e) {}
+
+    this.isClosed = true;
+  }
+
+  _messageFromPayload(payload, encrypt, dest) {
+    if (encrypt) {
+      return this._encryptPayload(payload.serializeBinary(), dest);
+    }
+
+    return message.newMessage(payload.serializeBinary(), false);
+  }
+
+  async _handleMsg(rawMsg) {
+    let msg = common.pb.messages.ClientMessage.deserializeBinary(rawMsg);
+
+    switch (msg.getMessageType()) {
+      case common.pb.messages.ClientMessageType.INBOUND_MESSAGE:
+        return await this._handleInboundMsg(msg.getMessage());
+
+      default:
+        return false;
+    }
+  }
+
+  async _handleInboundMsg(rawMsg) {
+    let msg = common.pb.messages.InboundMessage.deserializeBinary(rawMsg);
+    let prevSignature = msg.getPrevSignature();
+
+    if (prevSignature.length > 0) {
+      prevSignature = common.util.bytesToHex(prevSignature);
+      let receipt = await message.newReceipt(this, prevSignature);
+
+      this._wssend(receipt.serializeBinary());
+    }
+
+    let pldMsg = common.pb.payloads.Message.deserializeBinary(msg.getPayload());
+    let pldBytes;
+
+    if (pldMsg.getEncrypted()) {
+      pldBytes = this._decryptPayload(pldMsg, msg.getSrc());
+    } else {
+      pldBytes = pldMsg.getPayload();
+    }
+
+    let payload = common.pb.payloads.Payload.deserializeBinary(pldBytes);
+    let data = payload.getData(); // process data
+
+    switch (payload.getType()) {
+      case common.pb.payloads.PayloadType.TEXT:
+        let textData = common.pb.payloads.TextData.deserializeBinary(data);
+        data = textData.getText();
+        break;
+
+      case common.pb.payloads.PayloadType.ACK:
+        this.responseManager.respond(payload.getReplyToPid(), null, payload.getType());
+        return true;
+    } // handle response if applicable
+
+
+    if (payload.getReplyToPid().length) {
+      this.responseManager.respond(payload.getReplyToPid(), data, payload.getType());
+      return true;
+    } // handle msg
+
+
+    switch (payload.getType()) {
+      case common.pb.payloads.PayloadType.TEXT:
+      case common.pb.payloads.PayloadType.BINARY:
+      case common.pb.payloads.PayloadType.SESSION:
+        let responses = [];
+
+        if (this.eventListeners.message.length > 0) {
+          responses = await Promise.all(this.eventListeners.message.map(f => {
+            try {
+              return Promise.resolve(f({
+                src: msg.getSrc(),
+                payload: data,
+                payloadType: payload.getType(),
+                isEncrypted: pldMsg.getEncrypted(),
+                pid: payload.getPid()
+              }));
+            } catch (e) {
+              console.log(e);
+              return Promise.resolve(null);
+            }
+          }));
+        }
+
+        let responded = false;
+
+        for (let response of responses) {
+          if (response === false) {
+            return true;
+          } else if (response !== undefined && response !== null) {
+            this.send(msg.getSrc(), response, {
+              encrypt: pldMsg.getEncrypted(),
+              msgHoldingSeconds: 0,
+              replyToPid: payload.getPid(),
+              noReply: true
+            });
+            responded = true;
+            break;
+          }
+        }
+
+        if (!responded) {
+          await this._sendACK(msg.getSrc(), payload.getPid(), pldMsg.getEncrypted());
+        }
+
+        return true;
+
+      default:
+        return false;
+    }
+  }
+
+  _shouldUseTls() {
+    if (this.options.tls !== undefined) {
+      return !!this.options.tls;
+    }
+
+    if (typeof window === 'undefined') {
+      return false;
+    }
+
+    if (window.location && window.location.protocol === 'https:') {
+      return true;
+    }
+
+    return false;
+  }
+
+  _newWsAddr(nodeInfo) {
+    if (!nodeInfo.addr) {
+      console.log('No address in node info', nodeInfo);
+
+      if (this.shouldReconnect) {
+        this._reconnect();
+      }
+
+      return;
+    }
+
+    let ws;
+
+    try {
+      ws = new _isomorphicWs.default((this._shouldUseTls() ? 'wss://' : 'ws://') + nodeInfo.addr);
+      ws.binaryType = 'arraybuffer';
+    } catch (e) {
+      console.log('Create WebSocket failed,', e);
+
+      if (this.shouldReconnect) {
+        this._reconnect();
+      }
+
+      return;
+    }
+
+    if (this.ws) {
+      this.ws.onclose = () => {};
+
+      try {
+        this.ws && this.ws.close();
+      } catch (e) {}
+    }
+
+    this.ws = ws;
+    this.node = nodeInfo;
+
+    ws.onopen = () => {
+      ws.send(JSON.stringify({
+        Action: 'setClient',
+        Addr: this.addr
+      }));
+      this.shouldReconnect = true;
+      this.reconnectInterval = this.options.reconnectIntervalMin;
+    };
+
+    ws.onmessage = async event => {
+      if (event.data instanceof ArrayBuffer) {
+        try {
+          let handled = await this._handleMsg(event.data);
+
+          if (!handled) {
+            console.warn('Unhandled msg.');
+          }
+        } catch (e) {
+          console.log(e);
+        }
+
+        return;
+      }
+
+      let msg = JSON.parse(event.data);
+
+      if (msg.Error !== undefined && msg.Error !== common.errors.rpcRespErrCodes.success) {
+        console.log(msg);
+
+        if (msg.Error === common.errors.rpcRespErrCodes.wrongNode) {
+          this._newWsAddr(msg.Result);
+        } else if (msg.Action === 'setClient') {
+          try {
+            this.ws && this.ws.close();
+          } catch (e) {}
+        }
+
+        return;
+      }
+
+      switch (msg.Action) {
+        case 'setClient':
+          this.sigChainBlockHash = msg.Result.sigChainBlockHash;
+          this.isReady = true;
+
+          if (this.eventListeners.connect.length > 0) {
+            this.eventListeners.connect.forEach(f => f(msg.Result));
+          }
+
+          break;
+
+        case 'updateSigChainBlockHash':
+          this.sigChainBlockHash = msg.Result;
+          break;
+
+        default:
+          console.warn('Unknown msg type:', msg.Action);
+      }
+    };
+
+    ws.onclose = () => {
+      if (this.shouldReconnect) {
+        console.warn('WebSocket unexpectedly closed.');
+
+        this._reconnect();
+      }
+    };
+
+    ws.onerror = err => {
+      console.log(err.message);
+    };
+  }
+
+  _encryptPayload(payload, dest) {
+    if (Array.isArray(dest)) {
+      let nonce = common.util.randomBytes(_tweetnacl.default.secretbox.nonceLength);
+      let key = common.util.randomBytes(_tweetnacl.default.secretbox.keyLength);
+
+      let encryptedPayload = _tweetnacl.default.secretbox(payload, nonce, key);
+
+      let msgs = [];
+
+      for (let i = 0; i < dest.length; i++) {
+        let pk = common.util.hexToBytes(message.addrToPubkey(dest[i]));
+        let encryptedKey = this.key.encrypt(key, pk);
+        let mergedNonce = common.util.mergeTypedArrays(encryptedKey.nonce, nonce);
+        let msg = message.newMessage(encryptedPayload, true, mergedNonce, encryptedKey.message);
+        msgs.push(msg);
+      }
+
+      return msgs;
+    } else {
+      let pk = common.util.hexToBytes(message.addrToPubkey(dest));
+      let encrypted = this.key.encrypt(payload, pk);
+      return message.newMessage(encrypted.message, true, encrypted.nonce);
+    }
+  }
+
+  _decryptPayload(msg, srcAddr) {
+    let rawPayload = msg.getPayload();
+    let srcPubkey = common.util.hexToBytes(message.addrToPubkey(srcAddr));
+    let nonce = msg.getNonce();
+    let encryptedKey = msg.getEncryptedKey();
+    let decryptedPayload;
+
+    if (encryptedKey && encryptedKey.length > 0) {
+      if (nonce.length != _tweetnacl.default.box.nonceLength + _tweetnacl.default.secretbox.nonceLength) {
+        throw new common.errors.DecryptionError('invalid nonce length');
+      }
+
+      let sharedKey = this.key.decrypt(encryptedKey, nonce.slice(0, _tweetnacl.default.box.nonceLength), srcPubkey);
+
+      if (sharedKey === null) {
+        throw new common.errors.DecryptionError('decrypt shared key failed');
+      }
+
+      decryptedPayload = _tweetnacl.default.secretbox.open(rawPayload, nonce.slice(_tweetnacl.default.box.nonceLength), sharedKey);
+
+      if (decryptedPayload === null) {
+        throw new common.errors.DecryptionError('decrypt message failed');
+      }
+    } else {
+      if (nonce.length != _tweetnacl.default.box.nonceLength) {
+        throw new common.errors.DecryptionError('invalid nonce length');
+      }
+
+      decryptedPayload = this.key.decrypt(rawPayload, nonce, srcPubkey);
+
+      if (decryptedPayload === null) {
+        throw new common.errors.DecryptionError('decrypt message failed');
+      }
+    }
+
+    return decryptedPayload;
+  }
+
+}
+
+exports.default = Client;
+
 class ResponseProcessor {
   constructor(pid, timeout, responseHandler, timeoutHandler) {
     _defineProperty(this, "pid", void 0);
@@ -39,12 +754,20 @@ class ResponseProcessor {
     }
 
     this.pid = pid;
-    this.deadline = Date.now() + timeout;
+
+    if (timeout) {
+      this.deadline = Date.now() + timeout;
+    }
+
     this.responseHandler = responseHandler;
     this.timeoutHandler = timeoutHandler;
   }
 
   checkTimeout(now) {
+    if (!this.deadline) {
+      return false;
+    }
+
     if (!now) {
       now = Date.now();
     }
@@ -94,13 +817,15 @@ class ResponseManager {
     this.clear();
   }
 
-  respond(pid, data) {
+  respond(pid, data, payloadType) {
     if (pid instanceof Uint8Array) {
       pid = common.util.bytesToHex(pid);
     }
 
-    if (this.responseProcessors.has(pid)) {
-      this.responseProcessors.get(pid).handleResponse(data);
+    let responseProcessor = this.responseProcessors.get(pid);
+
+    if (responseProcessor) {
+      responseProcessor.handleResponse(data);
       this.responseProcessors.delete(pid);
     }
   }
@@ -123,593 +848,6 @@ class ResponseManager {
   }
 
 }
-
-class Client {
-  constructor(options = {}) {
-    _defineProperty(this, "options", void 0);
-
-    _defineProperty(this, "key", void 0);
-
-    _defineProperty(this, "identifier", void 0);
-
-    _defineProperty(this, "addr", void 0);
-
-    _defineProperty(this, "eventListeners", void 0);
-
-    _defineProperty(this, "sigChainBlockHash", void 0);
-
-    _defineProperty(this, "shouldReconnect", void 0);
-
-    _defineProperty(this, "reconnectInterval", void 0);
-
-    _defineProperty(this, "responseManager", void 0);
-
-    _defineProperty(this, "ws", void 0);
-
-    _defineProperty(this, "node", void 0);
-
-    _defineProperty(this, "isReady", void 0);
-
-    _defineProperty(this, "isClosed", void 0);
-
-    options = common.util.assignDefined({}, consts.defaultOptions, options);
-    let key = new common.Key(options.seed);
-    let identifier = options.identifier || '';
-    let pubkey = key.publicKey;
-    let addr = (identifier ? identifier + '.' : '') + pubkey;
-    this.options = options;
-    this.key = key;
-    this.identifier = identifier;
-    this.addr = addr;
-    this.eventListeners = {};
-    this.sigChainBlockHash = null;
-    this.shouldReconnect = false;
-    this.reconnectInterval = options.reconnectIntervalMin;
-    this.responseManager = new ResponseManager();
-    this.ws = null;
-    this.node = null;
-    this.isReady = false;
-    this.isClosed = false;
-    this.connect();
-  }
-
-  getSeed() {
-    return this.key.seed;
-  }
-
-  getPublicKey() {
-    return this.key.publicKey;
-  }
-
-  async connect() {
-    let getAddr = this.shouldUseTls() ? common.rpc.getWssAddr : common.rpc.getWsAddr;
-    let res, error;
-
-    for (let i = 0; i < 3; i++) {
-      try {
-        res = await getAddr(this.options.seedRpcServerAddr, {
-          address: this.addr
-        });
-      } catch (e) {
-        error = e;
-        continue;
-      }
-
-      this.newWsAddr(res);
-      return;
-    }
-
-    console.log('RPC call failed,', error);
-
-    if (this.shouldReconnect) {
-      this.reconnect();
-    }
-  }
-
-  reconnect() {
-    console.log('Reconnecting in ' + this.reconnectInterval / 1000 + 's...');
-    setTimeout(() => this.connect(), this.reconnectInterval);
-    this.reconnectInterval *= 2;
-
-    if (this.reconnectInterval > this.options.reconnectIntervalMax) {
-      this.reconnectInterval = this.options.reconnectIntervalMax;
-    }
-  }
-
-  on(e, func) {
-    if (this.eventListeners[e]) {
-      this.eventListeners[e].push(func);
-    } else {
-      this.eventListeners[e] = [func];
-    }
-  }
-
-  async _send(dest, payload, encrypt = true, maxHoldingSeconds = 0) {
-    if (Array.isArray(dest)) {
-      if (dest.length === 0) {
-        return null;
-      }
-
-      if (dest.length === 1) {
-        return await this._send(dest[0], payload, encrypt, maxHoldingSeconds);
-      }
-    }
-
-    let pldMsg = this.messageFromPayload(payload, encrypt, dest);
-
-    if (Array.isArray(pldMsg)) {
-      pldMsg = pldMsg.map(pld => pld.serializeBinary());
-    } else {
-      pldMsg = pldMsg.serializeBinary();
-    }
-
-    let msgs = [];
-
-    if (Array.isArray(pldMsg)) {
-      let destList = [],
-          pldList = [],
-          totalSize = 0,
-          size = 0;
-
-      for (var i = 0; i < pldMsg.length; i++) {
-        size = pldMsg[i].length + dest[i].length + common.key.signatureLength;
-
-        if (size > message.maxClientMessageSize) {
-          throw new common.errors.DataSizeTooLargeError('encoded message is greater than ' + message.maxClientMessageSize + ' bytes');
-        }
-
-        if (totalSize + size > message.maxClientMessageSize) {
-          msgs.push((await message.newOutboundMessage(this, destList, pldList, maxHoldingSeconds)));
-          destList = [];
-          pldList = [];
-          totalSize = 0;
-        }
-
-        destList.push(dest[i]);
-        pldList.push(pldMsg[i]);
-        totalSize += size;
-      }
-
-      msgs.push((await message.newOutboundMessage(this, destList, pldList, maxHoldingSeconds)));
-    } else {
-      if (pldMsg.length + dest.length + common.key.signatureLength > message.maxClientMessageSize) {
-        throw new common.errors.DataSizeTooLargeError('encoded message is greater than ' + message.maxClientMessageSize + ' bytes');
-      }
-
-      msgs.push((await message.newOutboundMessage(this, dest, pldMsg, maxHoldingSeconds)));
-    }
-
-    if (msgs.length > 1) {
-      console.log(`Client message size is greater than ${message.maxClientMessageSize} bytes, split into ${msgs.length} batches.`);
-    }
-
-    msgs.forEach(msg => {
-      this.ws.send(msg.serializeBinary());
-    });
-    return payload.getPid();
-  }
-
-  async send(dest, data, options = {}) {
-    options = common.util.assignDefined({}, this.options, options);
-    let payload;
-
-    if (typeof data === 'string') {
-      payload = message.newTextPayload(data, options.replyToPid, options.pid);
-    } else {
-      payload = message.newBinaryPayload(data, options.replyToPid, options.pid);
-    }
-
-    let pid = await this._send(dest, payload, options.encrypt, options.msgHoldingSeconds);
-
-    if (pid === null || options.noReply) {
-      return null;
-    }
-
-    return await new Promise((resolve, reject) => {
-      this.responseManager.add(new ResponseProcessor(pid, options.responseTimeout, resolve, reject));
-    });
-  }
-
-  async sendACK(dest, pid, encrypt) {
-    if (Array.isArray(dest)) {
-      if (dest.length === 0) {
-        return;
-      }
-
-      if (dest.length === 1) {
-        return await this.sendACK(dest[0], pid, encrypt);
-      }
-
-      if (dest.length > 1 && encrypt) {
-        console.warn('Encrypted ACK with multicast is not supported, fallback to unicast.');
-
-        for (var i = 0; i < dest.length; i++) {
-          await this.sendACK(dest[i], pid, encrypt);
-        }
-
-        return;
-      }
-    }
-
-    let payload = message.newAckPayload(pid);
-    let pldMsg = this.messageFromPayload(payload, encrypt, dest);
-    let msg = await message.newOutboundMessage(this, dest, pldMsg.serializeBinary(), 0);
-    this.ws.send(msg.serializeBinary());
-  }
-
-  getSubscribers(topic, options = {}) {
-    return common.rpc.getSubscribers(this.options.seedRpcServerAddr, {
-      topic,
-      offset: options.offset,
-      limit: options.limit,
-      meta: options.meta,
-      txPool: options.txPool
-    });
-  }
-
-  getSubscribersCount(topic) {
-    return common.rpc.getSubscribersCount(this.options.seedRpcServerAddr, {
-      topic
-    });
-  }
-
-  getSubscription(topic, subscriber) {
-    return common.rpc.getSubscription(this.options.seedRpcServerAddr, {
-      topic,
-      subscriber
-    });
-  }
-
-  async publish(topic, data, options = {}) {
-    let offset = 0;
-    let limit = 1000;
-    let res = await this.getSubscribers(topic, {
-      offset,
-      limit,
-      txPool: options.txPool || false
-    });
-    let subscribers = res.subscribers;
-    let subscribersInTxPool = res.subscribersInTxPool;
-
-    while (res.subscribers && res.subscribers.length >= limit) {
-      offset += limit;
-      res = await this.getSubscribers(topic, {
-        offset,
-        limit
-      });
-      subscribers = subscribers.concat(res.subscribers);
-    }
-
-    if (options.txPool) {
-      subscribers = subscribers.concat(subscribersInTxPool);
-    }
-
-    options = common.util.assignDefined({}, options, {
-      noReply: true
-    });
-    return await this.send(subscribers, data, options);
-  }
-
-  close() {
-    this.responseManager.stop();
-    this.shouldReconnect = false;
-
-    try {
-      this.ws.close();
-    } catch (e) {}
-
-    this.isClosed = true;
-  }
-
-  messageFromPayload(payload, encrypt, dest) {
-    if (encrypt) {
-      return this.encryptPayload(payload.serializeBinary(), dest);
-    }
-
-    return message.newMessage(payload.serializeBinary(), false);
-  }
-
-  async _handleMsg(rawMsg) {
-    let msg = common.pb.messages.ClientMessage.deserializeBinary(rawMsg);
-
-    switch (msg.getMessageType()) {
-      case common.pb.messages.ClientMessageType.INBOUND_MESSAGE:
-        return await this._handleInboundMsg(msg.getMessage());
-
-      default:
-        return false;
-    }
-  }
-
-  async _handleInboundMsg(rawMsg) {
-    let msg = common.pb.messages.InboundMessage.deserializeBinary(rawMsg);
-    let prevSignature = msg.getPrevSignature();
-
-    if (prevSignature.length > 0) {
-      prevSignature = common.util.bytesToHex(prevSignature);
-      let receipt = await message.newReceipt(this, prevSignature);
-      this.ws.send(receipt.serializeBinary());
-    }
-
-    let pldMsg = common.pb.payloads.Message.deserializeBinary(msg.getPayload());
-    let pldBytes;
-
-    if (pldMsg.getEncrypted()) {
-      pldBytes = this.decryptPayload(pldMsg, msg.getSrc());
-    } else {
-      pldBytes = pldMsg.getPayload();
-    }
-
-    let payload = common.pb.payloads.Payload.deserializeBinary(pldBytes);
-    let data = payload.getData(); // process data
-
-    switch (payload.getType()) {
-      case common.pb.payloads.PayloadType.TEXT:
-        let textData = common.pb.payloads.TextData.deserializeBinary(data);
-        data = textData.getText();
-        break;
-
-      case common.pb.payloads.PayloadType.ACK:
-        data = undefined;
-        break;
-    } // handle response if applicable
-
-
-    if (payload.getReplyToPid().length) {
-      this.responseManager.respond(payload.getReplyToPid(), data, payload.getType());
-      return true;
-    } // handle msg
-
-
-    switch (payload.getType()) {
-      case common.pb.payloads.PayloadType.TEXT:
-      case common.pb.payloads.PayloadType.BINARY:
-      case common.pb.payloads.PayloadType.SESSION:
-        let responses = [];
-
-        if (this.eventListeners.message) {
-          responses = await Promise.all(this.eventListeners.message.map(f => {
-            try {
-              return Promise.resolve(f({
-                src: msg.getSrc(),
-                payload: data,
-                payloadType: payload.getType(),
-                isEncrypted: pldMsg.getEncrypted(),
-                pid: payload.getPid()
-              }));
-            } catch (e) {
-              console.log(e);
-              return Promise.resolve(null);
-            }
-          }));
-        }
-
-        let responded = false;
-
-        for (let response of responses) {
-          if (response === false) {
-            return true;
-          } else if (response !== undefined && response !== null) {
-            this.send(msg.getSrc(), response, {
-              encrypt: pldMsg.getEncrypted(),
-              msgHoldingSeconds: 0,
-              replyToPid: payload.getPid(),
-              noReply: true
-            });
-            responded = true;
-            break;
-          }
-        }
-
-        if (!responded) {
-          await this.sendACK(msg.getSrc(), payload.getPid(), pldMsg.getEncrypted());
-        }
-
-        return true;
-
-      default:
-        return false;
-    }
-  }
-
-  shouldUseTls() {
-    if (this.options.tls !== undefined) {
-      return !!this.options.tls;
-    }
-
-    if (typeof window === 'undefined') {
-      return false;
-    }
-
-    if (window.location && window.location.protocol === 'https:') {
-      return true;
-    }
-
-    return false;
-  }
-
-  newWsAddr(nodeInfo) {
-    if (!nodeInfo.addr) {
-      console.log('No address in node info', nodeInfo);
-
-      if (this.shouldReconnect) {
-        this.reconnect();
-      }
-
-      return;
-    }
-
-    var ws;
-
-    try {
-      ws = new _isomorphicWs.default((this.shouldUseTls() ? 'wss://' : 'ws://') + nodeInfo.addr);
-      ws.binaryType = 'arraybuffer';
-    } catch (e) {
-      console.log('Create WebSocket failed,', e);
-
-      if (this.shouldReconnect) {
-        this.reconnect();
-      }
-
-      return;
-    }
-
-    if (this.ws) {
-      this.ws.onclose = () => {};
-
-      try {
-        this.ws.close();
-      } catch (e) {}
-    }
-
-    this.ws = ws;
-    this.node = nodeInfo;
-
-    ws.onopen = () => {
-      ws.send(JSON.stringify({
-        Action: 'setClient',
-        Addr: this.addr
-      }));
-      this.shouldReconnect = true;
-      this.reconnectInterval = this.options.reconnectIntervalMin;
-    };
-
-    ws.onmessage = async event => {
-      if (event.data instanceof ArrayBuffer) {
-        try {
-          let handled = await this._handleMsg(event.data);
-
-          if (!handled) {
-            console.warn('Unhandled msg.');
-          }
-        } catch (e) {
-          console.log(e);
-        }
-
-        return;
-      }
-
-      let msg = JSON.parse(event.data);
-
-      if (msg.Error !== undefined && msg.Error !== common.errors.rpcRespErrCodes.success) {
-        console.log(msg);
-
-        if (msg.Error === common.errors.rpcRespErrCodes.wrongNode) {
-          this.newWsAddr(msg.Result);
-        } else if (msg.Action === 'setClient') {
-          try {
-            this.ws.close();
-          } catch (e) {}
-        }
-
-        return;
-      }
-
-      switch (msg.Action) {
-        case 'setClient':
-          this.sigChainBlockHash = msg.Result.sigChainBlockHash;
-          this.isReady = true;
-
-          if (this.eventListeners.connect) {
-            this.eventListeners.connect.forEach(f => f(msg.Result));
-          }
-
-          break;
-
-        case 'updateSigChainBlockHash':
-          this.sigChainBlockHash = msg.Result;
-          break;
-
-        case 'sendRawBlock':
-          if (this.eventListeners.block) {
-            this.eventListeners.block.forEach(f => f(msg.Result));
-          }
-
-          break;
-
-        default:
-          console.warn('Unknown msg type:', msg.Action);
-      }
-    };
-
-    ws.onclose = () => {
-      if (this.shouldReconnect) {
-        console.warn('WebSocket unexpectedly closed.');
-        this.reconnect();
-      }
-    };
-
-    ws.onerror = err => {
-      console.log(err.message);
-    };
-  }
-
-  encryptPayload(payload, dest) {
-    if (Array.isArray(dest)) {
-      let nonce = common.util.randomBytes(_tweetnacl.default.secretbox.nonceLength);
-      let key = common.util.randomBytes(_tweetnacl.default.secretbox.keyLength);
-
-      let encryptedPayload = _tweetnacl.default.secretbox(payload, nonce, key);
-
-      let msgs = [];
-
-      for (var i = 0; i < dest.length; i++) {
-        let pk = common.util.hexToBytes(message.addrToPubkey(dest[i]));
-        let encryptedKey = this.key.encrypt(key, pk);
-        let mergedNonce = common.util.mergeTypedArrays(encryptedKey.nonce, nonce);
-        let msg = message.newMessage(encryptedPayload, true, mergedNonce, encryptedKey.message);
-        msgs.push(msg);
-      }
-
-      return msgs;
-    } else {
-      let pk = common.util.hexToBytes(message.addrToPubkey(dest));
-      let encrypted = this.key.encrypt(payload, pk);
-      return message.newMessage(encrypted.message, true, encrypted.nonce);
-    }
-  }
-
-  decryptPayload(msg, srcAddr) {
-    let rawPayload = msg.getPayload();
-    let srcPubkey = common.util.hexToBytes(message.addrToPubkey(srcAddr));
-    let nonce = msg.getNonce();
-    let encryptedKey = msg.getEncryptedKey();
-    let decryptedPayload;
-
-    if (encryptedKey && encryptedKey.length > 0) {
-      if (nonce.length != _tweetnacl.default.box.nonceLength + _tweetnacl.default.secretbox.nonceLength) {
-        throw new common.errors.DecryptionError('invalid nonce length');
-      }
-
-      let sharedKey = this.key.decrypt(encryptedKey, nonce.slice(0, _tweetnacl.default.box.nonceLength), srcPubkey);
-
-      if (sharedKey === null) {
-        throw new common.errors.DecryptionError('decrypt shared key failed');
-      }
-
-      decryptedPayload = _tweetnacl.default.secretbox.open(rawPayload, nonce.slice(_tweetnacl.default.box.nonceLength), sharedKey);
-
-      if (decryptedPayload === null) {
-        throw new common.errors.DecryptionError('decrypt message failed');
-      }
-    } else {
-      if (nonce.length != _tweetnacl.default.box.nonceLength) {
-        throw new common.errors.DecryptionError('invalid nonce length');
-      }
-
-      decryptedPayload = this.key.decrypt(rawPayload, nonce, srcPubkey);
-
-      if (decryptedPayload === null) {
-        throw new common.errors.DecryptionError('decrypt message failed');
-      }
-    }
-
-    return decryptedPayload;
-  }
-
-}
-
-exports.default = Client;
 },{"../common":7,"./consts":2,"./message":4,"isomorphic-ws":206,"tweetnacl":228}],2:[function(require,module,exports){
 'use strict';
 
@@ -890,7 +1028,7 @@ async function newOutboundMessage(client, dest, payload, maxHoldingSeconds) {
   let signatures = [];
   let hex, digest, signature;
 
-  for (var i = 0; i < dest.length; i++) {
+  for (let i = 0; i < dest.length; i++) {
     sigChain.setDestId(common.util.hexToBytes(addrToID(dest[i])));
     sigChain.setDestPubkey(common.util.hexToBytes(addrToPubkey(dest[i])));
 
@@ -8623,7 +8761,9 @@ var _serialize = require("./serialize");
 function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
 
 function hexToBytes(hex) {
-  for (var bytes = [], c = 0; c < hex.length; c += 2) {
+  let bytes = [];
+
+  for (let c = 0; c < hex.length; c += 2) {
     bytes.push(parseInt(hex.substr(c, 2), 16));
   }
 
@@ -8661,7 +8801,7 @@ function randomUint64() {
 }
 
 function mergeTypedArrays(a, b) {
-  var c = new a.constructor(a.length + b.length);
+  let c = new a.constructor(a.length + b.length);
   c.set(a);
   c.set(b, a.length);
   return c;
@@ -8808,7 +8948,43 @@ function _interopRequireWildcard(obj) { if (obj && obj.__esModule) { return obj;
 
 function _defineProperty(obj, key, value) { if (key in obj) { Object.defineProperty(obj, key, { value: value, enumerable: true, configurable: true, writable: true }); } else { obj[key] = value; } return obj; }
 
+/**
+ * NKN client that sends data to and receives data from other NKN clients.
+ * @param {Object} [options={}] - Client configuration
+ * @param {string} [options.seed=undefined] - Secret seed (64 hex characters). If empty, a random seed will be used.
+ * @param {string} [options.identifier=undefined] - Identifier used to differentiate multiple clients sharing the same secret seed.
+ * @param {number} [options.reconnectIntervalMin=1000] - Minimal reconnect interval in ms.
+ * @param {number} [options.reconnectIntervalMax=64000] - Maximal reconnect interval in ms.
+ * @param {number} [options.responseTimeout=5000] - Message response timeout in ms. Zero disables timeout.
+ * @param {number} [options.msgHoldingSeconds=0] - Maximal message holding time in second. Message might be cached and held by node up to this duration if destination client is not online. Zero disables cache.
+ * @param {boolean} [options.encrypt=true] - Whether to end to end encrypt message.
+ * @param {string} [options.seedRpcServerAddr='https://mainnet-rpc-node-0001.nkn.org/mainnet/api/wallet'] - Seed RPC server address used to join the network.
+ * @param {boolean} [options.tls=undefined] - Force to use wss instead of ws protocol. If not defined, wss will only be used in https location.
+ * @param {number} [options.numSubClients=3] - Number of sub clients to create.
+ * @param {boolean} [options.originalClient=false] - Whether to create client with no additional identifier prefix added. This client is not counted towards sub clients controlled by `options.numSubClients`.
+ * @param {number} [options.msgCacheExpiration=300000] - Message pid cache expiration time in ms. This cache is used to remove duplicate messages received by different clients.
+ * @param {Object} [options.sessionConfig={}] - Session configuration
+ */
 class MultiClient {
+  /**
+   * Address identifier.
+   */
+
+  /**
+   * Client address, which will be `identifier.pubicKeyHex` if `identifier` is not empty, otherwise just `pubicKeyHex`.
+   */
+
+  /**
+   * Underlying NKN clients used to send/receive data.
+   */
+
+  /**
+   * Whether client is ready (connected to a node).
+   */
+
+  /**
+   * Whether client is closed.
+   */
   constructor(options = {}) {
     _defineProperty(this, "options", void 0);
 
@@ -8849,7 +9025,7 @@ class MultiClient {
       }
     }
 
-    for (var i = 0; i < options.numSubClients; i++) {
+    for (let i = 0; i < options.numSubClients; i++) {
       clients[util.addIdentifier('', i)] = new _client.default(common.util.assignDefined({}, options, {
         identifier: util.addIdentifier(baseIdentifier, i)
       }));
@@ -8873,15 +9049,19 @@ class MultiClient {
     this.key = this.defaultClient.key;
     this.identifier = baseIdentifier;
     this.addr = (baseIdentifier ? baseIdentifier + '.' : '') + this.key.publicKey;
-    this.eventListeners = {};
+    this.eventListeners = {
+      connect: [],
+      message: [],
+      session: []
+    };
     this.msgCache = new _memoryCache.Cache();
     this.acceptAddrs = [];
     this.sessions = new Map();
     this.isReady = false;
     this.isClosed = false;
 
-    for (let [clientID, client] of Object.entries(clients)) {
-      client.on('message', async ({
+    for (let clientID of Object.keys(clients)) {
+      clients[clientID].onMessage(async ({
         src,
         payload,
         payloadType,
@@ -8955,9 +9135,9 @@ class MultiClient {
         }
 
         if (!responded) {
-          for (let [clientID, client] of Object.entries(clients)) {
-            if (client.isReady) {
-              client.sendACK(util.addIdentifierPrefixAll(src, clientID), pid, isEncrypted);
+          for (let clientID of Object.keys(clients)) {
+            if (clients[clientID].isReady) {
+              clients[clientID]._sendACK(util.addIdentifierPrefixAll(src, clientID), pid, isEncrypted);
             }
           }
         }
@@ -8966,16 +9146,26 @@ class MultiClient {
       });
     }
   }
+  /**
+   * Get the secret seed of the client.
+   * @returns Secret seed as hex string.
+   */
+
 
   getSeed() {
     return this.key.seed;
   }
+  /**
+   * Get the public key of the client.
+   * @returns Public key as hex string.
+   */
+
 
   getPublicKey() {
     return this.key.publicKey;
   }
 
-  shouldAcceptAddr(addr) {
+  _shouldAcceptAddr(addr) {
     for (let allowAddr of this.acceptAddrs) {
       if (allowAddr.test(addr)) {
         return true;
@@ -8996,7 +9186,7 @@ class MultiClient {
     if (existed) {
       session = this.sessions.get(sessionKey);
     } else {
-      if (!this.shouldAcceptAddr(remoteAddr)) {
+      if (!this._shouldAcceptAddr(remoteAddr)) {
         throw new common.errors.AddrNotAllowedError();
       }
 
@@ -9015,7 +9205,7 @@ class MultiClient {
             return await f(session);
           } catch (e) {
             console.log('Session handler error:', e);
-            return null;
+            return;
           }
         }));
       }
@@ -9035,6 +9225,13 @@ class MultiClient {
       await client._send(util.addIdentifierPrefix(remoteAddr, remoteClientID), payload);
     }, sessionConfig);
   }
+  /**
+   * Send byte or string data to a single or an array of destination using the
+   * client with given clientID. Typically `send` should be used instead for
+   * better reliability and lower latency.
+   * @returns A promise that will be resolved when reply or ACK from destination is received, or reject if send fail or message timeout. If dest is an array with more than one element, or `options.noReply=true`, the promise will resolve with null as soon as send success.
+   */
+
 
   async sendWithClient(clientID, dest, data, options = {}) {
     let client = this.clients[clientID];
@@ -9050,11 +9247,20 @@ class MultiClient {
     return await client.send(util.addIdentifierPrefixAll(dest, clientID), data, options);
   }
 
+  /**
+   * Get the list of clientID that are ready.
+   */
   readyClientIDs() {
     return Object.keys(this.clients).filter(clientID => {
       return this.clients[clientID] && this.clients[clientID].isReady;
     });
   }
+  /**
+   * Send byte or string data to a single or an array of destination using all
+   * available clients.
+   * @returns A promise that will be resolved when reply or ACK from destination is received, or reject if send fail or message timeout. If dest is an array with more than one element, or `options.noReply=true`, the promise will resolve with null as soon as send success.
+   */
+
 
   async send(dest, data, options = {}) {
     options = common.util.assignDefined({}, options, {
@@ -9075,6 +9281,11 @@ class MultiClient {
     }
   }
 
+  /**
+   * Send byte or string data to all subscribers of a topic using all available
+   * clients.
+   * @returns A promise that will be resolved with null when send success.
+   */
   async publish(topic, data, options = {}) {
     let offset = 0;
     let limit = 1000;
@@ -9088,7 +9299,7 @@ class MultiClient {
 
     while (res.subscribers && res.subscribers.length >= limit) {
       offset += limit;
-      res = await this.getSubscribers(topic, {
+      res = await this.defaultClient.getSubscribers(topic, {
         offset,
         limit
       });
@@ -9104,36 +9315,78 @@ class MultiClient {
     });
     return await this.send(subscribers, data, options);
   }
+  /**
+   * @deprecated please use onConnect, onMessage, onSession, etc.
+   */
 
-  on(e, func) {
-    switch (e) {
+
+  on(evt, func) {
+    switch (evt) {
       case 'connect':
-        let promises = Object.values(this.clients).map(client => new _promise.default((resolve, reject) => {
-          client.on('connect', resolve);
-        }));
-
-        _promise.default.any(promises).then(r => {
-          this.isReady = true;
-          func(r);
-        }).catch(e => {
-          console.log('Failed to connect to any client:', e.errors);
-          this.close();
-        });
+        return this.onConnect(func);
 
       case 'message':
-      case 'session':
-        if (this.eventListeners[e]) {
-          this.eventListeners[e].push(func);
-        } else {
-          this.eventListeners[e] = [func];
-        }
+        return this.onMessage(func);
 
-        return;
+      case 'session':
+        return this.onSession(func);
 
       default:
-        return this.defaultClient.on(e, func);
+        if (!this.eventListeners[evt]) {
+          this.eventListeners[evt] = [];
+        }
+
+        this.eventListeners[evt].push(func);
     }
   }
+
+  /**
+   * Add event listener function that will be called when at least one sub
+   * client is connected to node. Multiple listeners will be called sequentially
+   * in the order of added.
+   */
+  onConnect(func) {
+    let promises = Object.keys(this.clients).map(clientID => new _promise.default((resolve, reject) => {
+      this.clients[clientID].onConnect(resolve);
+    }));
+
+    _promise.default.any(promises).then(r => {
+      this.isReady = true;
+      func(r);
+    }).catch(e => {
+      console.log('Failed to connect to any client:', e.errors);
+      this.close();
+    });
+  }
+  /**
+   * Add event listener function that will be called when client receives a
+   * message. Multiple listeners will be called sequentially in the order of
+   * added. Can be an async function, in which case each call will wait for
+   * promise to resolve before calling next listener function. If the first
+   * non-null and non-undefined returned value is `Uint8Array` or `string`,
+   * the value will be sent back as reply; if the first non-null and
+   * non-undefined returned value is `false`, no reply or ACK will be sent;
+   * if all handler functions return `null` or `undefined`, an ACK indicating
+   * msg received will be sent back.
+   */
+
+
+  onMessage(func) {
+    this.eventListeners.message.push(func);
+  }
+  /**
+   * Add event listener function that will be called when client accepts a new
+   * session.
+   */
+
+
+  onSession(func) {
+    this.eventListeners.session.push(func);
+  }
+  /**
+   * Close the client and all sessions.
+   */
+
 
   async close() {
     let promises = [];
@@ -9148,9 +9401,9 @@ class MultiClient {
       console.log(e);
     }
 
-    Object.values(this.clients).forEach(client => {
+    Object.keys(this.clients).forEach(clientID => {
       try {
-        client.close();
+        this.clients[clientID].close();
       } catch (e) {
         console.log(e);
       }
@@ -9159,21 +9412,38 @@ class MultiClient {
     this.isClosed = true;
   }
 
-  listen(addrsRe) {
-    if (addrsRe === null || addrsRe === undefined) {
-      addrsRe = [consts.defaultSessionAllowAddr];
-    } else if (!Array.isArray(addrsRe)) {
-      addrsRe = [addrsRe];
-    }
-
-    for (var i = 0; i < addrsRe.length; i++) {
-      if (!(addrsRe[i] instanceof RegExp)) {
-        addrsRe[i] = new RegExp(addrsRe[i]);
+  /**
+   * Start accepting sessions from addresses, which could be one or an array of
+   * RegExp. If addrs is a string or string array, each element will be
+   * converted to RegExp. Session from NKN address that matches any RegExp in
+   * addrs will be allowed. When addrs is null or undefined, any address will be
+   * accepted. Each function call will overwrite previous listening addresses.
+   */
+  listen(addrs) {
+    if (addrs === null || addrs === undefined) {
+      addrs = [consts.defaultSessionAllowAddr];
+    } else if (!Array.isArray(addrs)) {
+      if (addrs instanceof RegExp) {
+        addrs = [addrs];
+      } else {
+        addrs = [addrs];
       }
     }
 
-    this.acceptAddrs = addrsRe;
+    this.acceptAddrs = [];
+
+    for (let i = 0; i < addrs.length; i++) {
+      if (addrs[i] instanceof RegExp) {
+        this.acceptAddrs.push(addrs[i]);
+      } else {
+        this.acceptAddrs.push(new RegExp(addrs[i]));
+      }
+    }
   }
+  /**
+   * Dial a session to a remote NKN address.
+   */
+
 
   async dial(remoteAddr, options = {}) {
     let dialTimeout = options.dialTimeout;
@@ -9186,11 +9456,15 @@ class MultiClient {
     let session = this._newSession(remoteAddr, sessionID, sessionConfig);
 
     this.sessions.set(sessionKey, session);
-    await session.dial(options.dialTimeout);
+    await session.dial(dialTimeout);
     return session;
   }
 
 }
+/**
+ * Accept session handler function type.
+ */
+
 
 exports.default = MultiClient;
 },{"../client":3,"../client/message":4,"../common":7,"./consts":18,"./util":21,"@nkn/ncp":35,"core-js-pure/features/promise":71,"memory-cache":207}],21:[function(require,module,exports){
@@ -9495,6 +9769,11 @@ function _defineProperty(obj, key, value) { if (key in obj) { Object.definePrope
 _decimal.Decimal.set({
   minE: -8
 });
+/**
+ * Amount of NKN tokens. See documentation at
+ * [decimal.js](https://mikemcl.github.io/decimal.js/).
+ */
+
 
 class Amount extends _decimal.Decimal {
   value() {
@@ -9702,8 +9981,26 @@ function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { de
 
 function _defineProperty(obj, key, value) { if (key in obj) { Object.defineProperty(obj, key, { value: value, enumerable: true, configurable: true, writable: true }); } else { obj[key] = value; } return obj; }
 
+/**
+ * NKN client that sends data to and receives data from other NKN clients.
+ * @param {Object} options - Wallet options.
+ * @param {string} [options.seed=undefined] - Secret seed (64 hex characters). If empty, a random seed will be used.
+ * @param {string} options.password - Wallet password.
+ * @param {string} [options.rpcServerAddr='https://mainnet-rpc-node-0001.nkn.org/mainnet/api/wallet'] - Seed RPC server address used to join the network.
+ * @param {string} [options.iv=undefined] - AES iv, typically you should use Wallet.fromJSON instead of this field.
+ * @param {string} [options.masterKey=undefined] - AES master key, typically you should use Wallet.fromJSON instead of this field.
+ */
 class Wallet {
-  constructor(options = {}) {
+  /**
+   * Wallet address, which is a string starts with 'NKN'.
+   */
+
+  /**
+   * Wallet version.
+   */
+  constructor(options) {
+    _defineProperty(this, "options", void 0);
+
     _defineProperty(this, "account", void 0);
 
     _defineProperty(this, "passwordHash", void 0);
@@ -9729,6 +10026,10 @@ class Wallet {
     let masterKey = options.masterKey || common.util.randomBytesHex(32);
     masterKey = common.hash.cryptoHexStringParse(masterKey);
     let seed = common.hash.cryptoHexStringParse(account.getSeed());
+    delete options.password;
+    delete options.iv;
+    delete options.masterKey;
+    this.options = options;
     this.account = account;
     this.passwordHash = common.hash.sha256Hex(pswdHash);
     this.iv = iv;
@@ -9739,48 +10040,60 @@ class Wallet {
     this.contractData = account.contract;
     this.version = Wallet.version;
   }
+  /**
+   * Recover wallet from JSON string and password.
+   */
+
 
   static fromJSON(walletJson, password) {
+    let walletObj;
+
     if (typeof walletJson === 'string') {
-      walletJson = JSON.parse(walletJson);
+      walletObj = JSON.parse(walletJson);
+    } else {
+      walletObj = walletJson;
     } // convert all keys to lowercase
 
 
-    walletJson = Object.keys(walletJson).reduce((merged, key) => Object.assign(merged, {
-      [key.toLowerCase()]: walletJson[key]
+    walletObj = Object.keys(walletObj).reduce((merged, key) => Object.assign(merged, {
+      [key.toLowerCase()]: walletObj[key]
     }), {});
 
-    if (typeof walletJson.version !== 'number' || walletJson.version < Wallet.minCompatibleVersion || walletJson.version > Wallet.maxCompatibleVersion) {
-      throw new common.errors.InvalidWalletVersionError('invalid wallet version ' + walletJson.version + ', should be between ' + wallet.minCompatibleVersion + ' and ' + wallet.maxCompatibleVersion);
+    if (typeof walletObj.version !== 'number' || walletObj.version < Wallet.minCompatibleVersion || walletObj.version > Wallet.maxCompatibleVersion) {
+      throw new common.errors.InvalidWalletVersionError('invalid wallet version ' + walletObj.version + ', should be between ' + Wallet.minCompatibleVersion + ' and ' + Wallet.maxCompatibleVersion);
     }
 
-    if (!walletJson.masterkey) {
+    if (!walletObj.masterkey) {
       throw new common.errors.InvalidWalletFormatError('missing masterKey field');
     }
 
-    if (!walletJson.iv) {
+    if (!walletObj.iv) {
       throw new common.errors.InvalidWalletFormatError('missing iv field');
     }
 
-    if (!walletJson.seedencrypted) {
+    if (!walletObj.seedencrypted) {
       throw new common.errors.InvalidWalletFormatError('missing seedEncrypted field');
     }
 
     let pswdHash = common.hash.doubleSha256(password);
 
-    if (walletJson.passwordhash !== common.hash.sha256Hex(pswdHash)) {
+    if (walletObj.passwordhash !== common.hash.sha256Hex(pswdHash)) {
       throw new common.errors.WrongPasswordError();
     }
 
-    let masterKey = aes.decrypt(common.hash.cryptoHexStringParse(walletJson.masterkey), pswdHash, walletJson.iv);
-    let seed = aes.decrypt(common.hash.cryptoHexStringParse(walletJson.seedencrypted), masterKey, walletJson.iv);
+    let masterKey = aes.decrypt(common.hash.cryptoHexStringParse(walletObj.masterkey), pswdHash, walletObj.iv);
+    let seed = aes.decrypt(common.hash.cryptoHexStringParse(walletObj.seedencrypted), masterKey, walletObj.iv);
     return new Wallet({
       seed,
       password,
       masterKey,
-      iv: walletJson.iv
+      iv: walletObj.iv
     });
   }
+  /**
+   * Serialize wallet to JSON string format.
+   */
+
 
   toJSON() {
     return JSON.stringify({
@@ -9794,23 +10107,45 @@ class Wallet {
       ContractData: this.contractData
     });
   }
+  /**
+   * Get the secret seed of the wallet.
+   * @returns Secret seed as hex string.
+   */
 
-  getPublicKey() {
-    return this.account.getPublicKey();
-  }
 
   getSeed() {
     return this.account.getSeed();
   }
+  /**
+   * Get the public key of the wallet.
+   * @returns Public key as hex string.
+   */
+
+
+  getPublicKey() {
+    return this.account.getPublicKey();
+  }
+  /**
+   * Verify whether an address is a valid NKN wallet address.
+   */
+
 
   static verifyAddress(addr) {
     return address.verifyAddress(addr);
   }
+  /**
+   * Verify whether the password is the correct password of this wallet.
+   */
+
 
   verifyPassword(password) {
     let pswdHash = common.hash.doubleSha256(password);
     return this.passwordHash === common.hash.sha256Hex(pswdHash);
   }
+  /**
+   * Get the balance of a NKN wallet address.
+   */
+
 
   static async getBalance(address, options = {}) {
     if (!address) {
@@ -9828,10 +10163,22 @@ class Wallet {
 
     return new _amount.default(data.amount);
   }
+  /**
+   * Get the balance of a NKN wallet address. If address is not given, will use
+   * the address of this wallet.
+   */
+
 
   getBalance(address) {
     return Wallet.getBalance(address || this.address, this.options);
   }
+  /**
+   * Get the next nonce of a NKN wallet address.
+   * @param {Object} [options={}] - Get nonce options.
+   * @param {string} [options.rpcServerAddr='https://mainnet-rpc-node-0001.nkn.org/mainnet/api/wallet'] - RPC server address to query nonce.
+   * @param {boolean} [options.txPool=true] - Whether to consider transactions in txPool. If true, will return the next nonce after last nonce in txPool, otherwise will return the next nonce after last nonce in ledger.
+   */
+
 
   static async getNonce(address, options = {}) {
     if (!address) {
@@ -9857,11 +10204,22 @@ class Wallet {
 
     return nonce;
   }
+  /**
+   * Get the next nonce of a NKN wallet address. If address is not given, will use
+   * the address of this wallet.
+   * @param {Object} [options={}] - Get nonce options.
+   * @param {boolean} [options.txPool=true] - Whether to consider transactions in txPool. If true, will return the next nonce after last nonce in txPool, otherwise will return the next nonce after last nonce in ledger.
+   */
+
 
   getNonce(address, options = {}) {
     options = common.util.assignDefined({}, this.options, options);
     return Wallet.getNonce(address || this.address, options);
   }
+  /**
+   * Transfer token from this wallet to another wallet address.
+   */
+
 
   async transferTo(toAddress, amount, options = {}) {
     if (!address.verifyAddress(toAddress)) {
@@ -9873,30 +10231,60 @@ class Wallet {
     let pld = transaction.newTransferPayload(this.programHash, address.addressStringToProgramHash(toAddress), amount);
     return await this.createTransaction(pld, nonce, options);
   }
+  /**
+   * Register name for this wallet.
+   */
+
 
   async registerName(name, options = {}) {
     let nonce = options.nonce || (await this.getNonce());
     let pld = transaction.newRegisterNamePayload(this.getPublicKey(), name);
     return await this.createTransaction(pld, nonce, options);
   }
+  /**
+   * Delete name for this wallet.
+   */
+
 
   async deleteName(name, options = {}) {
     let nonce = options.nonce || (await this.getNonce());
     let pld = transaction.newDeleteNamePayload(this.getPublicKey(), name);
     return await this.createTransaction(pld, nonce, options);
   }
+  /**
+   * Subscribe to a topic with an identifier for a number of blocks. Client
+   * using the same key pair and identifier will be able to receive messages
+   * from this topic.
+   * @param {number} duration - Duration in unit of blocks.
+   * @param {string} identifier - Client identifier.
+   * @param {string} meta - Metadata of this subscription.
+   */
+
 
   async subscribe(topic, duration, identifier = '', meta = '', options = {}) {
     let nonce = options.nonce || (await this.getNonce());
     let pld = transaction.newSubscribePayload(this.getPublicKey(), identifier, topic, duration, meta);
     return await this.createTransaction(pld, nonce, options);
   }
+  /**
+   * Unsubscribe from a topic for an identifier. Client using the same key pair
+   * and identifier will no longer receive messages from this topic.
+   * @param {string} identifier - Client identifier.
+   */
+
 
   async unsubscribe(topic, identifier = '', options = {}) {
     let nonce = options.nonce || (await this.getNonce());
     let pld = transaction.newUnsubscribePayload(this.getPublicKey(), identifier, topic);
     return await this.createTransaction(pld, nonce, options);
   }
+  /**
+   * Create or update a NanoPay channel. NanoPay transaction does not have
+   * nonce and will not be sent until you call `sendTransaction` explicitly.
+   * @param {number} expiration - NanoPay expiration height.
+   * @param {number} id - NanoPay id, should be unique for (this.address, toAddress) pair.
+   */
+
 
   async createOrUpdateNanoPay(toAddress, amount, expiration, id, options = {}) {
     if (!address.verifyAddress(toAddress)) {
@@ -9914,7 +10302,7 @@ class Wallet {
   }
 
   async createTransaction(pld, nonce, options = {}) {
-    let txn = await transaction.newTransaction(this.account, pld, nonce, options.fee || 0, options.attrs || '');
+    let txn = await transaction.newTransaction(this.account, pld, nonce, options.fee, options.attrs);
 
     if (options.buildOnly) {
       return txn;
@@ -9922,6 +10310,12 @@ class Wallet {
 
     return await this.sendTransaction(txn);
   }
+  /**
+   * Send a transaction to RPC server.
+   * @param {Object} [options={}] - Send transaction options.
+   * @param {string} [options.rpcServerAddr='https://mainnet-rpc-node-0001.nkn.org/mainnet/api/wallet'] - RPC server address to query nonce.
+   */
+
 
   static sendTransaction(txn, options = {}) {
     options = common.util.assignDefined({
@@ -9931,14 +10325,22 @@ class Wallet {
       tx: common.util.bytesToHex(txn.serializeBinary())
     });
   }
+  /**
+   * Send a transaction to RPC server.
+   */
+
 
   sendTransaction(txn) {
     return Wallet.sendTransaction(txn, this.options);
   }
+  /**
+   * Convert a NKN public key to NKN wallet address.
+   */
+
 
   static publicKeyToAddress(publicKey) {
-    signatureRedeem = address.publicKeyToSignatureRedeem(publicKey);
-    programHash = address.hexStringToProgramHash(signatureRedeem);
+    let signatureRedeem = address.publicKeyToSignatureRedeem(publicKey);
+    let programHash = address.hexStringToProgramHash(signatureRedeem);
     return address.programHashStringToAddress(programHash);
   }
 
