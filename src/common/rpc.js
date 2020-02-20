@@ -41,11 +41,11 @@ async function rpcCall(addr, method, params = {}) {
 
   let data = response.data;
 
-  if(data.error) {
+  if (data.error) {
     throw new errors.ServerError(data.error);
   }
 
-  if(data.result) {
+  if (data.result !== undefined) {
     return data.result;
   }
 

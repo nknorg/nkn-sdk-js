@@ -296,30 +296,88 @@ export default class Client {
    * @param {number} [options.limit=1000] - Max number of subscribers to get. This does not affect subscribers in txpool.
    * @param {boolean} [options.meta=false] - Whether to include metadata of subscribers in the topic.
    * @param {boolean} [options.txPool=false] - Whether to include subscribers whose subscribe transaction is still in txpool. Enabling this will get subscribers sooner after they send subscribe transactions, but might affect the correctness of subscribers because transactions in txpool is not guaranteed to be packed into a block.
+   * @param {string} [options.rpcServerAddr='https://mainnet-rpc-node-0001.nkn.org/mainnet/api/wallet'] - RPC server address.
    * @returns A promise that will be resolved with subscribers info. Note that `options.meta=false/true` will cause results to be an array (of subscriber address) or map (subscriber address -> metadata), respectively.
    */
-  getSubscribers(topic: string, options: { offset?: number, limit?: number, meta?: boolean, txPool?: boolean } = {}): Promise<{
+  static getSubscribers(
+    topic: string,
+    options: {
+      offset?: number,
+      limit?: number,
+      meta?: boolean,
+      txPool?: boolean,
+      rpcServerAddr?: string,
+    } = {},
+  ): Promise<{
     subscribers: Array<string> | { [string]: string },
     subscribersInTxPool?: Array<string> | { [string]: string },
   }> {
     return common.rpc.getSubscribers(
-      this.options.seedRpcServerAddr,
+      options.rpcServerAddr || consts.defaultOptions.seedRpcServerAddr,
       { topic, offset: options.offset, limit: options.limit, meta: options.meta, txPool: options.txPool },
     );
   }
 
   /**
+   * Same as Client.getSubscribers, but using this client's seedRpcServerAddr as
+   * rpcServerAddr.
+   */
+  getSubscribers(
+    topic: string,
+    options: {
+      offset?: number,
+      limit?: number,
+      meta?: boolean,
+      txPool?: boolean,
+    } = {},
+  ): Promise<{
+    subscribers: Array<string> | { [string]: string },
+    subscribersInTxPool?: Array<string> | { [string]: string },
+  }> {
+    return Client.getSubscribers(topic, Object.assign({}, options, { rpcServerAddr: this.options.seedRpcServerAddr }));
+  }
+
+  /**
    * Get subscribers count of a topic.
    */
+  static getSubscribersCount(topic: string, options: { rpcServerAddr: string } = {}): Promise<number> {
+    return common.rpc.getSubscribersCount(
+      options.rpcServerAddr || consts.defaultOptions.seedRpcServerAddr,
+      { topic },
+    );
+  }
+
+  /**
+   * Same as Client.getSubscribersCount, but using this client's
+   * seedRpcServerAddr as rpcServerAddr.
+   */
   getSubscribersCount(topic: string): Promise<number> {
-    return common.rpc.getSubscribersCount(this.options.seedRpcServerAddr, { topic });
+    return Client.getSubscribersCount(topic, { rpcServerAddr: this.options.seedRpcServerAddr });
   }
 
   /**
    * Get the subscription details of a subscriber in a topic.
    */
-  getSubscription(topic: string, subscriber: string): Promise<{ meta: string, expiresAt: number }> {
-    return common.rpc.getSubscription(this.options.seedRpcServerAddr, { topic, subscriber });
+  static getSubscription(
+    topic: string,
+    subscriber: string,
+    options: { rpcServerAddr: string } = {},
+  ): Promise<{ meta: string, expiresAt: number }> {
+    return common.rpc.getSubscription(
+      options.rpcServerAddr || consts.defaultOptions.seedRpcServerAddr,
+      { topic, subscriber },
+    );
+  }
+
+  /**
+   * Same as Client.getSubscription, but using this client's seedRpcServerAddr
+   * as rpcServerAddr.
+   */
+  getSubscription(
+    topic: string,
+    subscriber: string,
+  ): Promise<{ meta: string, expiresAt: number }> {
+    return Client.getSubscription(topic, subscriber, { rpcServerAddr: this.options.seedRpcServerAddr });
   }
 
   /**
