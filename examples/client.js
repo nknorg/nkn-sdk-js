@@ -9,7 +9,7 @@ const useMultiClient = true;
   let alice = new Client({ identifier: 'alice' });
   let bob = new Client({ identifier: 'bob', seed: alice.getSeed() });
 
-  console.log('Secret seed:', alice.key.seed);
+  console.log('Secret seed:', alice.getSeed());
 
   await Promise.all([
     new Promise((resolve, reject) => alice.on('connect', resolve)),

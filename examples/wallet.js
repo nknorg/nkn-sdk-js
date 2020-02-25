@@ -12,7 +12,7 @@ const password = '42';
   wallet = new nkn.Wallet({ seed: wallet.getSeed(), password });
 
   // save wallet to json and recover from json
-  wallet = nkn.Wallet.fromJSON(wallet.toJSON(), password);
+  wallet = nkn.Wallet.fromJSON(wallet.toJSON(), { password });
 
   // verify whether an address is valid (static method)
   console.log('verify address:', nkn.Wallet.verifyAddress(wallet.address));

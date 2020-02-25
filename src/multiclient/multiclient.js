@@ -63,6 +63,9 @@ export default class MultiClient {
    * Underlying NKN clients used to send/receive data.
    */
   clients: { [string]: Client };
+  /**
+   * Default NKN client for low level API access.
+   */
   defaultClient: Client;
   msgCache: Cache;
   acceptAddrs: Array<RegExp>;

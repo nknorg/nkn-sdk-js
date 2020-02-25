@@ -1,11 +1,6 @@
-// Example of session using NKN multiclient
-// Usage: node session.js
-
 'use strict';
 
 const nkn = require('../lib');
-console.log(require('@nkn/ncp/channel'));
-return
 
 const numBytes = 16 << 20;
 const numSubClients = 4;
@@ -16,7 +11,7 @@ const sessionConfig = { mtu: 16000 }; // default mtu (1024) leads to lower laten
   let alice = new nkn.MultiClient({ numSubClients, sessionConfig, identifier: 'alice' });
   let bob = new nkn.MultiClient({ numSubClients, sessionConfig, identifier: 'bob', seed: alice.getSeed() });
 
-  console.log('Secret seed:', alice.key.seed);
+  console.log('Secret seed:', alice.getSeed());
 
   await Promise.all([
     new Promise((resolve, reject) => alice.on('connect', resolve)),

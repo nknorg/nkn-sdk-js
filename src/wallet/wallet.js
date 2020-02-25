@@ -75,7 +75,10 @@ export default class Wallet {
   /**
    * Recover wallet from JSON string and password.
    */
-  static fromJSON(walletJson: string | WalletJson, password: string) {
+  static fromJSON(walletJson: string | WalletJson, options: {
+    password: string,
+    rpcServerAddr?: string,
+  }) {
     let walletObj: { [string]: any };
     if (typeof walletJson === 'string') {
       walletObj = JSON.parse(walletJson);
@@ -102,7 +105,7 @@ export default class Wallet {
       throw new common.errors.InvalidWalletFormatError('missing seedEncrypted field');
     }
 
-    let pswdHash = common.hash.doubleSha256(password);
+    let pswdHash = common.hash.doubleSha256(options.password);
     if (walletObj.passwordhash !== common.hash.sha256Hex(pswdHash)) {
       throw new common.errors.WrongPasswordError();
     }
@@ -110,12 +113,11 @@ export default class Wallet {
     let masterKey = aes.decrypt(common.hash.cryptoHexStringParse(walletObj.masterkey), pswdHash, walletObj.iv);
     let seed = aes.decrypt(common.hash.cryptoHexStringParse(walletObj.seedencrypted), masterKey, walletObj.iv);
 
-    return new Wallet({
+    return new Wallet(Object.assign({}, options, {
       seed,
-      password,
       masterKey,
       iv: walletObj.iv,
-    });
+    }));
   }
 
   /**

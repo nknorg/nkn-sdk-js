@@ -9013,6 +9013,10 @@ class MultiClient {
    */
 
   /**
+   * Default NKN client for low level API access.
+   */
+
+  /**
    * Whether client is ready (connected to a node).
    */
 
@@ -10079,7 +10083,7 @@ class Wallet {
    */
 
 
-  static fromJSON(walletJson, password) {
+  static fromJSON(walletJson, options) {
     let walletObj;
 
     if (typeof walletJson === 'string') {
@@ -10109,7 +10113,7 @@ class Wallet {
       throw new common.errors.InvalidWalletFormatError('missing seedEncrypted field');
     }
 
-    let pswdHash = common.hash.doubleSha256(password);
+    let pswdHash = common.hash.doubleSha256(options.password);
 
     if (walletObj.passwordhash !== common.hash.sha256Hex(pswdHash)) {
       throw new common.errors.WrongPasswordError();
@@ -10117,12 +10121,11 @@ class Wallet {
 
     let masterKey = aes.decrypt(common.hash.cryptoHexStringParse(walletObj.masterkey), pswdHash, walletObj.iv);
     let seed = aes.decrypt(common.hash.cryptoHexStringParse(walletObj.seedencrypted), masterKey, walletObj.iv);
-    return new Wallet({
+    return new Wallet(Object.assign({}, options, {
       seed,
-      password,
       masterKey,
       iv: walletObj.iv
-    });
+    }));
   }
   /**
    * Serialize wallet to JSON string format.
