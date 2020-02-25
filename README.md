@@ -1,6 +1,6 @@
-[![CircleCI Status](https://circleci.com/gh/nknorg/nkn-sdk-js.svg?style=shield&circle-token=:circle-token)](https://circleci.com/gh/nknorg/nkn-sdk-js)
+# nkn-sdk-js [![GitHub license](https://img.shields.io/badge/license-Apache%202.0-blue.svg)](https://github.com/nknorg/nkn-sdk-js/blob/master/LICENSE) [![npm version](https://img.shields.io/npm/v/nkn-sdk.svg?style=flat)](https://www.npmjs.com/package/nkn-sdk) [![CircleCI Status](https://circleci.com/gh/nknorg/nkn-sdk-js.svg?style=shield&circle-token=:circle-token)](https://circleci.com/gh/nknorg/nkn-sdk-js) [![PRs Welcome](https://img.shields.io/badge/PRs-welcome-brightgreen.svg)](#contributing)
 
-# nkn-sdk-js
+![nkn](logo.png)
 
 JavaScript implementation of NKN client and wallet SDK. The SDK consists of a
 few components:
