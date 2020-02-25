@@ -175,6 +175,8 @@ class Client {
   /**
    * Add event listener function that will be called when client is connected to
    * node. Multiple listeners will be called sequentially in the order of added.
+   * Note that listeners added after client is connected to node (i.e.
+   * `client.isReady === true`) will not be called.
    */
   onConnect(func) {
     this.eventListeners.connect.push(func);
@@ -676,10 +678,13 @@ class Client {
       switch (msg.Action) {
         case 'setClient':
           this.sigChainBlockHash = msg.Result.sigChainBlockHash;
-          this.isReady = true;
 
-          if (this.eventListeners.connect.length > 0) {
-            this.eventListeners.connect.forEach(f => f(msg.Result));
+          if (!this.isReady) {
+            this.isReady = true;
+
+            if (this.eventListeners.connect.length > 0) {
+              this.eventListeners.connect.forEach(f => f(msg.Result));
+            }
           }
 
           break;
@@ -8920,7 +8925,7 @@ Object.defineProperty(exports, "__esModule", {
 });
 exports.sessionIDSize = exports.multiclientIdentifierRe = exports.defaultSessionAllowAddr = exports.acceptSessionBufSize = exports.defaultOptions = void 0;
 const defaultOptions = {
-  numSubClients: 3,
+  numSubClients: 4,
   originalClient: false,
   msgCacheExpiration: 300 * 1000,
   sessionConfig: {}
@@ -9381,7 +9386,8 @@ class MultiClient {
   /**
    * Add event listener function that will be called when at least one sub
    * client is connected to node. Multiple listeners will be called sequentially
-   * in the order of added.
+   * in the order of added. Note that listeners added after client is connected
+   * to node (i.e. `multiclient.isReady === true`) will not be called.
    */
   onConnect(func) {
     let promises = Object.keys(this.clients).map(clientID => new _promise.default((resolve, reject) => {

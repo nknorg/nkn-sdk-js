@@ -158,6 +158,8 @@ export default class Client {
   /**
    * Add event listener function that will be called when client is connected to
    * node. Multiple listeners will be called sequentially in the order of added.
+   * Note that listeners added after client is connected to node (i.e.
+   * `client.isReady === true`) will not be called.
    */
   onConnect(func: ConnectHandler) {
     this.eventListeners.connect.push(func);
@@ -608,9 +610,11 @@ export default class Client {
       switch (msg.Action) {
         case 'setClient':
           this.sigChainBlockHash = msg.Result.sigChainBlockHash;
-          this.isReady = true;
-          if (this.eventListeners.connect.length > 0) {
-            this.eventListeners.connect.forEach(f => f(msg.Result));
+          if (!this.isReady) {
+            this.isReady = true;
+            if (this.eventListeners.connect.length > 0) {
+              this.eventListeners.connect.forEach(f => f(msg.Result));
+            }
           }
           break;
         case 'updateSigChainBlockHash':

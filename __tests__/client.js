@@ -61,14 +61,14 @@ for (let binaryData of [false, true]) {
 
   new ClientTest(`multiclient (${binaryData ? 'binary' : 'text'})`, {
     useMultiClient: true,
-    numSubClients: 3,
+    numSubClients: 4,
     originalClient: false,
     binaryData,
   }).run();
 
   new ClientTest(`multiclient with original (${binaryData ? 'binary' : 'text'})`, {
     useMultiClient: true,
-    numSubClients: 3,
+    numSubClients: 4,
     originalClient: true,
     binaryData,
   }).run();

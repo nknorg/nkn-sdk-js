@@ -368,7 +368,8 @@ export default class MultiClient {
   /**
    * Add event listener function that will be called when at least one sub
    * client is connected to node. Multiple listeners will be called sequentially
-   * in the order of added.
+   * in the order of added. Note that listeners added after client is connected
+   * to node (i.e. `multiclient.isReady === true`) will not be called.
    */
   onConnect(func: ConnectHandler) {
     let promises = Object.keys(this.clients).map(clientID => new Promise((resolve, reject) => {

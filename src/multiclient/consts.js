@@ -1,7 +1,7 @@
 'use strict';
 
 export const defaultOptions = {
-  numSubClients: 3,
+  numSubClients: 4,
   originalClient: false,
   msgCacheExpiration: 300 * 1000,
   sessionConfig: {},
