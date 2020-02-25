@@ -11,12 +11,12 @@ few components:
   you might want to use [multiclient](#multiclient) instead of using client
   directly.
 
-* [NKN MultiClient](multiclient): Send and receive data using multiple NKN
+* [NKN MultiClient](#multiclient): Send and receive data using multiple NKN
   clients concurrently to improve reliability and latency. In addition, it
   supports session mode, a reliable streaming protocol similar to TCP based
   on [ncp](https://github.com/nknorg/ncp-js).
 
-* [NKN Wallet](wallet): Wallet SDK for [NKN
+* [NKN Wallet](#wallet): Wallet SDK for [NKN
   blockchain](https://github.com/nknorg/nkn). It can be used to create wallet,
   transfer token to NKN wallet address, register name, subscribe to topic,
   etc.
