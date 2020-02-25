@@ -72,8 +72,8 @@ class SessionTest {
         sessionConfig: this.config.sessionConfig,
       });
       await Promise.all([
-        new Promise(resolve => this.alice.on('connect', resolve)),
-        new Promise(resolve => this.bob.on('connect', resolve)),
+        new Promise(resolve => this.alice.onConnect(resolve)),
+        new Promise(resolve => this.bob.onConnect(resolve)),
       ]);
       await new Promise(resolve => setTimeout(resolve, 1000));
       expect(this.alice.isReady).toBe(true);
@@ -84,7 +84,7 @@ class SessionTest {
       this.bob.listen();
       [this.aliceSession, this.bobSession] = await Promise.all([
         this.alice.dial(this.bob.addr),
-        new Promise(resolve => this.bob.on('session', resolve)),
+        new Promise(resolve => this.bob.onSession(resolve)),
       ]);
       expect(this.aliceSession.remoteAddr).toBe(this.bobSession.localAddr);
       expect(this.bobSession.remoteAddr).toBe(this.aliceSession.localAddr);

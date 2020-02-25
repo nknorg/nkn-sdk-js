@@ -12,15 +12,15 @@ const useMultiClient = true;
   console.log('Secret seed:', alice.getSeed());
 
   await Promise.all([
-    new Promise((resolve, reject) => alice.on('connect', resolve)),
-    new Promise((resolve, reject) => bob.on('connect', resolve)),
+    new Promise((resolve, reject) => alice.onConnect(resolve)),
+    new Promise((resolve, reject) => bob.onConnect(resolve)),
   ]);
 
   await new Promise((resolve, reject) => setTimeout(resolve, 1000));
 
   let timeSent = Date.now();
 
-  bob.on('message', async ({ src, payload, isEncrypted }) => {
+  bob.onMessage(async ({ src, payload, isEncrypted }) => {
     console.log('Receive', isEncrypted ? 'encrypted' : 'unencrypted', 'message', '"' + payload + '"','from', src, 'after', Date.now() - timeSent, 'ms');
     // For byte array response:
     // return Uint8Array.from([1,2,3,4,5])

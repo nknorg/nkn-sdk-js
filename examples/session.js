@@ -14,13 +14,13 @@ const sessionConfig = { mtu: 16000 }; // default mtu (1024) leads to lower laten
   console.log('Secret seed:', alice.getSeed());
 
   await Promise.all([
-    new Promise((resolve, reject) => alice.on('connect', resolve)),
-    new Promise((resolve, reject) => bob.on('connect', resolve)),
+    new Promise((resolve, reject) => alice.onConnect(resolve)),
+    new Promise((resolve, reject) => bob.onConnect(resolve)),
   ]);
 
   await new Promise((resolve, reject) => setTimeout(resolve, 1000));
 
-  bob.on('session', async (session) => {
+  bob.onSession(async (session) => {
     console.log(session.localAddr, 'accepted a sesison');
     await read(session);
   });

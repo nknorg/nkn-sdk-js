@@ -25,8 +25,8 @@ class ClientTest {
         originalClient: this.config.originalClient,
       });
       await Promise.all([
-        new Promise(resolve => this.alice.on('connect', resolve)),
-        new Promise(resolve => this.bob.on('connect', resolve)),
+        new Promise(resolve => this.alice.onConnect(resolve)),
+        new Promise(resolve => this.bob.onConnect(resolve)),
       ]);
       await new Promise(resolve => setTimeout(resolve, 1000));
       expect(this.alice.isReady).toBe(true);
@@ -36,7 +36,7 @@ class ClientTest {
     test(`[${this.name}] send`, async () => {
       let data = this.config.binaryData ? Uint8Array.from([1,2,3,4,5]) : 'hello';
       let reply = this.config.binaryData ? Uint8Array.from([6,7,8,9,0]) : 'world';
-      this.bob.on('message', async ({ src, payload}) => {
+      this.bob.onMessage(async ({ src, payload}) => {
         expect(src).toBe(this.alice.addr);
         expect(payload).toEqual(data);
         return reply;
