@@ -39,7 +39,8 @@ Advantages of using NKN client/multiclient for data transmission:
 * Everything is free and open source. (If you are curious, node relay traffic
   for clients for free to earn mining rewards in NKN blockchain.)
 
-Documentation: [https://nkn-sdk-js.docs.nkn.org](https://nkn-sdk-js.docs.nkn.org).
+Documentation:
+[https://docs.nkn.org/nkn-sdk-js](https://docs.nkn.org/nkn-sdk-js).
 
 ## Install
 
@@ -216,7 +217,7 @@ client.send(
 If handler returns `false`, no reply or ACK will be sent.
 
 Check [examples/client.js](examples/client.js) for complete examples and
-[https://nkn-sdk-js.docs.nkn.org](https://nkn-sdk-js.docs.nkn.org) for full
+[https://docs.nkn.org/nkn-sdk-js](https://docs.nkn.org/nkn-sdk-js) for full
 documentation.
 
 ## MultiClient
@@ -254,7 +255,7 @@ you can use `multiclient.defaultClient` to get the default client and
 `multiclient.clients` to get all clients.
 
 Check [examples/client.js](examples/client.js) for complete examples and
-[https://nkn-sdk-js.docs.nkn.org](https://nkn-sdk-js.docs.nkn.org) for full
+[https://docs.nkn.org/nkn-sdk-js](https://docs.nkn.org/nkn-sdk-js) for full
 documentation.
 
 ### Session
@@ -395,7 +396,7 @@ wallet.subscribe('topic', 100, 'identifier', 'metadata', { fee: '0.1' }).then((t
 ```
 
 Check [examples/wallet.js](examples/wallet.js) for complete examples and
-[https://nkn-sdk-js.docs.nkn.org](https://nkn-sdk-js.docs.nkn.org) for full
+[https://docs.nkn.org/nkn-sdk-js](https://docs.nkn.org/nkn-sdk-js) for full
 documentation.
 
 ## Contributing
