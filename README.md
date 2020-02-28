@@ -33,11 +33,12 @@ Advantages of using NKN client/multiclient for data transmission:
   of the data. The same public key is used for both routing and encryption,
   eliminating the possibility of man in the middle attack.
 
-* Decent performance: Multiclient can get ~100ms end to end latency and 10+mbps
-  end to end session throughput between international devices.
+* Decent performance: By aggregating multiple overlay paths concurrently,
+  multiclient can get ~100ms end to end latency and 10+mbps end to end session
+  throughput between international devices.
 
-* Everything is free and open source. (If you are curious, node relay traffic
-  for clients for free to earn mining rewards in NKN blockchain.)
+* Everything is free, open source and decentralized. (If you are curious, node
+  relay traffic for clients for free to earn mining rewards in NKN blockchain.)
 
 Documentation:
 [https://docs.nkn.org/nkn-sdk-js](https://docs.nkn.org/nkn-sdk-js).
