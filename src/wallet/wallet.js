@@ -244,16 +244,29 @@ export default class Wallet {
   }
 
   /**
-   * Register name for this wallet.
+   * Register a name for this wallet at the cost of 10 NKN. The name will be
+   * valid for 1,576,800 blocks (around 1 year). Register name already owned by
+   * this wallet will extend the duration of the name to current block height +
+   * 1,576,800.
    */
   async registerName(name: string, options: TransactionOptions = {}): Promise<TxnOrHash> {
     let nonce = options.nonce || await this.getNonce();
-    let pld = transaction.newRegisterNamePayload(this.getPublicKey(), name);
+    let pld = transaction.newRegisterNamePayload(this.getPublicKey(), name, consts.nameRegistrationFee);
     return await this.createTransaction(pld, nonce, options);
   }
 
   /**
-   * Delete name for this wallet.
+   * Transfer a name owned by this wallet to another public key. Does not change
+   * the expiration of the name.
+   */
+  async transferName(name: string, recipient: string, options: TransactionOptions = {}): Promise<TxnOrHash> {
+    let nonce = options.nonce || await this.getNonce();
+    let pld = transaction.newTransferNamePayload(name, this.getPublicKey(), recipient);
+    return await this.createTransaction(pld, nonce, options);
+  }
+
+  /**
+   * Delete a name owned by this wallet.
    */
   async deleteName(name: string, options: TransactionOptions = {}): Promise<TxnOrHash> {
     let nonce = options.nonce || await this.getNonce();

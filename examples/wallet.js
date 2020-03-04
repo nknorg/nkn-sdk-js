@@ -51,6 +51,15 @@ const password = '42';
 
     // unsubscribe from a topic
     console.log('unsubscribe txn hash:', await wallet.unsubscribe('topic', 'identifier', { fee: '0.1' }));
+
+    // register name
+    console.log('register name txn hash:', await wallet.registerName('name'));
+
+    // transfer name
+    console.log('transfer name txn hash:', await wallet.transferName('name', wallet.getPublicKey()));
+
+    // delete name
+    console.log('delete name txn hash:', await wallet.deleteName('name'));
   } catch (e) {
     console.error(e);
   }

@@ -17,10 +17,11 @@ export function newTransferPayload(sender, recipient, amount) {
   return pld;
 }
 
-export function newRegisterNamePayload(publicKey, name) {
+export function newRegisterNamePayload(registrant, name, registrationFee) {
   let registerName = new common.pb.transaction.RegisterName();
-  registerName.setRegistrant(Buffer.from(publicKey, 'hex'));
+  registerName.setRegistrant(Buffer.from(registrant, 'hex'));
   registerName.setName(name);
+  registerName.setRegistrationFee(new Amount(registrationFee).value());
 
   let pld = new common.pb.transaction.Payload();
   pld.setType(common.pb.transaction.PayloadType.REGISTER_NAME_TYPE);
@@ -29,9 +30,22 @@ export function newRegisterNamePayload(publicKey, name) {
   return pld;
 }
 
-export function newDeleteNamePayload(publicKey, name) {
+export function newTransferNamePayload(name, registrant, recipient) {
+  let transferName = new common.pb.transaction.TransferName();
+  transferName.setName(name);
+  transferName.setRegistrant(Buffer.from(registrant, 'hex'));
+  transferName.setRecipient(Buffer.from(recipient, 'hex'));
+
+  let pld = new common.pb.transaction.Payload();
+  pld.setType(common.pb.transaction.PayloadType.TRANSFER_NAME_TYPE);
+  pld.setData(transferName.serializeBinary());
+
+  return pld;
+}
+
+export function newDeleteNamePayload(registrant, name) {
   let deleteName = new common.pb.transaction.DeleteName();
-  deleteName.setRegistrant(Buffer.from(publicKey, 'hex'));
+  deleteName.setRegistrant(Buffer.from(registrant, 'hex'));
   deleteName.setName(name);
 
   let pld = new common.pb.transaction.Payload();

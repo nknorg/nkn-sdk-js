@@ -75,3 +75,33 @@ test('unsubscribe', async () => {
     expect(e.code).toBe(nkn.errors.rpcRespErrCodes.appendTxnPool);
   }
 });
+
+test('register name', async () => {
+  let wallet = new nkn.Wallet({ password: '42' });
+  try {
+    await wallet.registerName(wallet.address);
+  } catch (e) {
+    expect(e).toBeInstanceOf(nkn.errors.ServerError);
+    expect(e.code).toBe(nkn.errors.rpcRespErrCodes.appendTxnPool);
+  }
+});
+
+test('transfer name', async () => {
+  let wallet = new nkn.Wallet({ password: '42' });
+  try {
+    await wallet.transferName(wallet.address, new nkn.Wallet({ password: '42' }).getPublicKey());
+  } catch (e) {
+    expect(e).toBeInstanceOf(nkn.errors.ServerError);
+    expect(e.code).toBe(nkn.errors.rpcRespErrCodes.appendTxnPool);
+  }
+});
+
+test('delete name', async () => {
+  let wallet = new nkn.Wallet({ password: '42' });
+  try {
+    await wallet.deleteName(wallet.address);
+  } catch (e) {
+    expect(e).toBeInstanceOf(nkn.errors.ServerError);
+    expect(e.code).toBe(nkn.errors.rpcRespErrCodes.appendTxnPool);
+  }
+});

@@ -45,13 +45,20 @@ message Coinbase {
 }
 
 message SigChainTxn {
-	bytes sig_chain     = 1;
+	bytes sig_chain    = 1;
 	bytes submitter    = 2;
 }
 
 message RegisterName {
-	bytes  registrant = 1;
-	string name       = 2;
+	bytes  registrant      = 1;
+	string name            = 2;
+	int64 registration_fee = 3;
+}
+
+message TransferName {
+	string name            = 1;
+	bytes registrant       = 2;
+	bytes recipient        = 3;
 }
 
 message DeleteName {
