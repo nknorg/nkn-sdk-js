@@ -13,6 +13,7 @@ const methods = {
   getSubscription: { method: 'getsubscription' },
   getBalanceByAddr: { method: 'getbalancebyaddr' },
   getNonceByAddr: { method: 'getnoncebyaddr' },
+  getRegistrant: { method: 'getregistrant' },
   sendRawTransaction: { method: 'sendrawtransaction' },
 }
 

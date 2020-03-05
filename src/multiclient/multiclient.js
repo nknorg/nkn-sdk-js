@@ -314,6 +314,7 @@ export default class MultiClient {
     if (readyClientID.length === 0) {
       throw new common.errors.ClientNotReadyError();
     }
+    dest = await this.defaultClient._processDests(dest);
     try {
       return await Promise.any(readyClientID.map((clientID) => {
         return this.sendWithClient(clientID, dest, data, options);

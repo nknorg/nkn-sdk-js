@@ -180,12 +180,48 @@ export default class Client {
     this.eventListeners.message.push(func);
   };
 
-  _wssend(data: Uint8Array) {
+  _wsSend(data: Uint8Array) {
     if (!this.ws) {
       throw new common.errors.ClientNotReadyError();
     }
     this.ws.send(data);
   };
+
+  async _processDest(dest: string): Promise<string> {
+    if (dest.length === 0) {
+      throw new common.errors.InvalidDestinationError('destination is empty');
+    }
+    let addr = dest.split('.');
+    if (addr[addr.length - 1].length < common.key.publicKeyLength * 2) {
+      let res = await this.getRegistrant(addr[addr.length - 1]);
+      if (res.registrant && res.registrant.length > 0) {
+        addr[addr.length - 1] = res.registrant;
+      } else {
+        throw new common.errors.InvalidDestinationError(dest + ' is neither a valid public key nor a registered name');
+      }
+    }
+    return addr.join('.');
+  };
+
+  async _processDests(dest: Destination): Promise<Destination> {
+    if (Array.isArray(dest)) {
+      dest = await Promise.all(dest.map(async (addr) => {
+        try {
+          return await this._processDest(addr);
+        } catch (e) {
+          console.warn(e.message);
+          return '';
+        }
+      }));
+      dest = dest.filter(addr => addr.length > 0);
+      if (dest.length === 0) {
+        throw new common.errors.InvalidDestinationError('all destinations are invalid');
+      }
+    } else {
+      dest = await this._processDest(dest);
+    }
+    return dest;
+  }
 
   async _send(dest: Destination, payload: common.pb.payloads.Payload, encrypt: boolean = true, maxHoldingSeconds: number = 0): Promise<Uint8Array | null> {
     if (Array.isArray(dest)) {
@@ -196,6 +232,8 @@ export default class Client {
         return await this._send(dest[0], payload, encrypt, maxHoldingSeconds);
       }
     }
+
+    dest = await this._processDests(dest);
 
     let pldMsg = this._messageFromPayload(payload, encrypt, dest);
     if (Array.isArray(pldMsg)) {
@@ -235,11 +273,11 @@ export default class Client {
     }
 
     msgs.forEach((msg) => {
-      this._wssend(msg.serializeBinary());
+      this._wsSend(msg.serializeBinary());
     });
 
     return payload.getPid();
-  }
+  };
 
   /**
    * Send byte or string data to a single or an array of destination.
@@ -288,8 +326,27 @@ export default class Client {
       throw new TypeError('ack payload should not be an array');
     }
     let msg = await message.newOutboundMessage(this, dest, pldMsg.serializeBinary(), 0);
-    this._wssend(msg.serializeBinary());
+    this._wsSend(msg.serializeBinary());
   };
+
+  /**
+   * Get the registrant's public key and expiration block height of a name. If
+   * name is not registered, `registrant` will be '' and `expiresAt` will be 0.
+   */
+  static getRegistrant(name: string, options: { rpcServerAddr?: string } = {}): Promise<{ registrant: string, expiresAt: number }> {
+    return common.rpc.getRegistrant(
+      options.rpcServerAddr || consts.defaultOptions.seedRpcServerAddr,
+      { name },
+    );
+  }
+
+  /**
+   * Same as Client.getRegistrant, but using this client's seedRpcServerAddr as
+   * rpcServerAddr.
+   */
+  getRegistrant(name: string): Promise<{ registrant: string, expiresAt: number }> {
+    return Client.getRegistrant(name, { rpcServerAddr: this.options.seedRpcServerAddr });
+  }
 
   /**
    * Get subscribers of a topic.
@@ -425,7 +482,7 @@ export default class Client {
     } catch (e) {
     }
     this.isClosed = true;
-  };
+  }
 
   _messageFromPayload(payload: common.pb.payloads.Payload, encrypt: boolean, dest: Destination): common.pb.payloads.Message | Array<common.pb.payloads.Message> {
     if (encrypt) {
@@ -451,7 +508,7 @@ export default class Client {
     if (prevSignature.length > 0) {
       prevSignature = common.util.bytesToHex(prevSignature);
       let receipt = await message.newReceipt(this, prevSignature);
-      this._wssend(receipt.serializeBinary());
+      this._wsSend(receipt.serializeBinary());
     }
 
     let pldMsg = common.pb.payloads.Message.deserializeBinary(msg.getPayload());

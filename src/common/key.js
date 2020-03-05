@@ -7,6 +7,7 @@ import * as common from '../common';
 import * as errors from './errors';
 
 export const signatureLength = nacl.sign.signatureLength;
+export const publicKeyLength = nacl.box.publicKeyLength;
 
 export default class Key {
   key;

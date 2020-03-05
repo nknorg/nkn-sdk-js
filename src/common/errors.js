@@ -144,3 +144,13 @@ export class ServerError extends Error {
     }
   }
 }
+
+export class InvalidDestinationError extends Error {
+  constructor(message = 'invalid destination', ...params) {
+    super(message, ...params);
+    if (Error.captureStackTrace) {
+      Error.captureStackTrace(this, InvalidDestinationError);
+    }
+    this.name = 'InvalidDestinationError';
+  }
+}

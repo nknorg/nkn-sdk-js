@@ -197,12 +197,54 @@ class Client {
     this.eventListeners.message.push(func);
   }
 
-  _wssend(data) {
+  _wsSend(data) {
     if (!this.ws) {
       throw new common.errors.ClientNotReadyError();
     }
 
     this.ws.send(data);
+  }
+
+  async _processDest(dest) {
+    if (dest.length === 0) {
+      throw new common.errors.InvalidDestinationError('destination is empty');
+    }
+
+    let addr = dest.split('.');
+
+    if (addr[addr.length - 1].length < common.key.publicKeyLength * 2) {
+      let res = await this.getRegistrant(addr[addr.length - 1]);
+
+      if (res.registrant && res.registrant.length > 0) {
+        addr[addr.length - 1] = res.registrant;
+      } else {
+        throw new common.errors.InvalidDestinationError(dest + ' is neither a valid public key nor a registered name');
+      }
+    }
+
+    return addr.join('.');
+  }
+
+  async _processDests(dest) {
+    if (Array.isArray(dest)) {
+      dest = await Promise.all(dest.map(async addr => {
+        try {
+          return await this._processDest(addr);
+        } catch (e) {
+          console.warn(e.message);
+          return '';
+        }
+      }));
+      dest = dest.filter(addr => addr.length > 0);
+
+      if (dest.length === 0) {
+        throw new common.errors.InvalidDestinationError('all destinations are invalid');
+      }
+    } else {
+      dest = await this._processDest(dest);
+    }
+
+    return dest;
   }
 
   async _send(dest, payload, encrypt = true, maxHoldingSeconds = 0) {
@@ -215,6 +257,8 @@ class Client {
         return await this._send(dest[0], payload, encrypt, maxHoldingSeconds);
       }
     }
+
+    dest = await this._processDests(dest);
 
     let pldMsg = this._messageFromPayload(payload, encrypt, dest);
 
@@ -265,17 +309,16 @@ class Client {
     }
 
     msgs.forEach(msg => {
-      this._wssend(msg.serializeBinary());
+      this._wsSend(msg.serializeBinary());
     });
     return payload.getPid();
   }
+
   /**
    * Send byte or string data to a single or an array of destination.
    * @param options - Send options that will override client options.
    * @returns A promise that will be resolved when reply or ACK from destination is received, or reject if send fail or message timeout. If dest is an array with more than one element, or `options.noReply=true`, the promise will resolve with null as soon as send success.
    */
-
-
   async send(dest, data, options = {}) {
     options = common.util.assignDefined({}, this.options, options);
     let payload;
@@ -328,9 +371,29 @@ class Client {
 
     let msg = await message.newOutboundMessage(this, dest, pldMsg.serializeBinary(), 0);
 
-    this._wssend(msg.serializeBinary());
+    this._wsSend(msg.serializeBinary());
   }
 
+  /**
+   * Get the registrant's public key and expiration block height of a name. If
+   * name is not registered, `registrant` will be '' and `expiresAt` will be 0.
+   */
+  static getRegistrant(name, options = {}) {
+    return common.rpc.getRegistrant(options.rpcServerAddr || consts.defaultOptions.seedRpcServerAddr, {
+      name
+    });
+  }
+  /**
+   * Same as Client.getRegistrant, but using this client's seedRpcServerAddr as
+   * rpcServerAddr.
+   */
+
+
+  getRegistrant(name) {
+    return Client.getRegistrant(name, {
+      rpcServerAddr: this.options.seedRpcServerAddr
+    });
+  }
   /**
    * Get subscribers of a topic.
    * @param options - Get subscribers options.
@@ -341,6 +404,8 @@ class Client {
    * @param {string} [options.rpcServerAddr='https://mainnet-rpc-node-0001.nkn.org/mainnet/api/wallet'] - RPC server address.
    * @returns A promise that will be resolved with subscribers info. Note that `options.meta=false/true` will cause results to be an array (of subscriber address) or map (subscriber address -> metadata), respectively.
    */
+
+
   static getSubscribers(topic, options = {}) {
     return common.rpc.getSubscribers(options.rpcServerAddr || consts.defaultOptions.seedRpcServerAddr, {
       topic,
@@ -498,7 +563,7 @@ class Client {
       prevSignature = common.util.bytesToHex(prevSignature);
       let receipt = await message.newReceipt(this, prevSignature);
 
-      this._wssend(receipt.serializeBinary());
+      this._wsSend(receipt.serializeBinary());
     }
 
     let pldMsg = common.pb.payloads.Message.deserializeBinary(msg.getPayload());
@@ -1149,7 +1214,7 @@ function addrToPubkey(addr) {
 Object.defineProperty(exports, "__esModule", {
   value: true
 });
-exports.ServerError = exports.InvalidResponseError = exports.InvalidArgumentError = exports.InvalidWalletVersionError = exports.InvalidWalletFormatError = exports.InvalidAddressError = exports.WrongPasswordError = exports.NotEnoughBalanceError = exports.UnknownError = exports.DecryptionError = exports.DataSizeTooLargeError = exports.ClientNotReadyError = exports.AddrNotAllowedError = exports.rpcRespErrCodes = void 0;
+exports.InvalidDestinationError = exports.ServerError = exports.InvalidResponseError = exports.InvalidArgumentError = exports.InvalidWalletVersionError = exports.InvalidWalletFormatError = exports.InvalidAddressError = exports.WrongPasswordError = exports.NotEnoughBalanceError = exports.UnknownError = exports.DecryptionError = exports.DataSizeTooLargeError = exports.ClientNotReadyError = exports.AddrNotAllowedError = exports.rpcRespErrCodes = void 0;
 const rpcRespErrCodes = {
   success: 0,
   wrongNode: 48001,
@@ -1363,6 +1428,21 @@ class ServerError extends Error {
 }
 
 exports.ServerError = ServerError;
+
+class InvalidDestinationError extends Error {
+  constructor(message = 'invalid destination', ...params) {
+    super(message, ...params);
+
+    if (Error.captureStackTrace) {
+      Error.captureStackTrace(this, InvalidDestinationError);
+    }
+
+    this.name = 'InvalidDestinationError';
+  }
+
+}
+
+exports.InvalidDestinationError = InvalidDestinationError;
 },{}],6:[function(require,module,exports){
 'use strict';
 
@@ -1459,7 +1539,7 @@ function _interopRequireWildcard(obj) { if (obj && obj.__esModule) { return obj;
 Object.defineProperty(exports, "__esModule", {
   value: true
 });
-exports.default = exports.signatureLength = void 0;
+exports.default = exports.publicKeyLength = exports.signatureLength = void 0;
 
 var _tweetnacl = _interopRequireDefault(require("tweetnacl"));
 
@@ -1479,6 +1559,8 @@ function _defineProperty(obj, key, value) { if (key in obj) { Object.definePrope
 
 const signatureLength = _tweetnacl.default.sign.signatureLength;
 exports.signatureLength = signatureLength;
+const publicKeyLength = _tweetnacl.default.box.publicKeyLength;
+exports.publicKeyLength = publicKeyLength;
 
 class Key {
   constructor(seed) {
@@ -8964,6 +9046,9 @@ const methods = {
   getNonceByAddr: {
     method: 'getnoncebyaddr'
   },
+  getRegistrant: {
+    method: 'getregistrant'
+  },
   sendRawTransaction: {
     method: 'sendrawtransaction'
   }
@@ -9622,6 +9707,8 @@ class MultiClient {
     if (readyClientID.length === 0) {
       throw new common.errors.ClientNotReadyError();
     }
+
+    dest = await this.defaultClient._processDests(dest);
 
     try {
       return await _promise.default.any(readyClientID.map(clientID => {
