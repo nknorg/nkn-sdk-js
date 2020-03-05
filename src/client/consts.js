@@ -6,7 +6,7 @@ export const defaultOptions = {
   responseTimeout: 5000,
   msgHoldingSeconds: 0,
   encrypt: true,
-  seedRpcServerAddr: 'https://mainnet-rpc-node-0001.nkn.org/mainnet/api/wallet',
+  rpcServerAddr: 'https://mainnet-rpc-node-0001.nkn.org/mainnet/api/wallet',
 }
 
 export const checkTimeoutInterval = 250;

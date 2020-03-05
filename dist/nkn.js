@@ -36,7 +36,7 @@ function _defineProperty(obj, key, value) { if (key in obj) { Object.definePrope
  * @param {number} [options.responseTimeout=5000] - Message response timeout in ms. Zero disables timeout.
  * @param {number} [options.msgHoldingSeconds=0] - Maximal message holding time in second. Message might be cached and held by node up to this duration if destination client is not online. Zero disables cache.
  * @param {boolean} [options.encrypt=true] - Whether to end to end encrypt message.
- * @param {string} [options.seedRpcServerAddr='https://mainnet-rpc-node-0001.nkn.org/mainnet/api/wallet'] - Seed RPC server address used to join the network.
+ * @param {string} [options.rpcServerAddr='https://mainnet-rpc-node-0001.nkn.org/mainnet/api/wallet'] - RPC server address used to join the network.
  * @param {boolean} [options.tls=undefined] - Force to use wss instead of ws protocol. If not defined, wss will only be used in https location.
  */
 class Client {
@@ -131,7 +131,7 @@ class Client {
 
     for (let i = 0; i < 3; i++) {
       try {
-        res = await getAddr(this.options.seedRpcServerAddr, {
+        res = await getAddr(this.options.rpcServerAddr, {
           address: this.addr
         });
       } catch (e) {
@@ -379,19 +379,19 @@ class Client {
    * name is not registered, `registrant` will be '' and `expiresAt` will be 0.
    */
   static getRegistrant(name, options = {}) {
-    return common.rpc.getRegistrant(options.rpcServerAddr || consts.defaultOptions.seedRpcServerAddr, {
+    return common.rpc.getRegistrant(options.rpcServerAddr || consts.defaultOptions.rpcServerAddr, {
       name
     });
   }
   /**
-   * Same as Client.getRegistrant, but using this client's seedRpcServerAddr as
+   * Same as Client.getRegistrant, but using this client's rpcServerAddr as
    * rpcServerAddr.
    */
 
 
   getRegistrant(name) {
     return Client.getRegistrant(name, {
-      rpcServerAddr: this.options.seedRpcServerAddr
+      rpcServerAddr: this.options.rpcServerAddr
     });
   }
   /**
@@ -407,7 +407,7 @@ class Client {
 
 
   static getSubscribers(topic, options = {}) {
-    return common.rpc.getSubscribers(options.rpcServerAddr || consts.defaultOptions.seedRpcServerAddr, {
+    return common.rpc.getSubscribers(options.rpcServerAddr || consts.defaultOptions.rpcServerAddr, {
       topic,
       offset: options.offset,
       limit: options.limit,
@@ -416,14 +416,14 @@ class Client {
     });
   }
   /**
-   * Same as Client.getSubscribers, but using this client's seedRpcServerAddr as
+   * Same as Client.getSubscribers, but using this client's rpcServerAddr as
    * rpcServerAddr.
    */
 
 
   getSubscribers(topic, options = {}) {
     return Client.getSubscribers(topic, Object.assign({}, options, {
-      rpcServerAddr: this.options.seedRpcServerAddr
+      rpcServerAddr: this.options.rpcServerAddr
     }));
   }
   /**
@@ -432,19 +432,19 @@ class Client {
 
 
   static getSubscribersCount(topic, options = {}) {
-    return common.rpc.getSubscribersCount(options.rpcServerAddr || consts.defaultOptions.seedRpcServerAddr, {
+    return common.rpc.getSubscribersCount(options.rpcServerAddr || consts.defaultOptions.rpcServerAddr, {
       topic
     });
   }
   /**
    * Same as Client.getSubscribersCount, but using this client's
-   * seedRpcServerAddr as rpcServerAddr.
+   * rpcServerAddr as rpcServerAddr.
    */
 
 
   getSubscribersCount(topic) {
     return Client.getSubscribersCount(topic, {
-      rpcServerAddr: this.options.seedRpcServerAddr
+      rpcServerAddr: this.options.rpcServerAddr
     });
   }
   /**
@@ -453,20 +453,20 @@ class Client {
 
 
   static getSubscription(topic, subscriber, options = {}) {
-    return common.rpc.getSubscription(options.rpcServerAddr || consts.defaultOptions.seedRpcServerAddr, {
+    return common.rpc.getSubscription(options.rpcServerAddr || consts.defaultOptions.rpcServerAddr, {
       topic,
       subscriber
     });
   }
   /**
-   * Same as Client.getSubscription, but using this client's seedRpcServerAddr
+   * Same as Client.getSubscription, but using this client's rpcServerAddr
    * as rpcServerAddr.
    */
 
 
   getSubscription(topic, subscriber) {
     return Client.getSubscription(topic, subscriber, {
-      rpcServerAddr: this.options.seedRpcServerAddr
+      rpcServerAddr: this.options.rpcServerAddr
     });
   }
   /**
@@ -965,7 +965,7 @@ const defaultOptions = {
   responseTimeout: 5000,
   msgHoldingSeconds: 0,
   encrypt: true,
-  seedRpcServerAddr: 'https://mainnet-rpc-node-0001.nkn.org/mainnet/api/wallet'
+  rpcServerAddr: 'https://mainnet-rpc-node-0001.nkn.org/mainnet/api/wallet'
 };
 exports.defaultOptions = defaultOptions;
 const checkTimeoutInterval = 250;
@@ -9390,7 +9390,7 @@ function _defineProperty(obj, key, value) { if (key in obj) { Object.definePrope
  * @param {number} [options.responseTimeout=5000] - Message response timeout in ms. Zero disables timeout.
  * @param {number} [options.msgHoldingSeconds=0] - Maximal message holding time in second. Message might be cached and held by node up to this duration if destination client is not online. Zero disables cache.
  * @param {boolean} [options.encrypt=true] - Whether to end to end encrypt message.
- * @param {string} [options.seedRpcServerAddr='https://mainnet-rpc-node-0001.nkn.org/mainnet/api/wallet'] - Seed RPC server address used to join the network.
+ * @param {string} [options.rpcServerAddr='https://mainnet-rpc-node-0001.nkn.org/mainnet/api/wallet'] - RPC server address used to join the network.
  * @param {boolean} [options.tls=undefined] - Force to use wss instead of ws protocol. If not defined, wss will only be used in https location.
  * @param {number} [options.numSubClients=3] - Number of sub clients to create.
  * @param {boolean} [options.originalClient=false] - Whether to create client with no additional identifier prefix added. This client is not counted towards sub clients controlled by `options.numSubClients`.

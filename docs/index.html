@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
   <meta charset='utf-8'>
-  <title>nkn-sdk 1.0.0 | Documentation</title>
+  <title>nkn-sdk 1.0.1 | Documentation</title>
   <meta name='description' content='NKN client and wallet SDK'>
   <meta name='viewport' content='width=device-width,initial-scale=1'>
   <link href='assets/bass.css' rel='stylesheet'>
@@ -15,7 +15,7 @@
       <div id='split-left' class='overflow-auto fs0 height-viewport-100'>
         <div class='py1 px2'>
           <h3 class='mb0 no-anchor'>nkn-sdk</h3>
-          <div class='mb1'><code>1.0.0</code></div>
+          <div class='mb1'><code>1.0.1</code></div>
           <input
             placeholder='Filter'
             id='filter-input'
@@ -747,11 +747,11 @@ reliability and lower latency.</p>
 
               
                 <tr>
-  <td class='break-word'><span class='code bold'>options.seedRpcServerAddr</span> <code class='quiet'><a href="https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/String">string</a></code>
+  <td class='break-word'><span class='code bold'>options.rpcServerAddr</span> <code class='quiet'><a href="https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/String">string</a></code>
   
     (default <code>&#39;https://mainnet-rpc-node-0001.nkn.org/mainnet/api/wallet&#39;</code>)
   </td>
-  <td class='break-word'><span>Seed RPC server address used to join the network.
+  <td class='break-word'><span>RPC server address used to join the network.
 </span></td>
 </tr>
 
@@ -1344,7 +1344,7 @@ name is not registered, <code>registrant</code> will be '' and <code>expiresAt</
 
   
 
-  <p>Same as Client.getRegistrant, but using this client's seedRpcServerAddr as
+  <p>Same as Client.getRegistrant, but using this client's rpcServerAddr as
 rpcServerAddr.</p>
 
     <div class='pre p1 fill-light mt0'>getRegistrant(name: <a href="https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/String">string</a>): <a href="https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/Promise">Promise</a>&#x3C;{registrant: <a href="https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/String">string</a>, expiresAt: <a href="https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/Number">number</a>}></div>
@@ -1465,7 +1465,7 @@ rpcServerAddr.</p>
 
   
 
-  <p>Same as Client.getSubscribers, but using this client's seedRpcServerAddr as
+  <p>Same as Client.getSubscribers, but using this client's rpcServerAddr as
 rpcServerAddr.</p>
 
     <div class='pre p1 fill-light mt0'>getSubscribers(topic: <a href="https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/String">string</a>, options: {offset: <a href="https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/Number">number</a>?, limit: <a href="https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/Number">number</a>?, meta: <a href="https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/Boolean">boolean</a>?, txPool: <a href="https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/Boolean">boolean</a>?}): <a href="https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/Promise">Promise</a>&#x3C;{subscribers: (<a href="https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/Array">Array</a>&#x3C;<a href="https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/String">string</a>> | {}), subscribersInTxPool: (<a href="https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/Array">Array</a>&#x3C;<a href="https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/String">string</a>> | {})?}></div>
@@ -1541,7 +1541,7 @@ rpcServerAddr.</p>
   
 
   <p>Same as Client.getSubscribersCount, but using this client's
-seedRpcServerAddr as rpcServerAddr.</p>
+rpcServerAddr as rpcServerAddr.</p>
 
     <div class='pre p1 fill-light mt0'>getSubscribersCount(topic: <a href="https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/String">string</a>): <a href="https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/Promise">Promise</a>&#x3C;<a href="https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/Number">number</a>></div>
   
@@ -1606,7 +1606,7 @@ seedRpcServerAddr as rpcServerAddr.</p>
 
   
 
-  <p>Same as Client.getSubscription, but using this client's seedRpcServerAddr
+  <p>Same as Client.getSubscription, but using this client's rpcServerAddr
 as rpcServerAddr.</p>
 
     <div class='pre p1 fill-light mt0'>getSubscription(topic: <a href="https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/String">string</a>, subscriber: <a href="https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/String">string</a>): <a href="https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/Promise">Promise</a>&#x3C;{meta: <a href="https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/String">string</a>, expiresAt: <a href="https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/Number">number</a>}></div>
@@ -2337,11 +2337,11 @@ msg received will be sent back.</p>
 
               
                 <tr>
-  <td class='break-word'><span class='code bold'>options.seedRpcServerAddr</span> <code class='quiet'><a href="https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/String">string</a></code>
+  <td class='break-word'><span class='code bold'>options.rpcServerAddr</span> <code class='quiet'><a href="https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/String">string</a></code>
   
     (default <code>&#39;https://mainnet-rpc-node-0001.nkn.org/mainnet/api/wallet&#39;</code>)
   </td>
-  <td class='break-word'><span>Seed RPC server address used to join the network.
+  <td class='break-word'><span>RPC server address used to join the network.
 </span></td>
 </tr>
 

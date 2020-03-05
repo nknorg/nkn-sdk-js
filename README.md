@@ -107,7 +107,7 @@ can create a client using customized bootstrap RPC server:
 
 ```javascript
 let client = new nkn.Client({
-  seedRpcServerAddr: 'https://ip:port',
+  rpcServerAddr: 'https://ip:port',
 });
 ```
 

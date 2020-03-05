@@ -20,7 +20,7 @@ import * as message from './message';
  * @param {number} [options.responseTimeout=5000] - Message response timeout in ms. Zero disables timeout.
  * @param {number} [options.msgHoldingSeconds=0] - Maximal message holding time in second. Message might be cached and held by node up to this duration if destination client is not online. Zero disables cache.
  * @param {boolean} [options.encrypt=true] - Whether to end to end encrypt message.
- * @param {string} [options.seedRpcServerAddr='https://mainnet-rpc-node-0001.nkn.org/mainnet/api/wallet'] - Seed RPC server address used to join the network.
+ * @param {string} [options.rpcServerAddr='https://mainnet-rpc-node-0001.nkn.org/mainnet/api/wallet'] - RPC server address used to join the network.
  * @param {boolean} [options.tls=undefined] - Force to use wss instead of ws protocol. If not defined, wss will only be used in https location.
  */
 export default class Client {
@@ -32,7 +32,7 @@ export default class Client {
     responseTimeout: number,
     msgHoldingSeconds: number,
     encrypt: boolean,
-    seedRpcServerAddr: string,
+    rpcServerAddr: string,
     tls?: boolean,
   };
   key: common.Key;
@@ -71,7 +71,7 @@ export default class Client {
     responseTimeout?: number,
     msgHoldingSeconds?: number,
     encrypt?: boolean,
-    seedRpcServerAddr?: string,
+    rpcServerAddr?: string,
     tls?: boolean,
   } = {}) {
     options = common.util.assignDefined({}, consts.defaultOptions, options);
@@ -122,7 +122,7 @@ export default class Client {
     let res, error;
     for (let i = 0; i < 3; i++) {
       try {
-        res = await getAddr(this.options.seedRpcServerAddr, { address: this.addr });
+        res = await getAddr(this.options.rpcServerAddr, { address: this.addr });
       } catch (e) {
         error = e;
         continue;
@@ -335,17 +335,17 @@ export default class Client {
    */
   static getRegistrant(name: string, options: { rpcServerAddr?: string } = {}): Promise<{ registrant: string, expiresAt: number }> {
     return common.rpc.getRegistrant(
-      options.rpcServerAddr || consts.defaultOptions.seedRpcServerAddr,
+      options.rpcServerAddr || consts.defaultOptions.rpcServerAddr,
       { name },
     );
   }
 
   /**
-   * Same as Client.getRegistrant, but using this client's seedRpcServerAddr as
+   * Same as Client.getRegistrant, but using this client's rpcServerAddr as
    * rpcServerAddr.
    */
   getRegistrant(name: string): Promise<{ registrant: string, expiresAt: number }> {
-    return Client.getRegistrant(name, { rpcServerAddr: this.options.seedRpcServerAddr });
+    return Client.getRegistrant(name, { rpcServerAddr: this.options.rpcServerAddr });
   }
 
   /**
@@ -372,13 +372,13 @@ export default class Client {
     subscribersInTxPool?: Array<string> | { [string]: string },
   }> {
     return common.rpc.getSubscribers(
-      options.rpcServerAddr || consts.defaultOptions.seedRpcServerAddr,
+      options.rpcServerAddr || consts.defaultOptions.rpcServerAddr,
       { topic, offset: options.offset, limit: options.limit, meta: options.meta, txPool: options.txPool },
     );
   }
 
   /**
-   * Same as Client.getSubscribers, but using this client's seedRpcServerAddr as
+   * Same as Client.getSubscribers, but using this client's rpcServerAddr as
    * rpcServerAddr.
    */
   getSubscribers(
@@ -393,7 +393,7 @@ export default class Client {
     subscribers: Array<string> | { [string]: string },
     subscribersInTxPool?: Array<string> | { [string]: string },
   }> {
-    return Client.getSubscribers(topic, Object.assign({}, options, { rpcServerAddr: this.options.seedRpcServerAddr }));
+    return Client.getSubscribers(topic, Object.assign({}, options, { rpcServerAddr: this.options.rpcServerAddr }));
   }
 
   /**
@@ -401,17 +401,17 @@ export default class Client {
    */
   static getSubscribersCount(topic: string, options: { rpcServerAddr: string } = {}): Promise<number> {
     return common.rpc.getSubscribersCount(
-      options.rpcServerAddr || consts.defaultOptions.seedRpcServerAddr,
+      options.rpcServerAddr || consts.defaultOptions.rpcServerAddr,
       { topic },
     );
   }
 
   /**
    * Same as Client.getSubscribersCount, but using this client's
-   * seedRpcServerAddr as rpcServerAddr.
+   * rpcServerAddr as rpcServerAddr.
    */
   getSubscribersCount(topic: string): Promise<number> {
-    return Client.getSubscribersCount(topic, { rpcServerAddr: this.options.seedRpcServerAddr });
+    return Client.getSubscribersCount(topic, { rpcServerAddr: this.options.rpcServerAddr });
   }
 
   /**
@@ -423,20 +423,20 @@ export default class Client {
     options: { rpcServerAddr: string } = {},
   ): Promise<{ meta: string, expiresAt: number }> {
     return common.rpc.getSubscription(
-      options.rpcServerAddr || consts.defaultOptions.seedRpcServerAddr,
+      options.rpcServerAddr || consts.defaultOptions.rpcServerAddr,
       { topic, subscriber },
     );
   }
 
   /**
-   * Same as Client.getSubscription, but using this client's seedRpcServerAddr
+   * Same as Client.getSubscription, but using this client's rpcServerAddr
    * as rpcServerAddr.
    */
   getSubscription(
     topic: string,
     subscriber: string,
   ): Promise<{ meta: string, expiresAt: number }> {
-    return Client.getSubscription(topic, subscriber, { rpcServerAddr: this.options.seedRpcServerAddr });
+    return Client.getSubscription(topic, subscriber, { rpcServerAddr: this.options.rpcServerAddr });
   }
 
   /**
