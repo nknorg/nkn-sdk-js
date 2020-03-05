@@ -12,7 +12,7 @@
   "scripts": {
     "build": "babel src --out-dir lib && browserify lib/index.js -s nkn --outfile dist/nkn.js && uglifyjs dist/nkn.js -c -m -o dist/nkn.min.js",
     "docs": "documentation build src/*/*.js -f html -o docs --sort-order alpha --shallow",
-    "prepublish": "npm run-script build && npm run-script docs",
+    "prepare": "npm run-script build && npm run-script docs",
     "test": "jest",
     "pb": "protoc --js_out=import_style=commonjs,binary:. src/common/pb/*.proto"
   },
