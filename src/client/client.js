@@ -853,7 +853,8 @@ type ResponseHandler = (data: ReplyData) => void;
 type TimeoutHandler = (error: Error) => void;
 
 /**
- * One or multiple NKN address type.
+ * One or multiple NKN address type. Each NKN address should either be the form
+ * of 'identifier.publicKey', or a name registered using wallet.
  */
 export type Destination = string | Array<string>;
 

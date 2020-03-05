@@ -143,6 +143,8 @@ client.send(
 );
 ```
 
+The destination address can also be a name registered using [wallet](#wallet).
+
 Publish text message to all subscribers of a topic (subscribe is done through
 [wallet](#wallet)):
 
