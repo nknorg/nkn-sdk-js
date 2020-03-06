@@ -1,6 +1,6 @@
 {
   "name": "nkn-sdk",
-  "version": "1.0.1",
+  "version": "1.0.2",
   "description": "NKN client and wallet SDK",
   "main": "lib/index.js",
   "exports": {

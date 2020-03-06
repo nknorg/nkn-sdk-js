@@ -14,6 +14,7 @@ const methods = {
   getBalanceByAddr: { method: 'getbalancebyaddr' },
   getNonceByAddr: { method: 'getnoncebyaddr' },
   getRegistrant: { method: 'getregistrant' },
+  getLatestBlockHash: { method: 'getlatestblockhash' },
   sendRawTransaction: { method: 'sendrawtransaction' },
 }
 

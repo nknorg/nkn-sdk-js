@@ -341,8 +341,8 @@ export default class Client {
   }
 
   /**
-   * Same as Client.getRegistrant, but using this client's rpcServerAddr as
-   * rpcServerAddr.
+   * Same as [Client.getRegistrant](#clientgetregistrant), but using this
+   * client's rpcServerAddr as rpcServerAddr.
    */
   getRegistrant(name: string): Promise<{ registrant: string, expiresAt: number }> {
     return Client.getRegistrant(name, { rpcServerAddr: this.options.rpcServerAddr });
@@ -378,8 +378,8 @@ export default class Client {
   }
 
   /**
-   * Same as Client.getSubscribers, but using this client's rpcServerAddr as
-   * rpcServerAddr.
+   * Same as [Client.getSubscribers](#clientgetsubscribers), but using this
+   * client's rpcServerAddr as rpcServerAddr.
    */
   getSubscribers(
     topic: string,
@@ -407,8 +407,8 @@ export default class Client {
   }
 
   /**
-   * Same as Client.getSubscribersCount, but using this client's
-   * rpcServerAddr as rpcServerAddr.
+   * Same as [Client.getSubscribersCount](#clientgetsubscriberscount), but using
+   * this client's rpcServerAddr as rpcServerAddr.
    */
   getSubscribersCount(topic: string): Promise<number> {
     return Client.getSubscribersCount(topic, { rpcServerAddr: this.options.rpcServerAddr });
@@ -429,8 +429,8 @@ export default class Client {
   }
 
   /**
-   * Same as Client.getSubscription, but using this client's rpcServerAddr
-   * as rpcServerAddr.
+   * Same as [Client.getSubscription](#clientgetsubscription), but using this
+   * client's rpcServerAddr as rpcServerAddr.
    */
   getSubscription(
     topic: string,

@@ -169,6 +169,8 @@ export default class Wallet {
 
   /**
    * Get the balance of a NKN wallet address.
+   * @param {Object} [options={}] - Get nonce options.
+   * @param {string} [options.rpcServerAddr='https://mainnet-rpc-node-0001.nkn.org/mainnet/api/wallet'] - RPC server address to query nonce.
    */
   static async getBalance(address: string, options: { rpcServerAddr: string } = {}): Promise<Amount> {
     if (!address) {
@@ -183,8 +185,9 @@ export default class Wallet {
   }
 
   /**
-   * Get the balance of a NKN wallet address. If address is not given, will use
-   * the address of this wallet.
+   * Same as [Wallet.getBalance](#walletgetbalance), but using this wallet's
+   * rpcServerAddr as rpcServerAddr. If address is not given, this wallet's
+   * address will be used.
    */
   getBalance(address: ?string): Promise<Amount> {
     return Wallet.getBalance(address || this.address, this.options);
@@ -213,10 +216,9 @@ export default class Wallet {
   }
 
   /**
-   * Get the next nonce of a NKN wallet address. If address is not given, will use
-   * the address of this wallet.
-   * @param {Object} [options={}] - Get nonce options.
-   * @param {boolean} [options.txPool=true] - Whether to consider transactions in txPool. If true, will return the next nonce after last nonce in txPool, otherwise will return the next nonce after last nonce in ledger.
+   * Same as [Wallet.getNonce](#walletgetnonce), but using this wallet's
+   * rpcServerAddr as rpcServerAddr. If address is not given, this wallet's
+   * address will be used.
    */
   getNonce(address: ?string, options: { txPool: boolean } = {}): Promise<number> {
     options = common.util.assignDefined({}, this.options, options);
@@ -340,12 +342,13 @@ export default class Wallet {
    * @param {string} [options.rpcServerAddr='https://mainnet-rpc-node-0001.nkn.org/mainnet/api/wallet'] - RPC server address to query nonce.
    */
   static sendTransaction(txn: common.pb.transaction.Transaction, options: { rpcServerAddr: string } = {}): Promise<string> {
-    options = common.util.assignDefined({ txPool: true }, consts.defaultOptions, options);
+    options = common.util.assignDefined({}, consts.defaultOptions, options);
     return common.rpc.sendRawTransaction(options.rpcServerAddr, { tx: common.util.bytesToHex(txn.serializeBinary()) });
   }
 
   /**
-   * Send a transaction to RPC server.
+   * Same as [Wallet.sendTransaction](#walletsendtransaction), but using this
+   * wallet's rpcServerAddr as rpcServerAddr.
    */
   sendTransaction(txn: common.pb.transaction.Transaction): Promise<string> {
     return Wallet.sendTransaction(txn, this.options);
@@ -358,6 +361,24 @@ export default class Wallet {
     let signatureRedeem = address.publicKeyToSignatureRedeem(publicKey);
     let programHash = address.hexStringToProgramHash(signatureRedeem);
     return address.programHashStringToAddress(programHash);
+  }
+
+  /**
+   * Get latest block height and hash.
+   * @param {Object} [options={}] - Get nonce options.
+   * @param {string} [options.rpcServerAddr='https://mainnet-rpc-node-0001.nkn.org/mainnet/api/wallet'] - RPC server address to query nonce.
+   */
+  static getLatestBlock(options: { rpcServerAddr: string } = {}): Promise<{ height: number, hash: string }> {
+    options = common.util.assignDefined({}, consts.defaultOptions, options);
+    return common.rpc.getLatestBlockHash(options.rpcServerAddr);
+  }
+
+  /**
+   * Same as [Wallet.getLatestBlock](#walletgetlatestblock), but using this
+   * wallet's rpcServerAddr as rpcServerAddr.
+   */
+  getLatestBlock(): Promise<{ height: number, hash: string }> {
+    return Wallet.getLatestBlock(this.options);
   }
 }
 

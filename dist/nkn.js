@@ -384,8 +384,8 @@ class Client {
     });
   }
   /**
-   * Same as Client.getRegistrant, but using this client's rpcServerAddr as
-   * rpcServerAddr.
+   * Same as [Client.getRegistrant](#clientgetregistrant), but using this
+   * client's rpcServerAddr as rpcServerAddr.
    */
 
 
@@ -416,8 +416,8 @@ class Client {
     });
   }
   /**
-   * Same as Client.getSubscribers, but using this client's rpcServerAddr as
-   * rpcServerAddr.
+   * Same as [Client.getSubscribers](#clientgetsubscribers), but using this
+   * client's rpcServerAddr as rpcServerAddr.
    */
 
 
@@ -437,8 +437,8 @@ class Client {
     });
   }
   /**
-   * Same as Client.getSubscribersCount, but using this client's
-   * rpcServerAddr as rpcServerAddr.
+   * Same as [Client.getSubscribersCount](#clientgetsubscriberscount), but using
+   * this client's rpcServerAddr as rpcServerAddr.
    */
 
 
@@ -459,8 +459,8 @@ class Client {
     });
   }
   /**
-   * Same as Client.getSubscription, but using this client's rpcServerAddr
-   * as rpcServerAddr.
+   * Same as [Client.getSubscription](#clientgetsubscription), but using this
+   * client's rpcServerAddr as rpcServerAddr.
    */
 
 
@@ -9049,6 +9049,9 @@ const methods = {
   getRegistrant: {
     method: 'getregistrant'
   },
+  getLatestBlockHash: {
+    method: 'getlatestblockhash'
+  },
   sendRawTransaction: {
     method: 'sendrawtransaction'
   }
@@ -10597,6 +10600,8 @@ class Wallet {
   }
   /**
    * Get the balance of a NKN wallet address.
+   * @param {Object} [options={}] - Get nonce options.
+   * @param {string} [options.rpcServerAddr='https://mainnet-rpc-node-0001.nkn.org/mainnet/api/wallet'] - RPC server address to query nonce.
    */
 
 
@@ -10617,8 +10622,9 @@ class Wallet {
     return new _amount.default(data.amount);
   }
   /**
-   * Get the balance of a NKN wallet address. If address is not given, will use
-   * the address of this wallet.
+   * Same as [Wallet.getBalance](#walletgetbalance), but using this wallet's
+   * rpcServerAddr as rpcServerAddr. If address is not given, this wallet's
+   * address will be used.
    */
 
 
@@ -10658,10 +10664,9 @@ class Wallet {
     return nonce;
   }
   /**
-   * Get the next nonce of a NKN wallet address. If address is not given, will use
-   * the address of this wallet.
-   * @param {Object} [options={}] - Get nonce options.
-   * @param {boolean} [options.txPool=true] - Whether to consider transactions in txPool. If true, will return the next nonce after last nonce in txPool, otherwise will return the next nonce after last nonce in ledger.
+   * Same as [Wallet.getNonce](#walletgetnonce), but using this wallet's
+   * rpcServerAddr as rpcServerAddr. If address is not given, this wallet's
+   * address will be used.
    */
 
 
@@ -10785,15 +10790,14 @@ class Wallet {
 
 
   static sendTransaction(txn, options = {}) {
-    options = common.util.assignDefined({
-      txPool: true
-    }, consts.defaultOptions, options);
+    options = common.util.assignDefined({}, consts.defaultOptions, options);
     return common.rpc.sendRawTransaction(options.rpcServerAddr, {
       tx: common.util.bytesToHex(txn.serializeBinary())
     });
   }
   /**
-   * Send a transaction to RPC server.
+   * Same as [Wallet.sendTransaction](#walletsendtransaction), but using this
+   * wallet's rpcServerAddr as rpcServerAddr.
    */
 
 
@@ -10809,6 +10813,26 @@ class Wallet {
     let signatureRedeem = address.publicKeyToSignatureRedeem(publicKey);
     let programHash = address.hexStringToProgramHash(signatureRedeem);
     return address.programHashStringToAddress(programHash);
+  }
+  /**
+   * Get latest block height and hash.
+   * @param {Object} [options={}] - Get nonce options.
+   * @param {string} [options.rpcServerAddr='https://mainnet-rpc-node-0001.nkn.org/mainnet/api/wallet'] - RPC server address to query nonce.
+   */
+
+
+  static getLatestBlock(options = {}) {
+    options = common.util.assignDefined({}, consts.defaultOptions, options);
+    return common.rpc.getLatestBlockHash(options.rpcServerAddr);
+  }
+  /**
+   * Same as [Wallet.getLatestBlock](#walletgetlatestblock), but using this
+   * wallet's rpcServerAddr as rpcServerAddr.
+   */
+
+
+  getLatestBlock() {
+    return Wallet.getLatestBlock(this.options);
   }
 
 }
