@@ -10547,12 +10547,12 @@ class Wallet {
     }));
   }
   /**
-   * Serialize wallet to JSON string format.
+   * Return the wallet object to be serialized by JSON.
    */
 
 
   toJSON() {
-    return JSON.stringify({
+    return {
       Version: this.version,
       PasswordHash: this.passwordHash,
       MasterKey: this.masterKey,
@@ -10561,7 +10561,7 @@ class Wallet {
       Address: this.address,
       ProgramHash: this.programHash,
       ContractData: this.contractData
-    });
+    };
   }
   /**
    * Get the secret seed of the wallet.

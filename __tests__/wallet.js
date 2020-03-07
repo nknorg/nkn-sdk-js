@@ -12,10 +12,10 @@ test('from seed', () => {
 
 test('from/to json', () => {
   let wallet = new nkn.Wallet({ password: '42' });
-  let walletFromJson = nkn.Wallet.fromJSON(wallet.toJSON(), { password: '42' });
+  let walletFromJson = nkn.Wallet.fromJSON(JSON.stringify(wallet), { password: '42' });
   expect(walletFromJson.address).toBe(wallet.address);
   expect(() => {
-    nkn.Wallet.fromJSON(wallet.toJSON(), { password: '233' });
+    nkn.Wallet.fromJSON(JSON.stringify(wallet), { password: '233' });
   }).toThrow();
 });
 

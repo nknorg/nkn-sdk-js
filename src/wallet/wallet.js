@@ -121,10 +121,10 @@ export default class Wallet {
   }
 
   /**
-   * Serialize wallet to JSON string format.
+   * Return the wallet object to be serialized by JSON.
    */
-  toJSON(): string {
-    return JSON.stringify({
+  toJSON(): {} {
+    return {
       Version: this.version,
       PasswordHash: this.passwordHash,
       MasterKey: this.masterKey,
@@ -133,7 +133,7 @@ export default class Wallet {
       Address: this.address,
       ProgramHash: this.programHash,
       ContractData: this.contractData,
-    })
+    }
   }
 
   /**
