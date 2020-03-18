@@ -35,6 +35,7 @@ export default class Key {
   }
 
   getOrComputeSharedKey(otherPubkey) {
+    otherPubkey = common.util.bytesToHex(otherPubkey);
     if (!this.sharedKeyCache.has(otherPubkey)) {
       let otherCurvePubkey = ed2curve.convertPublicKey(otherPubkey);
       this.sharedKeyCache.set(otherPubkey, nacl.box.before(otherCurvePubkey, this.curveSecretKey));
