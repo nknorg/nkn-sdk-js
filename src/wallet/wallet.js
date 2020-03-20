@@ -17,6 +17,7 @@ import * as transaction from './transaction';
  * @param {string} [options.rpcServerAddr='https://mainnet-rpc-node-0001.nkn.org/mainnet/api/wallet'] - RPC server address.
  * @param {string} [options.iv=undefined] - AES iv, typically you should use Wallet.fromJSON instead of this field.
  * @param {string} [options.masterKey=undefined] - AES master key, typically you should use Wallet.fromJSON instead of this field.
+ * @param {boolean} [options.worker=false] - Whether to use web workers (if available) to compute signatures.
  */
 export default class Wallet {
   options: { rpcServerAddr: string };
@@ -46,10 +47,11 @@ export default class Wallet {
     rpcServerAddr?: string,
     iv?: string,
     masterKey?: string,
+    worker?: boolean,
   }) {
     options = common.util.assignDefined({}, consts.defaultOptions, options);
 
-    let account = new Account(options.seed);
+    let account = new Account(options.seed, { worker: options.worker });
     let pswdHash = common.hash.doubleSha256(options.password);
     let iv = options.iv || common.util.randomBytesHex(16);
     let masterKey = options.masterKey || common.util.randomBytesHex(32);

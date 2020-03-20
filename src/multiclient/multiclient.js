@@ -24,6 +24,7 @@ import * as util from './util';
  * @param {boolean} [options.encrypt=true] - Whether to end to end encrypt message.
  * @param {string} [options.rpcServerAddr='https://mainnet-rpc-node-0001.nkn.org/mainnet/api/wallet'] - RPC server address used to join the network.
  * @param {boolean} [options.tls=undefined] - Force to use wss instead of ws protocol. If not defined, wss will only be used in https location.
+ * @param {boolean} [options.worker=false] - Whether to use web workers (if available) to compute signatures.
  * @param {number} [options.numSubClients=3] - Number of sub clients to create.
  * @param {boolean} [options.originalClient=false] - Whether to create client with no additional identifier prefix added. This client is not counted towards sub clients controlled by `options.numSubClients`.
  * @param {number} [options.msgCacheExpiration=300000] - Message pid cache expiration time in ms. This cache is used to remove duplicate messages received by different clients.
@@ -40,6 +41,7 @@ export default class MultiClient {
     encrypt: boolean,
     rpcServerAddr: string,
     tls?: boolean,
+    worker: boolean,
     numSubClients: number,
     originalClient: boolean,
     msgCacheExpiration: number,
@@ -89,6 +91,7 @@ export default class MultiClient {
     encrypt?: boolean,
     rpcServerAddr?: string,
     tls?: boolean,
+    worker?: boolean,
     numSubClients?: number,
     originalClient?: boolean,
     msgCacheExpiration?: number,

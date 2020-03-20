@@ -22,6 +22,7 @@ import * as message from './message';
  * @param {boolean} [options.encrypt=true] - Whether to end to end encrypt message.
  * @param {string} [options.rpcServerAddr='https://mainnet-rpc-node-0001.nkn.org/mainnet/api/wallet'] - RPC server address used to join the network.
  * @param {boolean} [options.tls=undefined] - Force to use wss instead of ws protocol. If not defined, wss will only be used in https location.
+ * @param {boolean} [options.worker=false] - Whether to use web workers (if available) to compute signatures.
  */
 export default class Client {
   options: {
@@ -34,6 +35,7 @@ export default class Client {
     encrypt: boolean,
     rpcServerAddr: string,
     tls?: boolean,
+    worker: boolean,
   };
   key: common.Key;
   /**
@@ -73,10 +75,11 @@ export default class Client {
     encrypt?: boolean,
     rpcServerAddr?: string,
     tls?: boolean,
+    worker?: boolean,
   } = {}) {
     options = common.util.assignDefined({}, consts.defaultOptions, options);
 
-    let key = new common.Key(options.seed);
+    let key = new common.Key(options.seed, { worker: options.worker });
     let identifier = options.identifier || '';
     let pubkey = key.publicKey;
     let addr = (identifier ? identifier + '.' : '') + pubkey;
@@ -235,7 +238,7 @@ export default class Client {
 
     dest = await this._processDests(dest);
 
-    let pldMsg = this._messageFromPayload(payload, encrypt, dest);
+    let pldMsg = await this._messageFromPayload(payload, encrypt, dest);
     if (Array.isArray(pldMsg)) {
       pldMsg = pldMsg.map(pld => pld.serializeBinary());
     } else {
@@ -321,7 +324,7 @@ export default class Client {
     }
 
     let payload = message.newAckPayload(pid);
-    let pldMsg = this._messageFromPayload(payload, encrypt, dest);
+    let pldMsg = await this._messageFromPayload(payload, encrypt, dest);
     if (pldMsg instanceof Array) {
       throw new TypeError('ack payload should not be an array');
     }
@@ -484,9 +487,9 @@ export default class Client {
     this.isClosed = true;
   }
 
-  _messageFromPayload(payload: common.pb.payloads.Payload, encrypt: boolean, dest: Destination): common.pb.payloads.Message | Array<common.pb.payloads.Message> {
+  async _messageFromPayload(payload: common.pb.payloads.Payload, encrypt: boolean, dest: Destination): Promise<common.pb.payloads.Message | Array<common.pb.payloads.Message>> {
     if (encrypt) {
-      return this._encryptPayload(payload.serializeBinary(), dest);
+      return await this._encryptPayload(payload.serializeBinary(), dest);
     }
     return message.newMessage(payload.serializeBinary(), false);
   }
@@ -514,7 +517,7 @@ export default class Client {
     let pldMsg = common.pb.payloads.Message.deserializeBinary(msg.getPayload());
     let pldBytes;
     if (pldMsg.getEncrypted()) {
-      pldBytes = this._decryptPayload(pldMsg, msg.getSrc());
+      pldBytes = await this._decryptPayload(pldMsg, msg.getSrc());
     } else {
       pldBytes = pldMsg.getPayload();
     }
@@ -694,7 +697,7 @@ export default class Client {
     }
   }
 
-  _encryptPayload(payload: common.pb.payloads.Payload, dest: Destination): common.pb.payloads.Message | Array<common.pb.payloads.Message> {
+  async _encryptPayload(payload: Uint8Array, dest: Destination): Promise<common.pb.payloads.Message | Array<common.pb.payloads.Message>> {
     if (Array.isArray(dest)) {
       let nonce = common.util.randomBytes(nacl.secretbox.nonceLength);
       let key = common.util.randomBytes(nacl.secretbox.keyLength);
@@ -702,23 +705,23 @@ export default class Client {
 
       let msgs: Array<common.pb.payloads.Message> = [];
       for (let i = 0; i < dest.length; i++) {
-        let pk = common.util.hexToBytes(message.addrToPubkey(dest[i]));
-        let encryptedKey = this.key.encrypt(key, pk);
+        let pk = message.addrToPubkey(dest[i]);
+        let encryptedKey = await this.key.encrypt(key, pk);
         let mergedNonce = common.util.mergeTypedArrays(encryptedKey.nonce, nonce);
         let msg = message.newMessage(encryptedPayload, true, mergedNonce, encryptedKey.message);
         msgs.push(msg);
       }
       return msgs;
     } else {
-      let pk = common.util.hexToBytes(message.addrToPubkey(dest))
-      let encrypted = this.key.encrypt(payload, pk);
+      let pk = message.addrToPubkey(dest);
+      let encrypted = await this.key.encrypt(payload, pk);
       return message.newMessage(encrypted.message, true, encrypted.nonce);
     }
   }
 
-  _decryptPayload(msg: common.pb.payloads.Message, srcAddr: string): Uint8Array {
+  async _decryptPayload(msg: common.pb.payloads.Message, srcAddr: string): Promise<Uint8Array> {
     let rawPayload = msg.getPayload();
-    let srcPubkey = common.util.hexToBytes(message.addrToPubkey(srcAddr));
+    let srcPubkey = message.addrToPubkey(srcAddr);
     let nonce = msg.getNonce();
     let encryptedKey = msg.getEncryptedKey();
     let decryptedPayload;
@@ -726,7 +729,7 @@ export default class Client {
       if (nonce.length != nacl.box.nonceLength + nacl.secretbox.nonceLength) {
         throw new common.errors.DecryptionError('invalid nonce length');
       }
-      let sharedKey = this.key.decrypt(encryptedKey, nonce.slice(0, nacl.box.nonceLength), srcPubkey);
+      let sharedKey = await this.key.decrypt(encryptedKey, nonce.slice(0, nacl.box.nonceLength), srcPubkey);
       if (sharedKey === null) {
         throw new common.errors.DecryptionError('decrypt shared key failed');
       }
@@ -738,7 +741,7 @@ export default class Client {
       if (nonce.length != nacl.box.nonceLength) {
         throw new common.errors.DecryptionError('invalid nonce length');
       }
-      decryptedPayload = this.key.decrypt(rawPayload, nonce, srcPubkey);
+      decryptedPayload = await this.key.decrypt(rawPayload, nonce, srcPubkey);
       if (decryptedPayload === null) {
         throw new common.errors.DecryptionError('decrypt message failed');
       }

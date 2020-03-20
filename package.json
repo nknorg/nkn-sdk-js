@@ -1,6 +1,6 @@
 {
   "name": "nkn-sdk",
-  "version": "1.0.4",
+  "version": "1.0.5",
   "description": "NKN client and wallet SDK",
   "main": "lib/index.js",
   "exports": {
@@ -40,7 +40,8 @@
     "isomorphic-ws": "^4.0.1",
     "memory-cache": "^0.2.0",
     "pako": "^1.0.11",
-    "tweetnacl": "^1.0.2"
+    "tweetnacl": "^1.0.2",
+    "webworkify": "^1.5.0"
   },
   "devDependencies": {
     "@babel/cli": "^7.8.3",
