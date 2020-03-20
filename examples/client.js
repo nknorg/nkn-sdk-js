@@ -7,7 +7,7 @@ const useMultiClient = true;
 (async function () {
   let Client = useMultiClient ? nkn.MultiClient : nkn.Client;
   let alice = new Client({ identifier: 'alice' });
-  let bob = new Client({ identifier: 'bob', seed: alice.getSeed() });
+  let bob = new Client({ identifier: 'bob' });
 
   console.log('Secret seed:', alice.getSeed());
 

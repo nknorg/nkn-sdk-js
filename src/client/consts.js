@@ -7,6 +7,7 @@ export const defaultOptions = {
   msgHoldingSeconds: 0,
   encrypt: true,
   rpcServerAddr: 'https://mainnet-rpc-node-0001.nkn.org/mainnet/api/wallet',
+  worker: false,
 }
 
 export const checkTimeoutInterval = 250;

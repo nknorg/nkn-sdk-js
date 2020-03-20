@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
   <meta charset='utf-8'>
-  <title>nkn-sdk 1.0.4 | Documentation</title>
+  <title>nkn-sdk 1.0.5 | Documentation</title>
   <meta name='description' content='NKN client and wallet SDK'>
   <meta name='viewport' content='width=device-width,initial-scale=1'>
   <link href='assets/bass.css' rel='stylesheet'>
@@ -15,7 +15,7 @@
       <div id='split-left' class='overflow-auto fs0 height-viewport-100'>
         <div class='py1 px2'>
           <h3 class='mb0 no-anchor'>nkn-sdk</h3>
-          <div class='mb1'><code>1.0.4</code></div>
+          <div class='mb1'><code>1.0.5</code></div>
           <input
             placeholder='Filter'
             id='filter-input'
@@ -775,6 +775,17 @@ reliability and lower latency.</p>
     (default <code>undefined</code>)
   </td>
   <td class='break-word'><span>Force to use wss instead of ws protocol. If not defined, wss will only be used in https location.
+</span></td>
+</tr>
+
+
+              
+                <tr>
+  <td class='break-word'><span class='code bold'>options.worker</span> <code class='quiet'><a href="https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/Boolean">boolean</a></code>
+  
+    (default <code>false</code>)
+  </td>
+  <td class='break-word'><span>Whether to use web workers (if available) to compute signatures.
 </span></td>
 </tr>
 
@@ -2371,6 +2382,17 @@ msg received will be sent back.</p>
 
               
                 <tr>
+  <td class='break-word'><span class='code bold'>options.worker</span> <code class='quiet'><a href="https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/Boolean">boolean</a></code>
+  
+    (default <code>false</code>)
+  </td>
+  <td class='break-word'><span>Whether to use web workers (if available) to compute signatures.
+</span></td>
+</tr>
+
+
+              
+                <tr>
   <td class='break-word'><span class='code bold'>options.numSubClients</span> <code class='quiet'><a href="https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/Number">number</a></code>
   
     (default <code>3</code>)
@@ -3743,6 +3765,17 @@ better reliability and lower latency.</p>
     (default <code>undefined</code>)
   </td>
   <td class='break-word'><span>AES master key, typically you should use Wallet.fromJSON instead of this field.
+</span></td>
+</tr>
+
+
+              
+                <tr>
+  <td class='break-word'><span class='code bold'>options.worker</span> <code class='quiet'><a href="https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/Boolean">boolean</a></code>
+  
+    (default <code>false</code>)
+  </td>
+  <td class='break-word'><span>Whether to use web workers (if available) to compute signatures.
 </span></td>
 </tr>
 

@@ -113,7 +113,7 @@ export async function newOutboundMessage(client, dest, payload, maxHoldingSecond
     hex = serializeSigChainMetadata(sigChain);
     digest = common.hash.sha256Hex(hex);
     digest = common.hash.sha256Hex(digest + sigChainElemSerialized);
-    signature = await client.key.sign(Buffer.from(digest, 'hex'));
+    signature = await client.key.sign(digest);
     signatures.push(common.util.hexToBytes(signature));
   }
 
@@ -140,7 +140,7 @@ export async function newReceipt(client, prevSignature) {
   let sigChainElemSerialized = serializeSigChainElem(sigChainElem);
   let digest = common.hash.sha256Hex(prevSignature);
   digest = common.hash.sha256Hex(digest + sigChainElemSerialized);
-  let signature = await client.key.sign(Buffer.from(digest, 'hex'));
+  let signature = await client.key.sign(digest);
   let msg = new common.pb.messages.Receipt();
   msg.setPrevSignature(common.util.hexToBytes(prevSignature));
   msg.setSignature(common.util.hexToBytes(signature));

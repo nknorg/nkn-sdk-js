@@ -133,7 +133,7 @@ export async function signTx(account, txn) {
   let unsignedTx = txn.getUnsignedTx();
   let hex = serializeUnsignedTx(unsignedTx);
   let digest = common.hash.sha256Hex(hex);
-  let signature = await account.key.sign(Buffer.from(digest, 'hex'));
+  let signature = await account.key.sign(digest);
 
   txn.hash = common.hash.doubleSha256Hex(hex);
 
