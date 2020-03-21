@@ -785,7 +785,9 @@ reliability and lower latency.</p>
   
     (default <code>false</code>)
   </td>
-  <td class='break-word'><span>Whether to use web workers (if available) to compute signatures. Can also be a function that returns web worker. Typically you only need to set it to a function if you import nkn-sdk as a module and are not using browserify or webpack worker-loader (with inline options) to bundle js file.
+  <td class='break-word'><span>Whether to use web workers (if available) to compute signatures. Can also be a function that returns web worker. Typically you only need to set it to a function if you import nkn-sdk as a module and are NOT using browserify or webpack worker-loader to bundle js file. The worker file is located at 
+<code>lib/worker/webpack.worker.js</code>
+.
 </span></td>
 </tr>
 
@@ -2386,7 +2388,9 @@ msg received will be sent back.</p>
   
     (default <code>false</code>)
   </td>
-  <td class='break-word'><span>Whether to use web workers (if available) to compute signatures. Can also be a function that returns web worker. Typically you only need to set it to a function if you import nkn-sdk as a module and are not using browserify or webpack worker-loader (with inline options) to bundle js file.
+  <td class='break-word'><span>Whether to use web workers (if available) to compute signatures. Can also be a function that returns web worker. Typically you only need to set it to a function if you import nkn-sdk as a module and are NOT using browserify or webpack worker-loader to bundle js file. The worker file is located at 
+<code>lib/worker/webpack.worker.js</code>
+.
 </span></td>
 </tr>
 
@@ -3775,7 +3779,9 @@ better reliability and lower latency.</p>
   
     (default <code>false</code>)
   </td>
-  <td class='break-word'><span>Whether to use web workers (if available) to compute signatures. Can also be a function that returns web worker. Typically you only need to set it to a function if you import nkn-sdk as a module and are not using browserify or webpack worker-loader (with inline options) to bundle js file.
+  <td class='break-word'><span>Whether to use web workers (if available) to compute signatures. Can also be a function that returns web worker. Typically you only need to set it to a function if you import nkn-sdk as a module and are NOT using browserify or webpack worker-loader to bundle js file. The worker file is located at 
+<code>lib/worker/webpack.worker.js</code>
+.
 </span></td>
 </tr>
 
