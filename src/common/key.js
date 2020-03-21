@@ -4,10 +4,10 @@ import nacl from 'tweetnacl';
 import ed2curve from 'ed2curve';
 import work from 'webworkify';
 
-import * as common from '../common';
+import * as crypto from './crypto';
 import * as errors from './errors';
+import * as util from './util';
 
-export const signatureLength = nacl.sign.signatureLength;
 export const publicKeyLength = nacl.box.publicKeyLength;
 
 export default class Key {
@@ -24,17 +24,17 @@ export default class Key {
   constructor(seed, options = {}) {
     if (seed) {
       try {
-        seed = common.util.hexToBytes(seed);
+        seed = util.hexToBytes(seed);
       } catch (e) {
         throw new errors.InvalidArgumentError('seed is not a valid hex string');
       }
     } else {
-      seed = common.util.randomBytes(nacl.sign.seedLength);
+      seed = util.randomBytes(nacl.sign.seedLength);
     }
 
     this.key = nacl.sign.keyPair.fromSeed(seed);
-    this.publicKey = common.util.bytesToHex(this.key.publicKey);
-    this.seed = common.util.bytesToHex(seed);
+    this.publicKey = util.bytesToHex(this.key.publicKey);
+    this.seed = util.bytesToHex(seed);
     this.curveSecretKey = ed2curve.convertSecretKey(this.key.secretKey);
     this.sharedKeyCache = new Map();
     this.useWorker = this._shouldUseWorker(options.worker);
@@ -43,24 +43,35 @@ export default class Key {
     this.workerMsgCache = new Map();
 
     if (this.useWorker) {
-      try {
-        this.worker = work(require('./worker.js'));
-        this.worker.onmessage = (e) => {
-          if (e.data.id !== undefined && this.workerMsgCache.has(e.data.id)) {
-            let msgPromise = this.workerMsgCache.get(e.data.id);
-            if (e.data.error) {
-              msgPromise.reject(e.data.error);
-            } else {
-              msgPromise.resolve(e.data.result);
+      (async () => {
+        try {
+          try {
+            this.worker = work(require('../worker/worker.js'));
+          } catch (e) {
+            try {
+              let Worker = require('../worker/webpack.worker.js');
+              this.worker = new Worker();
+            } catch (e) {
+              throw 'neither browserify nor webpack worker-loader is detected'
             }
-            this.workerMsgCache.delete(e.data.id);
           }
-        };
-        this.worker.postMessage({ action: 'setSeed', seed: this.seed });
-      } catch (e) {
-        console.warn('Launch web worker failed:', e);
-        this.useWorker = false;
-      }
+          this.worker.onmessage = (e) => {
+            if (e.data.id !== undefined && this.workerMsgCache.has(e.data.id)) {
+              let msgPromise = this.workerMsgCache.get(e.data.id);
+              if (e.data.error) {
+                msgPromise.reject(e.data.error);
+              } else {
+                msgPromise.resolve(e.data.result);
+              }
+              this.workerMsgCache.delete(e.data.id);
+            }
+          };
+          await this._sendToWorker({ action: 'setSeed', seed: this.seed });
+        } catch (e) {
+          console.warn('Launch web worker failed:', e);
+          this.useWorker = false;
+        }
+      })()
     }
   }
 
@@ -86,11 +97,6 @@ export default class Key {
     });
   }
 
-  _computeSharedKey(otherPubkey) {
-    let otherCurvePubkey = ed2curve.convertPublicKey(common.util.hexToBytes(otherPubkey));
-    return nacl.box.before(otherCurvePubkey, this.curveSecretKey);
-  }
-
   async computeSharedKey(otherPubkey) {
     if (this.useWorker) {
       try {
@@ -99,7 +105,7 @@ export default class Key {
         console.warn('worker computeSharedKey failed, fallback to main thread:', e);
       }
     }
-    return this._computeSharedKey(otherPubkey);
+    return crypto.computeSharedKey(this.curveSecretKey, otherPubkey);
   }
 
   async getOrComputeSharedKey(otherPubkey) {
@@ -113,7 +119,8 @@ export default class Key {
 
   async encrypt(message, destPubkey, options = {}) {
     let sharedKey = await this.getOrComputeSharedKey(destPubkey);
-    let nonce = options.nonce || common.util.randomBytes(nacl.box.nonceLength);
+    sharedKey = util.hexToBytes(sharedKey);
+    let nonce = options.nonce || util.randomBytes(nacl.box.nonceLength);
     return {
       message: nacl.box.after(message, nonce, sharedKey),
       nonce: nonce,
@@ -122,12 +129,8 @@ export default class Key {
 
   async decrypt(encryptedMessage, nonce, srcPubkey, options = {}) {
     let sharedKey = await this.getOrComputeSharedKey(srcPubkey);
+    sharedKey = util.hexToBytes(sharedKey);
     return nacl.box.open.after(encryptedMessage, nonce, sharedKey);
-  }
-
-  _sign(message) {
-    let sig = nacl.sign.detached(Buffer.from(message, 'hex'), this.key.secretKey);
-    return common.util.paddingSignature(common.util.bytesToHex(sig), signatureLength);
   }
 
   async sign(message) {
@@ -138,6 +141,6 @@ export default class Key {
         console.warn('worker sign failed, fallback to main thread:', e);
       }
     }
-    return await this._sign(message);
+    return await crypto.sign(this.key.secretKey, message);
   }
 }

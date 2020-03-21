@@ -1,6 +1,7 @@
 'use strict';
 
 export Key from './key';
+export * as crypto from './crypto';
 export * as errors from './errors';
 export * as hash from './hash';
 export * as key from './key';
