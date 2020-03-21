@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
   <meta charset='utf-8'>
-  <title>nkn-sdk 1.0.5 | Documentation</title>
+  <title>nkn-sdk 1.0.6 | Documentation</title>
   <meta name='description' content='NKN client and wallet SDK'>
   <meta name='viewport' content='width=device-width,initial-scale=1'>
   <link href='assets/bass.css' rel='stylesheet'>
@@ -15,7 +15,7 @@
       <div id='split-left' class='overflow-auto fs0 height-viewport-100'>
         <div class='py1 px2'>
           <h3 class='mb0 no-anchor'>nkn-sdk</h3>
-          <div class='mb1'><code>1.0.5</code></div>
+          <div class='mb1'><code>1.0.6</code></div>
           <input
             placeholder='Filter'
             id='filter-input'
@@ -781,11 +781,11 @@ reliability and lower latency.</p>
 
               
                 <tr>
-  <td class='break-word'><span class='code bold'>options.worker</span> <code class='quiet'><a href="https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/Boolean">boolean</a></code>
+  <td class='break-word'><span class='code bold'>options.worker</span> <code class='quiet'>(<a href="https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/Boolean">boolean</a> | <a href="https://developer.mozilla.org/docs/Web/JavaScript/Reference/Statements/function">function</a>)</code>
   
     (default <code>false</code>)
   </td>
-  <td class='break-word'><span>Whether to use web workers (if available) to compute signatures.
+  <td class='break-word'><span>Whether to use web workers (if available) to compute signatures. Can also be a function that returns web worker. Typically you only need to set it to a function if you import nkn-sdk as a module and are not using browserify or webpack worker-loader (with inline options) to bundle js file.
 </span></td>
 </tr>
 
@@ -2382,11 +2382,11 @@ msg received will be sent back.</p>
 
               
                 <tr>
-  <td class='break-word'><span class='code bold'>options.worker</span> <code class='quiet'><a href="https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/Boolean">boolean</a></code>
+  <td class='break-word'><span class='code bold'>options.worker</span> <code class='quiet'>(<a href="https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/Boolean">boolean</a> | <a href="https://developer.mozilla.org/docs/Web/JavaScript/Reference/Statements/function">function</a>)</code>
   
     (default <code>false</code>)
   </td>
-  <td class='break-word'><span>Whether to use web workers (if available) to compute signatures.
+  <td class='break-word'><span>Whether to use web workers (if available) to compute signatures. Can also be a function that returns web worker. Typically you only need to set it to a function if you import nkn-sdk as a module and are not using browserify or webpack worker-loader (with inline options) to bundle js file.
 </span></td>
 </tr>
 
@@ -3771,11 +3771,11 @@ better reliability and lower latency.</p>
 
               
                 <tr>
-  <td class='break-word'><span class='code bold'>options.worker</span> <code class='quiet'><a href="https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/Boolean">boolean</a></code>
+  <td class='break-word'><span class='code bold'>options.worker</span> <code class='quiet'>(<a href="https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/Boolean">boolean</a> | <a href="https://developer.mozilla.org/docs/Web/JavaScript/Reference/Statements/function">function</a>)</code>
   
     (default <code>false</code>)
   </td>
-  <td class='break-word'><span>Whether to use web workers (if available) to compute signatures.
+  <td class='break-word'><span>Whether to use web workers (if available) to compute signatures. Can also be a function that returns web worker. Typically you only need to set it to a function if you import nkn-sdk as a module and are not using browserify or webpack worker-loader (with inline options) to bundle js file.
 </span></td>
 </tr>
 
