@@ -22,11 +22,10 @@ import * as message from './message';
  * @param {boolean} [options.encrypt=true] - Whether to end to end encrypt message.
  * @param {string} [options.rpcServerAddr='https://mainnet-rpc-node-0001.nkn.org/mainnet/api/wallet'] - RPC server address used to join the network.
  * @param {boolean} [options.tls=undefined] - Force to use wss instead of ws protocol. If not defined, wss will only be used in https location.
- * @param {boolean} [options.worker=false] - Whether to use web workers (if available) to compute signatures.
+ * @param {boolean|function} [options.worker=false] - Whether to use web workers (if available) to compute signatures. Can also be a function that returns web worker. Typically you only need to set it to a function if you import nkn-sdk as a module and are not using browserify or webpack worker-loader (with inline options) to bundle js file.
  */
 export default class Client {
   options: {
-    seed?: string,
     identifier?: string,
     reconnectIntervalMin: number,
     reconnectIntervalMax: number,
@@ -35,7 +34,7 @@ export default class Client {
     encrypt: boolean,
     rpcServerAddr: string,
     tls?: boolean,
-    worker: boolean,
+    worker: boolean | () => Worker | Promise<Worker>,
   };
   key: common.Key;
   /**
@@ -75,7 +74,7 @@ export default class Client {
     encrypt?: boolean,
     rpcServerAddr?: string,
     tls?: boolean,
-    worker?: boolean,
+    worker?: boolean | () => Worker | Promise<Worker>,
   } = {}) {
     options = common.util.assignDefined({}, consts.defaultOptions, options);
 
@@ -83,6 +82,8 @@ export default class Client {
     let identifier = options.identifier || '';
     let pubkey = key.publicKey;
     let addr = (identifier ? identifier + '.' : '') + pubkey;
+
+    delete options.seed;
 
     this.options = options;
     this.key = key;

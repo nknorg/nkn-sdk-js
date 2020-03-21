@@ -45,14 +45,18 @@ export default class Key {
     if (this.useWorker) {
       (async () => {
         try {
-          try {
-            this.worker = work(require('../worker/worker.js'));
-          } catch (e) {
+          if (typeof options.worker === 'function') {
+            this.worker = await options.worker();
+          } else {
             try {
-              let Worker = require('../worker/webpack.worker.js');
-              this.worker = new Worker();
+              this.worker = work(require('../worker/worker.js'));
             } catch (e) {
-              throw 'neither browserify nor webpack worker-loader is detected'
+              try {
+                let Worker = require('../worker/webpack.worker.js');
+                this.worker = new Worker();
+              } catch (e) {
+                throw 'neither browserify nor webpack worker-loader is detected'
+              }
             }
           }
           this.worker.onmessage = (e) => {

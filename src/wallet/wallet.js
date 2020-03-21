@@ -17,10 +17,13 @@ import * as transaction from './transaction';
  * @param {string} [options.rpcServerAddr='https://mainnet-rpc-node-0001.nkn.org/mainnet/api/wallet'] - RPC server address.
  * @param {string} [options.iv=undefined] - AES iv, typically you should use Wallet.fromJSON instead of this field.
  * @param {string} [options.masterKey=undefined] - AES master key, typically you should use Wallet.fromJSON instead of this field.
- * @param {boolean} [options.worker=false] - Whether to use web workers (if available) to compute signatures.
+ * @param {boolean|function} [options.worker=false] - Whether to use web workers (if available) to compute signatures. Can also be a function that returns web worker. Typically you only need to set it to a function if you import nkn-sdk as a module and are not using browserify or webpack worker-loader (with inline options) to bundle js file.
  */
 export default class Wallet {
-  options: { rpcServerAddr: string };
+  options: {
+    rpcServerAddr: string,
+    worker: boolean | () => Worker | Promise<Worker>,
+  };
   account: Account;
   passwordHash: string;
   iv: string;
@@ -47,7 +50,7 @@ export default class Wallet {
     rpcServerAddr?: string,
     iv?: string,
     masterKey?: string,
-    worker?: boolean,
+    worker?: boolean | () => Worker | Promise<Worker>,
   }) {
     options = common.util.assignDefined({}, consts.defaultOptions, options);
 
@@ -58,6 +61,7 @@ export default class Wallet {
     masterKey = common.hash.cryptoHexStringParse(masterKey);
     let seed = common.hash.cryptoHexStringParse(account.getSeed());
 
+    delete options.seed;
     delete options.password;
     delete options.iv;
     delete options.masterKey;
