@@ -47,13 +47,6 @@ export function mergeTypedArrays(a, b) {
   return c;
 }
 
-export function paddingSignature(data, len) {
-  for(let i = 0; i < len - data.length; i++){
-    data = '0' + data
-  }
-  return data
-}
-
 export function assignDefined(target, ...sources) {
   for (let source of sources) {
     if (source) {
