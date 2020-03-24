@@ -4,35 +4,35 @@ import pako from 'pako';
 
 import * as common from '../common';
 
-export const pidSize = 8; // in bytes
+export const messageIdSize = 8; // in bytes
 export const maxClientMessageSize = 4000000; // in bytes. NKN node is using 4*1024*1024 as limit, we give some additional space for serialization overhead.
 
-export function newPayload(type, replyToPid, data, msgPid) {
+export function newPayload(type, replyToId, data, messageId) {
   let payload = new common.pb.payloads.Payload();
   payload.setType(type);
-  if (replyToPid) {
-    payload.setReplyToPid(replyToPid);
-  } else if (msgPid) {
-    payload.setPid(msgPid);
+  if (replyToId) {
+    payload.setReplyToId(replyToId);
+  } else if (messageId) {
+    payload.setMessageId(messageId);
   } else {
-    payload.setPid(common.util.randomBytes(pidSize));
+    payload.setMessageId(common.util.randomBytes(messageIdSize));
   }
   payload.setData(data);
   return payload;
 }
 
-export function newBinaryPayload(data, replyToPid, msgPid) {
-  return newPayload(common.pb.payloads.PayloadType.BINARY, replyToPid, data, msgPid);
+export function newBinaryPayload(data, replyToId, messageId) {
+  return newPayload(common.pb.payloads.PayloadType.BINARY, replyToId, data, messageId);
 }
 
-export function newTextPayload(text, replyToPid, msgPid) {
+export function newTextPayload(text, replyToId, messageId) {
   let data = new common.pb.payloads.TextData();
   data.setText(text);
-  return newPayload(common.pb.payloads.PayloadType.TEXT, replyToPid, data.serializeBinary(), msgPid);
+  return newPayload(common.pb.payloads.PayloadType.TEXT, replyToId, data.serializeBinary(), messageId);
 }
 
-export function newAckPayload(replyToPid, msgPid) {
-  return newPayload(common.pb.payloads.PayloadType.ACK, replyToPid, null, msgPid);
+export function newAckPayload(replyToId, messageId) {
+  return newPayload(common.pb.payloads.PayloadType.ACK, replyToId, null, messageId);
 }
 
 export function newSessionPayload(data, sessionID) {

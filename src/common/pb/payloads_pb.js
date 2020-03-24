@@ -389,10 +389,10 @@ proto.payloads.Payload.prototype.toObject = function(opt_includeInstance) {
 proto.payloads.Payload.toObject = function(includeInstance, msg) {
   var f, obj = {
     type: jspb.Message.getFieldWithDefault(msg, 1, 0),
-    pid: msg.getPid_asB64(),
+    messageId: msg.getMessageId_asB64(),
     data: msg.getData_asB64(),
-    replyToPid: msg.getReplyToPid_asB64(),
-    noAck: jspb.Message.getFieldWithDefault(msg, 5, false)
+    replyToId: msg.getReplyToId_asB64(),
+    noReply: jspb.Message.getFieldWithDefault(msg, 5, false)
   };
 
   if (includeInstance) {
@@ -435,7 +435,7 @@ proto.payloads.Payload.deserializeBinaryFromReader = function(msg, reader) {
       break;
     case 2:
       var value = /** @type {!Uint8Array} */ (reader.readBytes());
-      msg.setPid(value);
+      msg.setMessageId(value);
       break;
     case 3:
       var value = /** @type {!Uint8Array} */ (reader.readBytes());
@@ -443,11 +443,11 @@ proto.payloads.Payload.deserializeBinaryFromReader = function(msg, reader) {
       break;
     case 4:
       var value = /** @type {!Uint8Array} */ (reader.readBytes());
-      msg.setReplyToPid(value);
+      msg.setReplyToId(value);
       break;
     case 5:
       var value = /** @type {boolean} */ (reader.readBool());
-      msg.setNoAck(value);
+      msg.setNoReply(value);
       break;
     default:
       reader.skipField();
@@ -485,7 +485,7 @@ proto.payloads.Payload.serializeBinaryToWriter = function(message, writer) {
       f
     );
   }
-  f = message.getPid_asU8();
+  f = message.getMessageId_asU8();
   if (f.length > 0) {
     writer.writeBytes(
       2,
@@ -499,14 +499,14 @@ proto.payloads.Payload.serializeBinaryToWriter = function(message, writer) {
       f
     );
   }
-  f = message.getReplyToPid_asU8();
+  f = message.getReplyToId_asU8();
   if (f.length > 0) {
     writer.writeBytes(
       4,
       f
     );
   }
-  f = message.getNoAck();
+  f = message.getNoReply();
   if (f) {
     writer.writeBool(
       5,
@@ -532,40 +532,40 @@ proto.payloads.Payload.prototype.setType = function(value) {
 
 
 /**
- * optional bytes pid = 2;
+ * optional bytes message_id = 2;
  * @return {!(string|Uint8Array)}
  */
-proto.payloads.Payload.prototype.getPid = function() {
+proto.payloads.Payload.prototype.getMessageId = function() {
   return /** @type {!(string|Uint8Array)} */ (jspb.Message.getFieldWithDefault(this, 2, ""));
 };
 
 
 /**
- * optional bytes pid = 2;
- * This is a type-conversion wrapper around `getPid()`
+ * optional bytes message_id = 2;
+ * This is a type-conversion wrapper around `getMessageId()`
  * @return {string}
  */
-proto.payloads.Payload.prototype.getPid_asB64 = function() {
+proto.payloads.Payload.prototype.getMessageId_asB64 = function() {
   return /** @type {string} */ (jspb.Message.bytesAsB64(
-      this.getPid()));
+      this.getMessageId()));
 };
 
 
 /**
- * optional bytes pid = 2;
+ * optional bytes message_id = 2;
  * Note that Uint8Array is not supported on all browsers.
  * @see http://caniuse.com/Uint8Array
- * This is a type-conversion wrapper around `getPid()`
+ * This is a type-conversion wrapper around `getMessageId()`
  * @return {!Uint8Array}
  */
-proto.payloads.Payload.prototype.getPid_asU8 = function() {
+proto.payloads.Payload.prototype.getMessageId_asU8 = function() {
   return /** @type {!Uint8Array} */ (jspb.Message.bytesAsU8(
-      this.getPid()));
+      this.getMessageId()));
 };
 
 
 /** @param {!(string|Uint8Array)} value */
-proto.payloads.Payload.prototype.setPid = function(value) {
+proto.payloads.Payload.prototype.setMessageId = function(value) {
   jspb.Message.setProto3BytesField(this, 2, value);
 };
 
@@ -610,57 +610,57 @@ proto.payloads.Payload.prototype.setData = function(value) {
 
 
 /**
- * optional bytes reply_to_pid = 4;
+ * optional bytes reply_to_id = 4;
  * @return {!(string|Uint8Array)}
  */
-proto.payloads.Payload.prototype.getReplyToPid = function() {
+proto.payloads.Payload.prototype.getReplyToId = function() {
   return /** @type {!(string|Uint8Array)} */ (jspb.Message.getFieldWithDefault(this, 4, ""));
 };
 
 
 /**
- * optional bytes reply_to_pid = 4;
- * This is a type-conversion wrapper around `getReplyToPid()`
+ * optional bytes reply_to_id = 4;
+ * This is a type-conversion wrapper around `getReplyToId()`
  * @return {string}
  */
-proto.payloads.Payload.prototype.getReplyToPid_asB64 = function() {
+proto.payloads.Payload.prototype.getReplyToId_asB64 = function() {
   return /** @type {string} */ (jspb.Message.bytesAsB64(
-      this.getReplyToPid()));
+      this.getReplyToId()));
 };
 
 
 /**
- * optional bytes reply_to_pid = 4;
+ * optional bytes reply_to_id = 4;
  * Note that Uint8Array is not supported on all browsers.
  * @see http://caniuse.com/Uint8Array
- * This is a type-conversion wrapper around `getReplyToPid()`
+ * This is a type-conversion wrapper around `getReplyToId()`
  * @return {!Uint8Array}
  */
-proto.payloads.Payload.prototype.getReplyToPid_asU8 = function() {
+proto.payloads.Payload.prototype.getReplyToId_asU8 = function() {
   return /** @type {!Uint8Array} */ (jspb.Message.bytesAsU8(
-      this.getReplyToPid()));
+      this.getReplyToId()));
 };
 
 
 /** @param {!(string|Uint8Array)} value */
-proto.payloads.Payload.prototype.setReplyToPid = function(value) {
+proto.payloads.Payload.prototype.setReplyToId = function(value) {
   jspb.Message.setProto3BytesField(this, 4, value);
 };
 
 
 /**
- * optional bool no_ack = 5;
+ * optional bool no_reply = 5;
  * Note that Boolean fields may be set to 0/1 when serialized from a Java server.
  * You should avoid comparisons like {@code val === true/false} in those cases.
  * @return {boolean}
  */
-proto.payloads.Payload.prototype.getNoAck = function() {
+proto.payloads.Payload.prototype.getNoReply = function() {
   return /** @type {boolean} */ (jspb.Message.getFieldWithDefault(this, 5, false));
 };
 
 
 /** @param {boolean} value */
-proto.payloads.Payload.prototype.setNoAck = function(value) {
+proto.payloads.Payload.prototype.setNoReply = function(value) {
   jspb.Message.setProto3BooleanField(this, 5, value);
 };
 

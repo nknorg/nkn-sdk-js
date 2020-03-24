@@ -280,7 +280,7 @@ export default class Client {
       this._wsSend(msg.serializeBinary());
     });
 
-    return payload.getPid() || null;
+    return payload.getMessageId() || null;
   };
 
   /**
@@ -292,39 +292,39 @@ export default class Client {
     options = common.util.assignDefined({}, this.options, options);
     let payload;
     if (typeof data === 'string') {
-      payload = message.newTextPayload(data, options.replyToPid, options.pid);
+      payload = message.newTextPayload(data, options.replyToId, options.messageId);
     } else {
-      payload = message.newBinaryPayload(data, options.replyToPid, options.pid);
+      payload = message.newBinaryPayload(data, options.replyToId, options.messageId);
     }
 
-    let pid = await this._send(dest, payload, options.encrypt, options.msgHoldingSeconds);
-    if (pid === null || options.noReply) {
+    let messageId = await this._send(dest, payload, options.encrypt, options.msgHoldingSeconds);
+    if (messageId === null || options.noReply) {
       return null;
     }
 
     return await new Promise((resolve: ResponseHandler, reject: TimeoutHandler) => {
-      this.responseManager.add(new ResponseProcessor(pid, options.responseTimeout, resolve, reject));
+      this.responseManager.add(new ResponseProcessor(messageId, options.responseTimeout, resolve, reject));
     });
   };
 
-  async _sendACK(dest: Destination, pid: Uint8Array, encrypt: boolean): Promise<void> {
+  async _sendACK(dest: Destination, messageId: Uint8Array, encrypt: boolean): Promise<void> {
     if (Array.isArray(dest)) {
       if (dest.length === 0) {
         return;
       }
       if (dest.length === 1) {
-        return await this._sendACK(dest[0], pid, encrypt);
+        return await this._sendACK(dest[0], messageId, encrypt);
       }
       if (dest.length > 1 && encrypt) {
         console.warn('Encrypted ACK with multicast is not supported, fallback to unicast.')
         for (let i = 0; i < dest.length; i++) {
-          await this._sendACK(dest[i], pid, encrypt);
+          await this._sendACK(dest[i], messageId, encrypt);
         }
         return;
       }
     }
 
-    let payload = message.newAckPayload(pid);
+    let payload = message.newAckPayload(messageId);
     let pldMsg = await this._messageFromPayload(payload, encrypt, dest);
     if (pldMsg instanceof Array) {
       throw new TypeError('ack payload should not be an array');
@@ -532,13 +532,13 @@ export default class Client {
         data = textData.getText();
         break;
       case common.pb.payloads.PayloadType.ACK:
-        this.responseManager.respond(payload.getReplyToPid(), null, payload.getType());
+        this.responseManager.respond(payload.getReplyToId(), null, payload.getType());
         return true;
     }
 
     // handle response if applicable
-    if (payload.getReplyToPid().length) {
-      this.responseManager.respond(payload.getReplyToPid(), data, payload.getType());
+    if (payload.getReplyToId().length) {
+      this.responseManager.respond(payload.getReplyToId(), data, payload.getType());
       return true;
     }
 
@@ -556,8 +556,8 @@ export default class Client {
                 payload: data,
                 payloadType: payload.getType(),
                 isEncrypted: pldMsg.getEncrypted(),
-                pid: payload.getPid(),
-                noReply: payload.getNoAck(),
+                messageId: payload.getMessageId(),
+                noReply: payload.getNoReply(),
               });
             } catch (e) {
               console.log(e);
@@ -565,7 +565,7 @@ export default class Client {
             }
           }));
         }
-        if (!payload.getNoAck()) {
+        if (!payload.getNoReply()) {
           let responded = false;
           for (let response of responses) {
             if (response === false) {
@@ -574,7 +574,7 @@ export default class Client {
               this.send(msg.getSrc(), response, {
                 encrypt: pldMsg.getEncrypted(),
                 msgHoldingSeconds: 0,
-                replyToPid: payload.getPid(),
+                replyToId: payload.getMessageId(),
               }).catch((e) => {
                 console.log('Send response error:', e);
               });
@@ -583,7 +583,7 @@ export default class Client {
             }
           }
           if (!responded) {
-            await this._sendACK(msg.getSrc(), payload.getPid(), pldMsg.getEncrypted());
+            await this._sendACK(msg.getSrc(), payload.getMessageId(), pldMsg.getEncrypted());
           }
         }
         return true;
@@ -756,22 +756,22 @@ export default class Client {
 }
 
 class ResponseProcessor {
-  pid: string;
+  messageId: string;
   deadline: ?number;
   responseHandler: ResponseHandler;
   timeoutHandler: TimeoutHandler;
 
   constructor(
-    pid: Uint8Array | string,
+    messageId: Uint8Array | string,
     timeout: ?number,
     responseHandler: ResponseHandler,
     timeoutHandler: TimeoutHandler,
   ) {
-    if (pid instanceof Uint8Array) {
-      pid = common.util.bytesToHex(pid);
+    if (messageId instanceof Uint8Array) {
+      messageId = common.util.bytesToHex(messageId);
     }
 
-    this.pid = pid;
+    this.messageId = messageId;
     if (timeout) {
       this.deadline = Date.now() + timeout;
     }
@@ -813,7 +813,7 @@ class ResponseManager {
   }
 
   add(proceccor: ResponseProcessor) {
-    this.responseProcessors.set(proceccor.pid, proceccor);
+    this.responseProcessors.set(proceccor.messageId, proceccor);
   }
 
   clear() {
@@ -828,14 +828,14 @@ class ResponseManager {
     this.clear();
   }
 
-  respond(pid: Uint8Array | string, data: ReplyData, payloadType?: common.pb.payloads.PayloadType) {
-    if (pid instanceof Uint8Array) {
-      pid = common.util.bytesToHex(pid);
+  respond(messageId: Uint8Array | string, data: ReplyData, payloadType?: common.pb.payloads.PayloadType) {
+    if (messageId instanceof Uint8Array) {
+      messageId = common.util.bytesToHex(messageId);
     }
-    let responseProcessor = this.responseProcessors.get(pid);
+    let responseProcessor = this.responseProcessors.get(messageId);
     if (responseProcessor) {
       responseProcessor.handleResponse(data);
-      this.responseProcessors.delete(pid);
+      this.responseProcessors.delete(messageId);
     }
   }
 
@@ -850,7 +850,7 @@ class ResponseManager {
 
     timeoutProcessors.forEach(p => {
       p.handleTimeout();
-      this.responseProcessors.delete(p.pid);
+      this.responseProcessors.delete(p.messageId);
     })
 
     this.timer = setTimeout(this.checkTimeout.bind(this), consts.checkTimeoutInterval);
@@ -882,7 +882,7 @@ export type ReplyData = MessageData | null;
  * @property {MessageData} payload - Message payload.
  * @property {nkn.pb.payloads.PayloadType} payloadType - Message payload type.
  * @property {boolean} isEncrypted - Whether message is end to end encrypted.
- * @property {Uint8Array} pid - Unique message ID.
+ * @property {Uint8Array} messageId - Unique message ID.
  * @property {boolean} noReply - Indicating no reply should be sent back as sender will not process it.
  */
 export type Message = {
@@ -890,7 +890,7 @@ export type Message = {
   payload: MessageData,
   payloadType: common.pb.payloads.PayloadType,
   isEncrypted: boolean,
-  pid: Uint8Array,
+  messageId: Uint8Array,
   noReply: boolean,
 };
 
@@ -916,8 +916,8 @@ export type SendOptions = {
   encrypt?: boolean,
   msgHoldingSeconds?: number,
   noReply?: boolean,
-  pid?: Uint8Array,
-  replyToPid?: Uint8Array,
+  messageId?: Uint8Array,
+  replyToId?: Uint8Array,
 }
 
 /**
@@ -930,6 +930,6 @@ export type PublishOptions = {
   txPool?: boolean,
   encrypt?: boolean,
   msgHoldingSeconds?: number,
-  pid?: Uint8Array,
-  replyToPid?: Uint8Array,
+  messageId?: Uint8Array,
+  replyToId?: Uint8Array,
 }
