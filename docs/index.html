@@ -5968,7 +5968,7 @@ of 'identifier.publicKey', or a name registered using wallet.</p>
   
     <p>
       Type:
-      {src: <a href="https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/String">string</a>, payload: <a href="#messagedata">MessageData</a>, payloadType: common.pb.payloads.PayloadType, isEncrypted: <a href="https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/Boolean">boolean</a>, pid: <a href="https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/Uint8Array">Uint8Array</a>}
+      {src: <a href="https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/String">string</a>, payload: <a href="#messagedata">MessageData</a>, payloadType: common.pb.payloads.PayloadType, isEncrypted: <a href="https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/Boolean">boolean</a>, pid: <a href="https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/Uint8Array">Uint8Array</a>, noReply: <a href="https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/Boolean">boolean</a>}
     </p>
   
   
@@ -5988,31 +5988,43 @@ of 'identifier.publicKey', or a name registered using wallet.</p>
       
         <div class='space-bottom0'>
           <span class='code bold'>src</span> <code class='quiet'>(<a href="https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/String">string</a>)</code>
-          
+          : Message sender address.
+
           
         </div>
       
         <div class='space-bottom0'>
           <span class='code bold'>payload</span> <code class='quiet'>(<a href="#messagedata">MessageData</a>)</code>
-          
+          : Message payload.
+
           
         </div>
       
         <div class='space-bottom0'>
-          <span class='code bold'>payloadType</span> <code class='quiet'>(common.pb.payloads.PayloadType)</code>
-          
+          <span class='code bold'>payloadType</span> <code class='quiet'>(nkn.pb.payloads.PayloadType)</code>
+          : Message payload type.
+
           
         </div>
       
         <div class='space-bottom0'>
           <span class='code bold'>isEncrypted</span> <code class='quiet'>(<a href="https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/Boolean">boolean</a>)</code>
-          
+          : Whether message is end to end encrypted.
+
           
         </div>
       
         <div class='space-bottom0'>
           <span class='code bold'>pid</span> <code class='quiet'>(<a href="https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/Uint8Array">Uint8Array</a>)</code>
+          : Unique message ID.
+
           
+        </div>
+      
+        <div class='space-bottom0'>
+          <span class='code bold'>noReply</span> <code class='quiet'>(<a href="https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/Boolean">boolean</a>)</code>
+          : Indicating no reply should be sent back as sender will not process it.
+
           
         </div>
       

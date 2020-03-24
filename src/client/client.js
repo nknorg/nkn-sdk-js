@@ -280,7 +280,7 @@ export default class Client {
       this._wsSend(msg.serializeBinary());
     });
 
-    return payload.getPid();
+    return payload.getPid() || null;
   };
 
   /**
@@ -549,38 +549,42 @@ export default class Client {
       case common.pb.payloads.PayloadType.SESSION:
         let responses = [];
         if (this.eventListeners.message.length > 0) {
-          responses = await Promise.all(this.eventListeners.message.map(f => {
+          responses = await Promise.all(this.eventListeners.message.map(async f => {
             try {
-              return Promise.resolve(f({
+              return await f({
                 src: msg.getSrc(),
                 payload: data,
                 payloadType: payload.getType(),
                 isEncrypted: pldMsg.getEncrypted(),
                 pid: payload.getPid(),
-              }));
+                noReply: payload.getNoAck(),
+              });
             } catch (e) {
               console.log(e);
-              return Promise.resolve(null);
+              return null;
             }
           }));
         }
-        let responded = false;
-        for (let response of responses) {
-          if (response === false) {
-            return true;
-          } else if (response !== undefined && response !== null) {
-            this.send(msg.getSrc(), response, {
-              encrypt: pldMsg.getEncrypted(),
-              msgHoldingSeconds: 0,
-              replyToPid: payload.getPid(),
-              noReply: true,
-            });
-            responded = true;
-            break;
+        if (!payload.getNoAck()) {
+          let responded = false;
+          for (let response of responses) {
+            if (response === false) {
+              return true;
+            } else if (response !== undefined && response !== null) {
+              this.send(msg.getSrc(), response, {
+                encrypt: pldMsg.getEncrypted(),
+                msgHoldingSeconds: 0,
+                replyToPid: payload.getPid(),
+              }).catch((e) => {
+                console.log('Send response error:', e);
+              });
+              responded = true;
+              break;
+            }
           }
-        }
-        if (!responded) {
-          await this._sendACK(msg.getSrc(), payload.getPid(), pldMsg.getEncrypted());
+          if (!responded) {
+            await this._sendACK(msg.getSrc(), payload.getPid(), pldMsg.getEncrypted());
+          }
         }
         return true;
       default:
@@ -874,6 +878,12 @@ export type ReplyData = MessageData | null;
 
 /**
  * Message type.
+ * @property {string} src - Message sender address.
+ * @property {MessageData} payload - Message payload.
+ * @property {nkn.pb.payloads.PayloadType} payloadType - Message payload type.
+ * @property {boolean} isEncrypted - Whether message is end to end encrypted.
+ * @property {Uint8Array} pid - Unique message ID.
+ * @property {boolean} noReply - Indicating no reply should be sent back as sender will not process it.
  */
 export type Message = {
   src: string,
@@ -881,6 +891,7 @@ export type Message = {
   payloadType: common.pb.payloads.PayloadType,
   isEncrypted: boolean,
   pid: Uint8Array,
+  noReply: boolean,
 };
 
 /**
