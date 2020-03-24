@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
   <meta charset='utf-8'>
-  <title>nkn-sdk 1.0.6 | Documentation</title>
+  <title>nkn-sdk 1.0.7 | Documentation</title>
   <meta name='description' content='NKN client and wallet SDK'>
   <meta name='viewport' content='width=device-width,initial-scale=1'>
   <link href='assets/bass.css' rel='stylesheet'>
@@ -15,7 +15,7 @@
       <div id='split-left' class='overflow-auto fs0 height-viewport-100'>
         <div class='py1 px2'>
           <h3 class='mb0 no-anchor'>nkn-sdk</h3>
-          <div class='mb1'><code>1.0.6</code></div>
+          <div class='mb1'><code>1.0.7</code></div>
           <input
             placeholder='Filter'
             id='filter-input'
@@ -2425,7 +2425,7 @@ msg received will be sent back.</p>
   
     (default <code>300000</code>)
   </td>
-  <td class='break-word'><span>Message pid cache expiration time in ms. This cache is used to remove duplicate messages received by different clients.
+  <td class='break-word'><span>Message cache expiration time in ms. This cache is used to remove duplicate messages received by different clients.
 </span></td>
 </tr>
 
@@ -5968,7 +5968,7 @@ of 'identifier.publicKey', or a name registered using wallet.</p>
   
     <p>
       Type:
-      {src: <a href="https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/String">string</a>, payload: <a href="#messagedata">MessageData</a>, payloadType: common.pb.payloads.PayloadType, isEncrypted: <a href="https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/Boolean">boolean</a>, pid: <a href="https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/Uint8Array">Uint8Array</a>, noReply: <a href="https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/Boolean">boolean</a>}
+      {src: <a href="https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/String">string</a>, payload: <a href="#messagedata">MessageData</a>, payloadType: common.pb.payloads.PayloadType, isEncrypted: <a href="https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/Boolean">boolean</a>, messageId: <a href="https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/Uint8Array">Uint8Array</a>, noReply: <a href="https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/Boolean">boolean</a>}
     </p>
   
   
@@ -6015,7 +6015,7 @@ of 'identifier.publicKey', or a name registered using wallet.</p>
         </div>
       
         <div class='space-bottom0'>
-          <span class='code bold'>pid</span> <code class='quiet'>(<a href="https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/Uint8Array">Uint8Array</a>)</code>
+          <span class='code bold'>messageId</span> <code class='quiet'>(<a href="https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/Uint8Array">Uint8Array</a>)</code>
           : Unique message ID.
 
           
@@ -6174,7 +6174,7 @@ of 'identifier.publicKey', or a name registered using wallet.</p>
   
     <p>
       Type:
-      {txPool: <a href="https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/Boolean">boolean</a>?, encrypt: <a href="https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/Boolean">boolean</a>?, msgHoldingSeconds: <a href="https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/Number">number</a>?, pid: <a href="https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/Uint8Array">Uint8Array</a>?, replyToPid: <a href="https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/Uint8Array">Uint8Array</a>?}
+      {txPool: <a href="https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/Boolean">boolean</a>?, encrypt: <a href="https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/Boolean">boolean</a>?, msgHoldingSeconds: <a href="https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/Number">number</a>?, messageId: <a href="https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/Uint8Array">Uint8Array</a>?, replyToId: <a href="https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/Uint8Array">Uint8Array</a>?}
     </p>
   
   
@@ -6214,13 +6214,13 @@ of 'identifier.publicKey', or a name registered using wallet.</p>
         </div>
       
         <div class='space-bottom0'>
-          <span class='code bold'>pid</span> <code class='quiet'>(<a href="https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/Uint8Array">Uint8Array</a>?)</code>
+          <span class='code bold'>messageId</span> <code class='quiet'>(<a href="https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/Uint8Array">Uint8Array</a>?)</code>
           
           
         </div>
       
         <div class='space-bottom0'>
-          <span class='code bold'>replyToPid</span> <code class='quiet'>(<a href="https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/Uint8Array">Uint8Array</a>?)</code>
+          <span class='code bold'>replyToId</span> <code class='quiet'>(<a href="https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/Uint8Array">Uint8Array</a>?)</code>
           
           
         </div>
@@ -6318,7 +6318,7 @@ of 'identifier.publicKey', or a name registered using wallet.</p>
   
     <p>
       Type:
-      {responseTimeout: <a href="https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/Number">number</a>?, encrypt: <a href="https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/Boolean">boolean</a>?, msgHoldingSeconds: <a href="https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/Number">number</a>?, noReply: <a href="https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/Boolean">boolean</a>?, pid: <a href="https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/Uint8Array">Uint8Array</a>?, replyToPid: <a href="https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/Uint8Array">Uint8Array</a>?}
+      {responseTimeout: <a href="https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/Number">number</a>?, encrypt: <a href="https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/Boolean">boolean</a>?, msgHoldingSeconds: <a href="https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/Number">number</a>?, noReply: <a href="https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/Boolean">boolean</a>?, messageId: <a href="https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/Uint8Array">Uint8Array</a>?, replyToId: <a href="https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/Uint8Array">Uint8Array</a>?}
     </p>
   
   
@@ -6365,13 +6365,13 @@ of 'identifier.publicKey', or a name registered using wallet.</p>
         </div>
       
         <div class='space-bottom0'>
-          <span class='code bold'>pid</span> <code class='quiet'>(<a href="https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/Uint8Array">Uint8Array</a>?)</code>
+          <span class='code bold'>messageId</span> <code class='quiet'>(<a href="https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/Uint8Array">Uint8Array</a>?)</code>
           
           
         </div>
       
         <div class='space-bottom0'>
-          <span class='code bold'>replyToPid</span> <code class='quiet'>(<a href="https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/Uint8Array">Uint8Array</a>?)</code>
+          <span class='code bold'>replyToId</span> <code class='quiet'>(<a href="https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/Uint8Array">Uint8Array</a>?)</code>
           
           
         </div>

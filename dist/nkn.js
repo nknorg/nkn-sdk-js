@@ -314,7 +314,7 @@ class Client {
     msgs.forEach(msg => {
       this._wsSend(msg.serializeBinary());
     });
-    return payload.getPid() || null;
+    return payload.getMessageId() || null;
   }
 
   /**
@@ -327,44 +327,44 @@ class Client {
     let payload;
 
     if (typeof data === 'string') {
-      payload = message.newTextPayload(data, options.replyToPid, options.pid);
+      payload = message.newTextPayload(data, options.replyToId, options.messageId);
     } else {
-      payload = message.newBinaryPayload(data, options.replyToPid, options.pid);
+      payload = message.newBinaryPayload(data, options.replyToId, options.messageId);
     }
 
-    let pid = await this._send(dest, payload, options.encrypt, options.msgHoldingSeconds);
+    let messageId = await this._send(dest, payload, options.encrypt, options.msgHoldingSeconds);
 
-    if (pid === null || options.noReply) {
+    if (messageId === null || options.noReply) {
       return null;
     }
 
     return await new Promise((resolve, reject) => {
-      this.responseManager.add(new ResponseProcessor(pid, options.responseTimeout, resolve, reject));
+      this.responseManager.add(new ResponseProcessor(messageId, options.responseTimeout, resolve, reject));
     });
   }
 
-  async _sendACK(dest, pid, encrypt) {
+  async _sendACK(dest, messageId, encrypt) {
     if (Array.isArray(dest)) {
       if (dest.length === 0) {
         return;
       }
 
       if (dest.length === 1) {
-        return await this._sendACK(dest[0], pid, encrypt);
+        return await this._sendACK(dest[0], messageId, encrypt);
       }
 
       if (dest.length > 1 && encrypt) {
         console.warn('Encrypted ACK with multicast is not supported, fallback to unicast.');
 
         for (let i = 0; i < dest.length; i++) {
-          await this._sendACK(dest[i], pid, encrypt);
+          await this._sendACK(dest[i], messageId, encrypt);
         }
 
         return;
       }
     }
 
-    let payload = message.newAckPayload(pid);
+    let payload = message.newAckPayload(messageId);
     let pldMsg = await this._messageFromPayload(payload, encrypt, dest);
 
     if (pldMsg instanceof Array) {
@@ -587,13 +587,13 @@ class Client {
         break;
 
       case common.pb.payloads.PayloadType.ACK:
-        this.responseManager.respond(payload.getReplyToPid(), null, payload.getType());
+        this.responseManager.respond(payload.getReplyToId(), null, payload.getType());
         return true;
     } // handle response if applicable
 
 
-    if (payload.getReplyToPid().length) {
-      this.responseManager.respond(payload.getReplyToPid(), data, payload.getType());
+    if (payload.getReplyToId().length) {
+      this.responseManager.respond(payload.getReplyToId(), data, payload.getType());
       return true;
     } // handle msg
 
@@ -612,8 +612,8 @@ class Client {
                 payload: data,
                 payloadType: payload.getType(),
                 isEncrypted: pldMsg.getEncrypted(),
-                pid: payload.getPid(),
-                noReply: payload.getNoAck()
+                messageId: payload.getMessageId(),
+                noReply: payload.getNoReply()
               });
             } catch (e) {
               console.log(e);
@@ -622,7 +622,7 @@ class Client {
           }));
         }
 
-        if (!payload.getNoAck()) {
+        if (!payload.getNoReply()) {
           let responded = false;
 
           for (let response of responses) {
@@ -632,7 +632,7 @@ class Client {
               this.send(msg.getSrc(), response, {
                 encrypt: pldMsg.getEncrypted(),
                 msgHoldingSeconds: 0,
-                replyToPid: payload.getPid()
+                replyToId: payload.getMessageId()
               }).catch(e => {
                 console.log('Send response error:', e);
               });
@@ -642,7 +642,7 @@ class Client {
           }
 
           if (!responded) {
-            await this._sendACK(msg.getSrc(), payload.getPid(), pldMsg.getEncrypted());
+            await this._sendACK(msg.getSrc(), payload.getMessageId(), pldMsg.getEncrypted());
           }
         }
 
@@ -850,8 +850,8 @@ class Client {
 exports.default = Client;
 
 class ResponseProcessor {
-  constructor(pid, timeout, responseHandler, timeoutHandler) {
-    _defineProperty(this, "pid", void 0);
+  constructor(messageId, timeout, responseHandler, timeoutHandler) {
+    _defineProperty(this, "messageId", void 0);
 
     _defineProperty(this, "deadline", void 0);
 
@@ -859,11 +859,11 @@ class ResponseProcessor {
 
     _defineProperty(this, "timeoutHandler", void 0);
 
-    if (pid instanceof Uint8Array) {
-      pid = common.util.bytesToHex(pid);
+    if (messageId instanceof Uint8Array) {
+      messageId = common.util.bytesToHex(messageId);
     }
 
-    this.pid = pid;
+    this.messageId = messageId;
 
     if (timeout) {
       this.deadline = Date.now() + timeout;
@@ -911,7 +911,7 @@ class ResponseManager {
   }
 
   add(proceccor) {
-    this.responseProcessors.set(proceccor.pid, proceccor);
+    this.responseProcessors.set(proceccor.messageId, proceccor);
   }
 
   clear() {
@@ -927,16 +927,16 @@ class ResponseManager {
     this.clear();
   }
 
-  respond(pid, data, payloadType) {
-    if (pid instanceof Uint8Array) {
-      pid = common.util.bytesToHex(pid);
+  respond(messageId, data, payloadType) {
+    if (messageId instanceof Uint8Array) {
+      messageId = common.util.bytesToHex(messageId);
     }
 
-    let responseProcessor = this.responseProcessors.get(pid);
+    let responseProcessor = this.responseProcessors.get(messageId);
 
     if (responseProcessor) {
       responseProcessor.handleResponse(data);
-      this.responseProcessors.delete(pid);
+      this.responseProcessors.delete(messageId);
     }
   }
 
@@ -952,7 +952,7 @@ class ResponseManager {
 
     timeoutProcessors.forEach(p => {
       p.handleTimeout();
-      this.responseProcessors.delete(p.pid);
+      this.responseProcessors.delete(p.messageId);
     });
     this.timer = setTimeout(this.checkTimeout.bind(this), consts.checkTimeoutInterval);
   }
@@ -1012,7 +1012,7 @@ exports.serializeSigChainMetadata = serializeSigChainMetadata;
 exports.serializeSigChainElem = serializeSigChainElem;
 exports.addrToID = addrToID;
 exports.addrToPubkey = addrToPubkey;
-exports.maxClientMessageSize = exports.pidSize = void 0;
+exports.maxClientMessageSize = exports.messageIdSize = void 0;
 
 var _pako = _interopRequireDefault(require("pako"));
 
@@ -1024,41 +1024,41 @@ function _interopRequireWildcard(obj) { if (obj && obj.__esModule) { return obj;
 
 function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
 
-const pidSize = 8; // in bytes
+const messageIdSize = 8; // in bytes
 
-exports.pidSize = pidSize;
+exports.messageIdSize = messageIdSize;
 const maxClientMessageSize = 4000000; // in bytes. NKN node is using 4*1024*1024 as limit, we give some additional space for serialization overhead.
 
 exports.maxClientMessageSize = maxClientMessageSize;
 
-function newPayload(type, replyToPid, data, msgPid) {
+function newPayload(type, replyToId, data, messageId) {
   let payload = new common.pb.payloads.Payload();
   payload.setType(type);
 
-  if (replyToPid) {
-    payload.setReplyToPid(replyToPid);
-  } else if (msgPid) {
-    payload.setPid(msgPid);
+  if (replyToId) {
+    payload.setReplyToId(replyToId);
+  } else if (messageId) {
+    payload.setMessageId(messageId);
   } else {
-    payload.setPid(common.util.randomBytes(pidSize));
+    payload.setMessageId(common.util.randomBytes(messageIdSize));
   }
 
   payload.setData(data);
   return payload;
 }
 
-function newBinaryPayload(data, replyToPid, msgPid) {
-  return newPayload(common.pb.payloads.PayloadType.BINARY, replyToPid, data, msgPid);
+function newBinaryPayload(data, replyToId, messageId) {
+  return newPayload(common.pb.payloads.PayloadType.BINARY, replyToId, data, messageId);
 }
 
-function newTextPayload(text, replyToPid, msgPid) {
+function newTextPayload(text, replyToId, messageId) {
   let data = new common.pb.payloads.TextData();
   data.setText(text);
-  return newPayload(common.pb.payloads.PayloadType.TEXT, replyToPid, data.serializeBinary(), msgPid);
+  return newPayload(common.pb.payloads.PayloadType.TEXT, replyToId, data.serializeBinary(), messageId);
 }
 
-function newAckPayload(replyToPid, msgPid) {
-  return newPayload(common.pb.payloads.PayloadType.ACK, replyToPid, null, msgPid);
+function newAckPayload(replyToId, messageId) {
+  return newPayload(common.pb.payloads.PayloadType.ACK, replyToId, null, messageId);
 }
 
 function newSessionPayload(data, sessionID) {
@@ -3600,10 +3600,10 @@ if (jspb.Message.GENERATE_TO_OBJECT) {
     var f,
         obj = {
       type: jspb.Message.getFieldWithDefault(msg, 1, 0),
-      pid: msg.getPid_asB64(),
+      messageId: msg.getMessageId_asB64(),
       data: msg.getData_asB64(),
-      replyToPid: msg.getReplyToPid_asB64(),
-      noAck: jspb.Message.getFieldWithDefault(msg, 5, false)
+      replyToId: msg.getReplyToId_asB64(),
+      noReply: jspb.Message.getFieldWithDefault(msg, 5, false)
     };
 
     if (includeInstance) {
@@ -3654,7 +3654,7 @@ proto.payloads.Payload.deserializeBinaryFromReader = function (msg, reader) {
         var value =
         /** @type {!Uint8Array} */
         reader.readBytes();
-        msg.setPid(value);
+        msg.setMessageId(value);
         break;
 
       case 3:
@@ -3668,14 +3668,14 @@ proto.payloads.Payload.deserializeBinaryFromReader = function (msg, reader) {
         var value =
         /** @type {!Uint8Array} */
         reader.readBytes();
-        msg.setReplyToPid(value);
+        msg.setReplyToId(value);
         break;
 
       case 5:
         var value =
         /** @type {boolean} */
         reader.readBool();
-        msg.setNoAck(value);
+        msg.setNoReply(value);
         break;
 
       default:
@@ -3714,7 +3714,7 @@ proto.payloads.Payload.serializeBinaryToWriter = function (message, writer) {
     writer.writeEnum(1, f);
   }
 
-  f = message.getPid_asU8();
+  f = message.getMessageId_asU8();
 
   if (f.length > 0) {
     writer.writeBytes(2, f);
@@ -3726,13 +3726,13 @@ proto.payloads.Payload.serializeBinaryToWriter = function (message, writer) {
     writer.writeBytes(3, f);
   }
 
-  f = message.getReplyToPid_asU8();
+  f = message.getReplyToId_asU8();
 
   if (f.length > 0) {
     writer.writeBytes(4, f);
   }
 
-  f = message.getNoAck();
+  f = message.getNoReply();
 
   if (f) {
     writer.writeBool(5, f);
@@ -3757,49 +3757,49 @@ proto.payloads.Payload.prototype.setType = function (value) {
   jspb.Message.setProto3EnumField(this, 1, value);
 };
 /**
- * optional bytes pid = 2;
+ * optional bytes message_id = 2;
  * @return {!(string|Uint8Array)}
  */
 
 
-proto.payloads.Payload.prototype.getPid = function () {
+proto.payloads.Payload.prototype.getMessageId = function () {
   return (
     /** @type {!(string|Uint8Array)} */
     jspb.Message.getFieldWithDefault(this, 2, "")
   );
 };
 /**
- * optional bytes pid = 2;
- * This is a type-conversion wrapper around `getPid()`
+ * optional bytes message_id = 2;
+ * This is a type-conversion wrapper around `getMessageId()`
  * @return {string}
  */
 
 
-proto.payloads.Payload.prototype.getPid_asB64 = function () {
+proto.payloads.Payload.prototype.getMessageId_asB64 = function () {
   return (
     /** @type {string} */
-    jspb.Message.bytesAsB64(this.getPid())
+    jspb.Message.bytesAsB64(this.getMessageId())
   );
 };
 /**
- * optional bytes pid = 2;
+ * optional bytes message_id = 2;
  * Note that Uint8Array is not supported on all browsers.
  * @see http://caniuse.com/Uint8Array
- * This is a type-conversion wrapper around `getPid()`
+ * This is a type-conversion wrapper around `getMessageId()`
  * @return {!Uint8Array}
  */
 
 
-proto.payloads.Payload.prototype.getPid_asU8 = function () {
+proto.payloads.Payload.prototype.getMessageId_asU8 = function () {
   return (
     /** @type {!Uint8Array} */
-    jspb.Message.bytesAsU8(this.getPid())
+    jspb.Message.bytesAsU8(this.getMessageId())
   );
 };
 /** @param {!(string|Uint8Array)} value */
 
 
-proto.payloads.Payload.prototype.setPid = function (value) {
+proto.payloads.Payload.prototype.setMessageId = function (value) {
   jspb.Message.setProto3BytesField(this, 2, value);
 };
 /**
@@ -3849,60 +3849,60 @@ proto.payloads.Payload.prototype.setData = function (value) {
   jspb.Message.setProto3BytesField(this, 3, value);
 };
 /**
- * optional bytes reply_to_pid = 4;
+ * optional bytes reply_to_id = 4;
  * @return {!(string|Uint8Array)}
  */
 
 
-proto.payloads.Payload.prototype.getReplyToPid = function () {
+proto.payloads.Payload.prototype.getReplyToId = function () {
   return (
     /** @type {!(string|Uint8Array)} */
     jspb.Message.getFieldWithDefault(this, 4, "")
   );
 };
 /**
- * optional bytes reply_to_pid = 4;
- * This is a type-conversion wrapper around `getReplyToPid()`
+ * optional bytes reply_to_id = 4;
+ * This is a type-conversion wrapper around `getReplyToId()`
  * @return {string}
  */
 
 
-proto.payloads.Payload.prototype.getReplyToPid_asB64 = function () {
+proto.payloads.Payload.prototype.getReplyToId_asB64 = function () {
   return (
     /** @type {string} */
-    jspb.Message.bytesAsB64(this.getReplyToPid())
+    jspb.Message.bytesAsB64(this.getReplyToId())
   );
 };
 /**
- * optional bytes reply_to_pid = 4;
+ * optional bytes reply_to_id = 4;
  * Note that Uint8Array is not supported on all browsers.
  * @see http://caniuse.com/Uint8Array
- * This is a type-conversion wrapper around `getReplyToPid()`
+ * This is a type-conversion wrapper around `getReplyToId()`
  * @return {!Uint8Array}
  */
 
 
-proto.payloads.Payload.prototype.getReplyToPid_asU8 = function () {
+proto.payloads.Payload.prototype.getReplyToId_asU8 = function () {
   return (
     /** @type {!Uint8Array} */
-    jspb.Message.bytesAsU8(this.getReplyToPid())
+    jspb.Message.bytesAsU8(this.getReplyToId())
   );
 };
 /** @param {!(string|Uint8Array)} value */
 
 
-proto.payloads.Payload.prototype.setReplyToPid = function (value) {
+proto.payloads.Payload.prototype.setReplyToId = function (value) {
   jspb.Message.setProto3BytesField(this, 4, value);
 };
 /**
- * optional bool no_ack = 5;
+ * optional bool no_reply = 5;
  * Note that Boolean fields may be set to 0/1 when serialized from a Java server.
  * You should avoid comparisons like {@code val === true/false} in those cases.
  * @return {boolean}
  */
 
 
-proto.payloads.Payload.prototype.getNoAck = function () {
+proto.payloads.Payload.prototype.getNoReply = function () {
   return (
     /** @type {boolean} */
     jspb.Message.getFieldWithDefault(this, 5, false)
@@ -3911,7 +3911,7 @@ proto.payloads.Payload.prototype.getNoAck = function () {
 /** @param {boolean} value */
 
 
-proto.payloads.Payload.prototype.setNoAck = function (value) {
+proto.payloads.Payload.prototype.setNoReply = function (value) {
   jspb.Message.setProto3BooleanField(this, 5, value);
 };
 
@@ -9549,7 +9549,7 @@ function _defineProperty(obj, key, value) { if (key in obj) { Object.definePrope
  * @param {boolean|function} [options.worker=false] - Whether to use web workers (if available) to compute signatures. Can also be a function that returns web worker. Typically you only need to set it to a function if you import nkn-sdk as a module and are NOT using browserify or webpack worker-loader to bundle js file. The worker file is located at `lib/worker/webpack.worker.js`.
  * @param {number} [options.numSubClients=3] - Number of sub clients to create.
  * @param {boolean} [options.originalClient=false] - Whether to create client with no additional identifier prefix added. This client is not counted towards sub clients controlled by `options.numSubClients`.
- * @param {number} [options.msgCacheExpiration=300000] - Message pid cache expiration time in ms. This cache is used to remove duplicate messages received by different clients.
+ * @param {number} [options.msgCacheExpiration=300000] - Message cache expiration time in ms. This cache is used to remove duplicate messages received by different clients.
  * @param {Object} [options.sessionConfig={}] - Session configuration
  */
 class MultiClient {
@@ -9657,7 +9657,7 @@ class MultiClient {
         payload,
         payloadType,
         isEncrypted,
-        pid,
+        messageId,
         noReply
       }) => {
         if (this.isClosed) {
@@ -9670,7 +9670,7 @@ class MultiClient {
           }
 
           try {
-            await this._handleSessionMsg(clientID, src, pid, payload);
+            await this._handleSessionMsg(clientID, src, messageId, payload);
           } catch (e) {
             if (!(e instanceof ncp.errors.SessionClosedError || e instanceof common.errors.AddrNotAllowedError)) {
               throw e;
@@ -9680,7 +9680,7 @@ class MultiClient {
           return false;
         }
 
-        let key = common.util.bytesToHex(pid);
+        let key = common.util.bytesToHex(messageId);
 
         if (this.msgCache.get(key) !== null) {
           return false;
@@ -9698,7 +9698,7 @@ class MultiClient {
                 payload,
                 payloadType,
                 isEncrypted,
-                pid,
+                messageId,
                 noReply
               });
             } catch (e) {
@@ -9718,7 +9718,7 @@ class MultiClient {
               this.send(src, response, {
                 encrypt: isEncrypted,
                 msgHoldingSeconds: 0,
-                replyToPid: pid
+                replyToId: messageId
               }).catch(e => {
                 console.log('Send response error:', e);
               });
@@ -9730,7 +9730,7 @@ class MultiClient {
           if (!responded) {
             for (let clientID of Object.keys(clients)) {
               if (clients[clientID].isReady) {
-                clients[clientID]._sendACK(util.addIdentifierPrefixAll(src, clientID), pid, isEncrypted);
+                clients[clientID]._sendACK(util.addIdentifierPrefixAll(src, clientID), messageId, isEncrypted);
               }
             }
           }
@@ -9858,7 +9858,7 @@ class MultiClient {
 
   async send(dest, data, options = {}) {
     options = common.util.assignDefined({}, options, {
-      pid: common.util.randomBytes(message.pidSize)
+      messageId: common.util.randomBytes(message.messageIdSize)
     });
     let readyClientID = this.readyClientIDs();
 

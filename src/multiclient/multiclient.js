@@ -27,7 +27,7 @@ import * as util from './util';
  * @param {boolean|function} [options.worker=false] - Whether to use web workers (if available) to compute signatures. Can also be a function that returns web worker. Typically you only need to set it to a function if you import nkn-sdk as a module and are NOT using browserify or webpack worker-loader to bundle js file. The worker file is located at `lib/worker/webpack.worker.js`.
  * @param {number} [options.numSubClients=3] - Number of sub clients to create.
  * @param {boolean} [options.originalClient=false] - Whether to create client with no additional identifier prefix added. This client is not counted towards sub clients controlled by `options.numSubClients`.
- * @param {number} [options.msgCacheExpiration=300000] - Message pid cache expiration time in ms. This cache is used to remove duplicate messages received by different clients.
+ * @param {number} [options.msgCacheExpiration=300000] - Message cache expiration time in ms. This cache is used to remove duplicate messages received by different clients.
  * @param {Object} [options.sessionConfig={}] - Session configuration
  */
 export default class MultiClient {
@@ -140,7 +140,7 @@ export default class MultiClient {
     this.isClosed = false;
 
     for (let clientID: string of Object.keys(clients)) {
-      clients[clientID].onMessage(async ({ src, payload, payloadType, isEncrypted, pid, noReply }) => {
+      clients[clientID].onMessage(async ({ src, payload, payloadType, isEncrypted, messageId, noReply }) => {
         if (this.isClosed) {
           return false;
         }
@@ -150,7 +150,7 @@ export default class MultiClient {
             return false;
           }
           try {
-            await this._handleSessionMsg(clientID, src, pid, payload);
+            await this._handleSessionMsg(clientID, src, messageId, payload);
           } catch (e) {
             if (!(e instanceof ncp.errors.SessionClosedError || e instanceof common.errors.AddrNotAllowedError)) {
               throw e;
@@ -159,7 +159,7 @@ export default class MultiClient {
           return false;
         }
 
-        let key = common.util.bytesToHex(pid);
+        let key = common.util.bytesToHex(messageId);
         if (this.msgCache.get(key) !== null) {
           return false;
         }
@@ -171,7 +171,7 @@ export default class MultiClient {
         if (this.eventListeners.message) {
           responses = await Promise.all(this.eventListeners.message.map(async f => {
             try {
-              return await f({ src, payload, payloadType, isEncrypted, pid, noReply });
+              return await f({ src, payload, payloadType, isEncrypted, messageId, noReply });
             } catch (e) {
               console.log('Message handler error:', e);
               return null;
@@ -187,7 +187,7 @@ export default class MultiClient {
               this.send(src, response, {
                 encrypt: isEncrypted,
                 msgHoldingSeconds: 0,
-                replyToPid: pid,
+                replyToId: messageId,
               }).catch((e) => {
                 console.log('Send response error:', e);
               });
@@ -198,7 +198,7 @@ export default class MultiClient {
           if (!responded) {
             for (let clientID: string of Object.keys(clients)) {
               if (clients[clientID].isReady) {
-                clients[clientID]._sendACK(util.addIdentifierPrefixAll(src, clientID), pid, isEncrypted);
+                clients[clientID]._sendACK(util.addIdentifierPrefixAll(src, clientID), messageId, isEncrypted);
               }
             }
           }
@@ -313,7 +313,7 @@ export default class MultiClient {
    * @returns A promise that will be resolved when reply or ACK from destination is received, or reject if send fail or message timeout. If dest is an array with more than one element, or `options.noReply=true`, the promise will resolve with null as soon as send success.
    */
   async send(dest: Destination, data: MessageData, options: SendOptions = {}): Promise<ReplyData> {
-    options = common.util.assignDefined({}, options, { pid: common.util.randomBytes(message.pidSize) });
+    options = common.util.assignDefined({}, options, { messageId: common.util.randomBytes(message.messageIdSize) });
     let readyClientID = this.readyClientIDs();
     if (readyClientID.length === 0) {
       throw new common.errors.ClientNotReadyError();
