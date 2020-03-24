@@ -140,7 +140,7 @@ export default class MultiClient {
     this.isClosed = false;
 
     for (let clientID: string of Object.keys(clients)) {
-      clients[clientID].onMessage(async ({ src, payload, payloadType, isEncrypted, pid }) => {
+      clients[clientID].onMessage(async ({ src, payload, payloadType, isEncrypted, pid, noReply }) => {
         if (this.isClosed) {
           return false;
         }
@@ -171,34 +171,35 @@ export default class MultiClient {
         if (this.eventListeners.message) {
           responses = await Promise.all(this.eventListeners.message.map(async f => {
             try {
-              return await f({ src, payload, payloadType, isEncrypted, pid });
+              return await f({ src, payload, payloadType, isEncrypted, pid, noReply });
             } catch (e) {
               console.log('Message handler error:', e);
               return null;
             }
           }));
         }
-        let responded = false;
-        for (let response of responses) {
-          if (response === false) {
-            return false;
-          } else if (response !== undefined && response !== null) {
-            this.send(src, response, {
-              encrypt: isEncrypted,
-              msgHoldingSeconds: 0,
-              replyToPid: pid,
-              noReply: true,
-            }).catch((e) => {
-              console.log('Send response error:', e);
-            });
-            responded = true;
-            break;
+        if (!noReply) {
+          let responded = false;
+          for (let response of responses) {
+            if (response === false) {
+              return false;
+            } else if (response !== undefined && response !== null) {
+              this.send(src, response, {
+                encrypt: isEncrypted,
+                msgHoldingSeconds: 0,
+                replyToPid: pid,
+              }).catch((e) => {
+                console.log('Send response error:', e);
+              });
+              responded = true;
+              break;
+            }
           }
-        }
-        if (!responded) {
-          for (let clientID: string of Object.keys(clients)) {
-            if (clients[clientID].isReady) {
-              clients[clientID]._sendACK(util.addIdentifierPrefixAll(src, clientID), pid, isEncrypted);
+          if (!responded) {
+            for (let clientID: string of Object.keys(clients)) {
+              if (clients[clientID].isReady) {
+                clients[clientID]._sendACK(util.addIdentifierPrefixAll(src, clientID), pid, isEncrypted);
+              }
             }
           }
         }

@@ -314,7 +314,7 @@ class Client {
     msgs.forEach(msg => {
       this._wsSend(msg.serializeBinary());
     });
-    return payload.getPid();
+    return payload.getPid() || null;
   }
 
   /**
@@ -605,41 +605,45 @@ class Client {
         let responses = [];
 
         if (this.eventListeners.message.length > 0) {
-          responses = await Promise.all(this.eventListeners.message.map(f => {
+          responses = await Promise.all(this.eventListeners.message.map(async f => {
             try {
-              return Promise.resolve(f({
+              return await f({
                 src: msg.getSrc(),
                 payload: data,
                 payloadType: payload.getType(),
                 isEncrypted: pldMsg.getEncrypted(),
-                pid: payload.getPid()
-              }));
+                pid: payload.getPid(),
+                noReply: payload.getNoAck()
+              });
             } catch (e) {
               console.log(e);
-              return Promise.resolve(null);
+              return null;
             }
           }));
         }
 
-        let responded = false;
+        if (!payload.getNoAck()) {
+          let responded = false;
 
-        for (let response of responses) {
-          if (response === false) {
-            return true;
-          } else if (response !== undefined && response !== null) {
-            this.send(msg.getSrc(), response, {
-              encrypt: pldMsg.getEncrypted(),
-              msgHoldingSeconds: 0,
-              replyToPid: payload.getPid(),
-              noReply: true
-            });
-            responded = true;
-            break;
+          for (let response of responses) {
+            if (response === false) {
+              return true;
+            } else if (response !== undefined && response !== null) {
+              this.send(msg.getSrc(), response, {
+                encrypt: pldMsg.getEncrypted(),
+                msgHoldingSeconds: 0,
+                replyToPid: payload.getPid()
+              }).catch(e => {
+                console.log('Send response error:', e);
+              });
+              responded = true;
+              break;
+            }
           }
-        }
 
-        if (!responded) {
-          await this._sendACK(msg.getSrc(), payload.getPid(), pldMsg.getEncrypted());
+          if (!responded) {
+            await this._sendACK(msg.getSrc(), payload.getPid(), pldMsg.getEncrypted());
+          }
         }
 
         return true;
@@ -9653,7 +9657,8 @@ class MultiClient {
         payload,
         payloadType,
         isEncrypted,
-        pid
+        pid,
+        noReply
       }) => {
         if (this.isClosed) {
           return false;
@@ -9693,7 +9698,8 @@ class MultiClient {
                 payload,
                 payloadType,
                 isEncrypted,
-                pid
+                pid,
+                noReply
               });
             } catch (e) {
               console.log('Message handler error:', e);
@@ -9702,29 +9708,30 @@ class MultiClient {
           }));
         }
 
-        let responded = false;
+        if (!noReply) {
+          let responded = false;
 
-        for (let response of responses) {
-          if (response === false) {
-            return false;
-          } else if (response !== undefined && response !== null) {
-            this.send(src, response, {
-              encrypt: isEncrypted,
-              msgHoldingSeconds: 0,
-              replyToPid: pid,
-              noReply: true
-            }).catch(e => {
-              console.log('Send response error:', e);
-            });
-            responded = true;
-            break;
+          for (let response of responses) {
+            if (response === false) {
+              return false;
+            } else if (response !== undefined && response !== null) {
+              this.send(src, response, {
+                encrypt: isEncrypted,
+                msgHoldingSeconds: 0,
+                replyToPid: pid
+              }).catch(e => {
+                console.log('Send response error:', e);
+              });
+              responded = true;
+              break;
+            }
           }
-        }
 
-        if (!responded) {
-          for (let clientID of Object.keys(clients)) {
-            if (clients[clientID].isReady) {
-              clients[clientID]._sendACK(util.addIdentifierPrefixAll(src, clientID), pid, isEncrypted);
+          if (!responded) {
+            for (let clientID of Object.keys(clients)) {
+              if (clients[clientID].isReady) {
+                clients[clientID]._sendACK(util.addIdentifierPrefixAll(src, clientID), pid, isEncrypted);
+              }
             }
           }
         }
