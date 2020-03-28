@@ -264,23 +264,17 @@ class Client {
 
     dest = await this._processDests(dest);
     let pldMsg = await this._messageFromPayload(payload, encrypt, dest);
+    pldMsg = pldMsg.map(pld => pld.serializeBinary());
+    let msgs = [],
+        destList = [],
+        pldList = [];
 
-    if (Array.isArray(pldMsg)) {
-      pldMsg = pldMsg.map(pld => pld.serializeBinary());
-    } else {
-      pldMsg = pldMsg.serializeBinary();
-    }
-
-    let msgs = [];
-
-    if (Array.isArray(pldMsg)) {
-      let destList = [],
-          pldList = [],
-          totalSize = 0,
+    if (pldMsg.length > 1) {
+      let totalSize = 0,
           size = 0;
 
       for (let i = 0; i < pldMsg.length; i++) {
-        size = pldMsg[i].length + dest[i].length + common.key.signatureLength;
+        size = pldMsg[i].length + dest[i].length + _tweetnacl.default.sign.signatureLength;
 
         if (size > message.maxClientMessageSize) {
           throw new common.errors.DataSizeTooLargeError('encoded message is greater than ' + message.maxClientMessageSize + ' bytes');
@@ -297,15 +291,26 @@ class Client {
         pldList.push(pldMsg[i]);
         totalSize += size;
       }
-
-      msgs.push((await message.newOutboundMessage(this, destList, pldList, maxHoldingSeconds)));
     } else {
-      if (pldMsg.length + dest.length + common.key.signatureLength > message.maxClientMessageSize) {
+      let size = pldMsg[0].length;
+
+      if (Array.isArray(dest)) {
+        for (let i = 0; i < dest.length; i++) {
+          size += dest[i].length + _tweetnacl.default.sign.signatureLength;
+        }
+      } else {
+        size += dest.length + _tweetnacl.default.sign.signatureLength;
+      }
+
+      if (size > message.maxClientMessageSize) {
         throw new common.errors.DataSizeTooLargeError('encoded message is greater than ' + message.maxClientMessageSize + ' bytes');
       }
 
-      msgs.push((await message.newOutboundMessage(this, dest, pldMsg, maxHoldingSeconds)));
+      destList = dest;
+      pldList = pldMsg;
     }
+
+    msgs.push((await message.newOutboundMessage(this, destList, pldList, maxHoldingSeconds)));
 
     if (msgs.length > 1) {
       console.log(`Client message size is greater than ${message.maxClientMessageSize} bytes, split into ${msgs.length} batches.`);
@@ -335,7 +340,7 @@ class Client {
     let messageId = await this._send(dest, payload, options.encrypt, options.msgHoldingSeconds);
 
     if (messageId === null || options.noReply) {
-      return null;
+      return messageId;
     }
 
     return await new Promise((resolve, reject) => {
@@ -366,12 +371,7 @@ class Client {
 
     let payload = message.newAckPayload(messageId);
     let pldMsg = await this._messageFromPayload(payload, encrypt, dest);
-
-    if (pldMsg instanceof Array) {
-      throw new TypeError('ack payload should not be an array');
-    }
-
-    let msg = await message.newOutboundMessage(this, dest, pldMsg.serializeBinary(), 0);
+    let msg = await message.newOutboundMessage(this, dest, pldMsg[0].serializeBinary(), 0);
 
     this._wsSend(msg.serializeBinary());
   }
@@ -542,7 +542,7 @@ class Client {
       return await this._encryptPayload(payload.serializeBinary(), dest);
     }
 
-    return message.newMessage(payload.serializeBinary(), false);
+    return [message.newMessage(payload.serializeBinary(), false)];
   }
 
   async _handleMsg(rawMsg) {
@@ -803,7 +803,7 @@ class Client {
     } else {
       let pk = message.addrToPubkey(dest);
       let encrypted = await this.key.encrypt(payload, pk);
-      return message.newMessage(encrypted.message, true, encrypted.nonce);
+      return [message.newMessage(encrypted.message, true, encrypted.nonce)];
     }
   }
 
@@ -1519,7 +1519,7 @@ function doubleSha256(str) {
 }
 
 function doubleSha256Hex(hexStr) {
-  return _cryptoJs.default.SHA256(_cryptoJs.default.SHA256(cryptoHexStringParse(hexStr))).toString();
+  return doubleSha256(cryptoHexStringParse(hexStr));
 }
 
 function ripemd160(str) {
@@ -1527,7 +1527,7 @@ function ripemd160(str) {
 }
 
 function ripemd160Hex(hexStr) {
-  return _cryptoJs.default.RIPEMD160(cryptoHexStringParse(hexStr)).toString();
+  return ripemd160(cryptoHexStringParse(hexStr));
 }
 },{"crypto-js":177}],8:[function(require,module,exports){
 'use strict';
