@@ -19,7 +19,7 @@ export function doubleSha256(str) {
 }
 
 export function doubleSha256Hex(hexStr) {
-  return CryptoJS.SHA256(CryptoJS.SHA256(cryptoHexStringParse(hexStr))).toString();
+  return doubleSha256(cryptoHexStringParse(hexStr));
 }
 
 export function ripemd160(str) {
@@ -27,5 +27,5 @@ export function ripemd160(str) {
 }
 
 export function ripemd160Hex(hexStr) {
-  return CryptoJS.RIPEMD160(cryptoHexStringParse(hexStr)).toString();
+  return ripemd160(cryptoHexStringParse(hexStr));
 }

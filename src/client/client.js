@@ -240,17 +240,13 @@ export default class Client {
     dest = await this._processDests(dest);
 
     let pldMsg = await this._messageFromPayload(payload, encrypt, dest);
-    if (Array.isArray(pldMsg)) {
-      pldMsg = pldMsg.map(pld => pld.serializeBinary());
-    } else {
-      pldMsg = pldMsg.serializeBinary();
-    }
+    pldMsg = pldMsg.map(pld => pld.serializeBinary());
 
-    let msgs = [];
-    if (Array.isArray(pldMsg)) {
-      let destList = [], pldList = [], totalSize = 0, size = 0;
+    let msgs = [], destList = [], pldList = [];
+    if (pldMsg.length > 1) {
+      let totalSize = 0, size = 0;
       for (let i = 0; i < pldMsg.length; i++) {
-        size = pldMsg[i].length + dest[i].length + common.key.signatureLength;
+        size = pldMsg[i].length + dest[i].length + nacl.sign.signatureLength;
         if (size > message.maxClientMessageSize) {
           throw new common.errors.DataSizeTooLargeError('encoded message is greater than ' + message.maxClientMessageSize + ' bytes');
         }
@@ -264,13 +260,22 @@ export default class Client {
         pldList.push(pldMsg[i]);
         totalSize += size;
       }
-      msgs.push(await message.newOutboundMessage(this, destList, pldList, maxHoldingSeconds));
     } else {
-      if (pldMsg.length + dest.length + common.key.signatureLength > message.maxClientMessageSize) {
+      let size = pldMsg[0].length;
+      if (Array.isArray(dest)) {
+        for (let i = 0; i < dest.length; i++) {
+          size += dest[i].length + nacl.sign.signatureLength;
+        }
+      } else {
+        size += dest.length + nacl.sign.signatureLength;
+      }
+      if (size > message.maxClientMessageSize) {
         throw new common.errors.DataSizeTooLargeError('encoded message is greater than ' + message.maxClientMessageSize + ' bytes');
       }
-      msgs.push(await message.newOutboundMessage(this, dest, pldMsg, maxHoldingSeconds));
+      destList = dest;
+      pldList = pldMsg;
     }
+    msgs.push(await message.newOutboundMessage(this, destList, pldList, maxHoldingSeconds));
 
     if (msgs.length > 1) {
       console.log(`Client message size is greater than ${message.maxClientMessageSize} bytes, split into ${msgs.length} batches.`);
@@ -299,7 +304,7 @@ export default class Client {
 
     let messageId = await this._send(dest, payload, options.encrypt, options.msgHoldingSeconds);
     if (messageId === null || options.noReply) {
-      return null;
+      return messageId;
     }
 
     return await new Promise((resolve: ResponseHandler, reject: TimeoutHandler) => {
@@ -326,10 +331,7 @@ export default class Client {
 
     let payload = message.newAckPayload(messageId);
     let pldMsg = await this._messageFromPayload(payload, encrypt, dest);
-    if (pldMsg instanceof Array) {
-      throw new TypeError('ack payload should not be an array');
-    }
-    let msg = await message.newOutboundMessage(this, dest, pldMsg.serializeBinary(), 0);
+    let msg = await message.newOutboundMessage(this, dest, pldMsg[0].serializeBinary(), 0);
     this._wsSend(msg.serializeBinary());
   };
 
@@ -488,11 +490,11 @@ export default class Client {
     this.isClosed = true;
   }
 
-  async _messageFromPayload(payload: common.pb.payloads.Payload, encrypt: boolean, dest: Destination): Promise<common.pb.payloads.Message | Array<common.pb.payloads.Message>> {
+  async _messageFromPayload(payload: common.pb.payloads.Payload, encrypt: boolean, dest: Destination): Promise<Array<common.pb.payloads.Message>> {
     if (encrypt) {
       return await this._encryptPayload(payload.serializeBinary(), dest);
     }
-    return message.newMessage(payload.serializeBinary(), false);
+    return [message.newMessage(payload.serializeBinary(), false)];
   }
 
   async _handleMsg(rawMsg: Uint8Array): Promise<boolean> {
@@ -702,7 +704,7 @@ export default class Client {
     }
   }
 
-  async _encryptPayload(payload: Uint8Array, dest: Destination): Promise<common.pb.payloads.Message | Array<common.pb.payloads.Message>> {
+  async _encryptPayload(payload: Uint8Array, dest: Destination): Promise<Array<common.pb.payloads.Message>> {
     if (Array.isArray(dest)) {
       let nonce = common.util.randomBytes(nacl.secretbox.nonceLength);
       let key = common.util.randomBytes(nacl.secretbox.keyLength);
@@ -720,7 +722,7 @@ export default class Client {
     } else {
       let pk = message.addrToPubkey(dest);
       let encrypted = await this.key.encrypt(payload, pk);
-      return message.newMessage(encrypted.message, true, encrypted.nonce);
+      return [message.newMessage(encrypted.message, true, encrypted.nonce)];
     }
   }
 
