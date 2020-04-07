@@ -195,7 +195,8 @@ class Client {
    * the value will be sent back as reply; if the first non-null and
    * non-undefined returned value is `false`, no reply or ACK will be sent;
    * if all handler functions return `null` or `undefined`, an ACK indicating
-   * msg received will be sent back.
+   * msg received will be sent back. Receiving reply or ACK will not trigger
+   * the event listener.
    */
   onMessage(func) {
     this.eventListeners.message.push(func);
@@ -231,6 +232,10 @@ class Client {
 
   async _processDests(dest) {
     if (Array.isArray(dest)) {
+      if (dest.length === 0) {
+        throw new common.errors.InvalidDestinationError('no destinations');
+      }
+
       dest = await Promise.all(dest.map(async addr => {
         try {
           return await this._processDest(addr);
@@ -478,12 +483,14 @@ class Client {
 
 
   async publish(topic, data, options = {}) {
-    let offset = 0;
-    let limit = 1000;
+    options = common.util.assignDefined({}, consts.defaultPublishOptions, options, {
+      noReply: true
+    });
+    let offset = options.offset;
     let res = await this.getSubscribers(topic, {
       offset,
-      limit,
-      txPool: options.txPool || false
+      limit: options.limit,
+      txPool: options.txPool
     });
 
     if (!(res.subscribers instanceof Array)) {
@@ -497,11 +504,11 @@ class Client {
     let subscribers = res.subscribers;
     let subscribersInTxPool = res.subscribersInTxPool;
 
-    while (res.subscribers && res.subscribers.length >= limit) {
-      offset += limit;
+    while (res.subscribers && res.subscribers.length >= options.limit) {
+      offset += options.limit;
       res = await this.getSubscribers(topic, {
         offset,
-        limit
+        limit: options.limit
       });
 
       if (!(res.subscribers instanceof Array)) {
@@ -515,9 +522,6 @@ class Client {
       subscribers = subscribers.concat(subscribersInTxPool);
     }
 
-    options = common.util.assignDefined({}, options, {
-      noReply: true
-    });
     await this.send(subscribers, data, options);
     return null;
   }
@@ -964,7 +968,7 @@ class ResponseManager {
 Object.defineProperty(exports, "__esModule", {
   value: true
 });
-exports.checkTimeoutInterval = exports.defaultOptions = void 0;
+exports.checkTimeoutInterval = exports.defaultPublishOptions = exports.defaultOptions = void 0;
 const defaultOptions = {
   reconnectIntervalMin: 1000,
   reconnectIntervalMax: 64000,
@@ -975,6 +979,12 @@ const defaultOptions = {
   worker: false
 };
 exports.defaultOptions = defaultOptions;
+const defaultPublishOptions = {
+  txPool: false,
+  offset: 0,
+  limit: 1000
+};
+exports.defaultPublishOptions = defaultPublishOptions;
 const checkTimeoutInterval = 250;
 exports.checkTimeoutInterval = checkTimeoutInterval;
 },{}],3:[function(require,module,exports){
@@ -9518,6 +9528,8 @@ var _promise = _interopRequireDefault(require("core-js-pure/features/promise"));
 
 var _client = _interopRequireDefault(require("../client"));
 
+var _consts = require("../client/consts");
+
 var common = _interopRequireWildcard(require("../common"));
 
 var consts = _interopRequireWildcard(require("./consts"));
@@ -9883,21 +9895,23 @@ class MultiClient {
    * @returns A promise that will be resolved with null when send success.
    */
   async publish(topic, data, options = {}) {
-    let offset = 0;
-    let limit = 1000;
+    options = common.util.assignDefined({}, _consts.defaultPublishOptions, options, {
+      noReply: true
+    });
+    let offset = options.offset;
     let res = await this.defaultClient.getSubscribers(topic, {
       offset,
-      limit,
-      txPool: options.txPool || false
+      limit: options.limit,
+      txPool: options.txPool
     });
     let subscribers = res.subscribers;
     let subscribersInTxPool = res.subscribersInTxPool;
 
-    while (res.subscribers && res.subscribers.length >= limit) {
-      offset += limit;
+    while (res.subscribers && res.subscribers.length >= options.limit) {
+      offset += options.limit;
       res = await this.defaultClient.getSubscribers(topic, {
         offset,
-        limit
+        limit: options.limit
       });
       subscribers = subscribers.concat(res.subscribers);
     }
@@ -9906,9 +9920,6 @@ class MultiClient {
       subscribers = subscribers.concat(subscribersInTxPool);
     }
 
-    options = common.util.assignDefined({}, options, {
-      noReply: true
-    });
     return await this.send(subscribers, data, options);
   }
   /**
@@ -9964,7 +9975,8 @@ class MultiClient {
    * the value will be sent back as reply; if the first non-null and
    * non-undefined returned value is `false`, no reply or ACK will be sent;
    * if all handler functions return `null` or `undefined`, an ACK indicating
-   * msg received will be sent back.
+   * msg received will be sent back. Receiving reply or ACK will not trigger
+   * the event listener.
    */
 
 
@@ -10064,7 +10076,7 @@ class MultiClient {
 
 
 exports.default = MultiClient;
-},{"../client":3,"../client/message":4,"../common":8,"./consts":19,"./util":22,"@nkn/ncp":38,"core-js-pure/features/promise":74,"memory-cache":210}],22:[function(require,module,exports){
+},{"../client":3,"../client/consts":2,"../client/message":4,"../common":8,"./consts":19,"./util":22,"@nkn/ncp":38,"core-js-pure/features/promise":74,"memory-cache":210}],22:[function(require,module,exports){
 'use strict';
 
 Object.defineProperty(exports, "__esModule", {

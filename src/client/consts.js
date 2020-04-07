@@ -10,4 +10,10 @@ export const defaultOptions = {
   worker: false,
 }
 
+export const defaultPublishOptions = {
+  txPool: false,
+  offset: 0,
+  limit: 1000,
+}
+
 export const checkTimeoutInterval = 250;
