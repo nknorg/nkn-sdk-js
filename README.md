@@ -390,7 +390,8 @@ wallet.transferTo(wallet.address, 1, { fee: 0.1, attrs: 'hello world' }).then((t
 ```
 
 Subscribe to a topic for this wallet for next 100 blocks (around 20 seconds per
-block):
+block), client using the same key pair (seed) as this wallet and same identifier
+as passed to `subscribe` will be able to receive messages from this topic:
 
 ```javascript
 wallet.subscribe('topic', 100, 'identifier', 'metadata', { fee: '0.1' }).then((txnHash) => {
