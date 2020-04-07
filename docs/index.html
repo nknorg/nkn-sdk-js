@@ -2000,7 +2000,8 @@ non-null and non-undefined returned value is <code>Uint8Array</code> or <code>st
 the value will be sent back as reply; if the first non-null and
 non-undefined returned value is <code>false</code>, no reply or ACK will be sent;
 if all handler functions return <code>null</code> or <code>undefined</code>, an ACK indicating
-msg received will be sent back.</p>
+msg received will be sent back. Receiving reply or ACK will not trigger
+the event listener.</p>
 
     <div class='pre p1 fill-light mt0'>onMessage(func: <a href="#messagehandler">MessageHandler</a>)</div>
   
@@ -3227,7 +3228,8 @@ non-null and non-undefined returned value is <code>Uint8Array</code> or <code>st
 the value will be sent back as reply; if the first non-null and
 non-undefined returned value is <code>false</code>, no reply or ACK will be sent;
 if all handler functions return <code>null</code> or <code>undefined</code>, an ACK indicating
-msg received will be sent back.</p>
+msg received will be sent back. Receiving reply or ACK will not trigger
+the event listener.</p>
 
     <div class='pre p1 fill-light mt0'>onMessage(func: <a href="#messagehandler">MessageHandler</a>)</div>
   
@@ -6174,7 +6176,7 @@ of 'identifier.publicKey', or a name registered using wallet.</p>
   
     <p>
       Type:
-      {txPool: <a href="https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/Boolean">boolean</a>?, encrypt: <a href="https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/Boolean">boolean</a>?, msgHoldingSeconds: <a href="https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/Number">number</a>?, messageId: <a href="https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/Uint8Array">Uint8Array</a>?, replyToId: <a href="https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/Uint8Array">Uint8Array</a>?}
+      {encrypt: <a href="https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/Boolean">boolean</a>?, msgHoldingSeconds: <a href="https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/Number">number</a>?, messageId: <a href="https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/Uint8Array">Uint8Array</a>?, replyToId: <a href="https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/Uint8Array">Uint8Array</a>?, txPool: <a href="https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/Boolean">boolean</a>?, offset: <a href="https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/Number">number</a>?, limit: <a href="https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/Number">number</a>?}
     </p>
   
   
@@ -6221,6 +6223,18 @@ of 'identifier.publicKey', or a name registered using wallet.</p>
       
         <div class='space-bottom0'>
           <span class='code bold'>replyToId</span> <code class='quiet'>(<a href="https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/Uint8Array">Uint8Array</a>?)</code>
+          
+          
+        </div>
+      
+        <div class='space-bottom0'>
+          <span class='code bold'>offset</span> <code class='quiet'>(<a href="https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/Number">number</a>?)</code>
+          
+          
+        </div>
+      
+        <div class='space-bottom0'>
+          <span class='code bold'>limit</span> <code class='quiet'>(<a href="https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/Number">number</a>?)</code>
           
           
         </div>

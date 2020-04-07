@@ -6,6 +6,7 @@ import { Cache } from 'memory-cache';
 import Promise from 'core-js-pure/features/promise';
 
 import Client from '../client';
+import { defaultPublishOptions } from '../client/consts';
 import type { ConnectHandler, MessageHandler, Destination, MessageData, ReplyData, SendOptions, PublishOptions } from '../client';
 import * as common from '../common';
 import * as consts from './consts';
@@ -334,20 +335,19 @@ export default class MultiClient {
    * @returns A promise that will be resolved with null when send success.
    */
   async publish(topic: string, data: MessageData, options: PublishOptions = {}): Promise<null> {
-    let offset = 0;
-    let limit = 1000;
-    let res = await this.defaultClient.getSubscribers(topic, { offset, limit, txPool: options.txPool || false });
+    options = common.util.assignDefined({}, defaultPublishOptions, options, { noReply: true });
+    let offset = options.offset;
+    let res = await this.defaultClient.getSubscribers(topic, { offset, limit: options.limit, txPool: options.txPool });
     let subscribers = res.subscribers;
     let subscribersInTxPool = res.subscribersInTxPool;
-    while (res.subscribers && res.subscribers.length >= limit) {
-      offset += limit;
-      res = await this.defaultClient.getSubscribers(topic, { offset, limit });
+    while (res.subscribers && res.subscribers.length >= options.limit) {
+      offset += options.limit;
+      res = await this.defaultClient.getSubscribers(topic, { offset, limit: options.limit });
       subscribers = subscribers.concat(res.subscribers);
     }
     if (options.txPool) {
       subscribers = subscribers.concat(subscribersInTxPool);
     }
-    options = common.util.assignDefined({}, options, { noReply: true });
     return await this.send(subscribers, data, options);
   }
 
@@ -398,7 +398,8 @@ export default class MultiClient {
    * the value will be sent back as reply; if the first non-null and
    * non-undefined returned value is `false`, no reply or ACK will be sent;
    * if all handler functions return `null` or `undefined`, an ACK indicating
-   * msg received will be sent back.
+   * msg received will be sent back. Receiving reply or ACK will not trigger
+   * the event listener.
    */
   onMessage(func: MessageHandler) {
     this.eventListeners.message.push(func);

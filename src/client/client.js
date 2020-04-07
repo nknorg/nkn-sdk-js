@@ -178,7 +178,8 @@ export default class Client {
    * the value will be sent back as reply; if the first non-null and
    * non-undefined returned value is `false`, no reply or ACK will be sent;
    * if all handler functions return `null` or `undefined`, an ACK indicating
-   * msg received will be sent back.
+   * msg received will be sent back. Receiving reply or ACK will not trigger
+   * the event listener.
    */
   onMessage(func: MessageHandler) {
     this.eventListeners.message.push(func);
@@ -209,6 +210,9 @@ export default class Client {
 
   async _processDests(dest: Destination): Promise<Destination> {
     if (Array.isArray(dest)) {
+      if (dest.length === 0) {
+        throw new common.errors.InvalidDestinationError('no destinations');
+      }
       dest = await Promise.all(dest.map(async (addr) => {
         try {
           return await this._processDest(addr);
@@ -450,9 +454,9 @@ export default class Client {
    * @returns A promise that will be resolved with null when send success.
    */
   async publish(topic: string, data: MessageData, options: PublishOptions = {}): Promise<null> {
-    let offset = 0;
-    let limit = 1000;
-    let res = await this.getSubscribers(topic, { offset, limit, txPool: options.txPool || false });
+    options = common.util.assignDefined({}, consts.defaultPublishOptions, options, { noReply: true });
+    let offset = options.offset;
+    let res = await this.getSubscribers(topic, { offset, limit: options.limit, txPool: options.txPool });
     if (!(res.subscribers instanceof Array)) {
       throw new common.errors.InvalidResponseError('subscribers should be an array');
     }
@@ -461,9 +465,9 @@ export default class Client {
     }
     let subscribers = res.subscribers;
     let subscribersInTxPool = res.subscribersInTxPool;
-    while (res.subscribers && res.subscribers.length >= limit) {
-      offset += limit;
-      res = await this.getSubscribers(topic, { offset, limit });
+    while (res.subscribers && res.subscribers.length >= options.limit) {
+      offset += options.limit;
+      res = await this.getSubscribers(topic, { offset, limit: options.limit });
       if (!(res.subscribers instanceof Array)) {
         throw new common.errors.InvalidResponseError('subscribers should be an array');
       }
@@ -472,7 +476,6 @@ export default class Client {
     if (options.txPool && subscribersInTxPool) {
       subscribers = subscribers.concat(subscribersInTxPool);
     }
-    options = common.util.assignDefined({}, options, { noReply: true });
     await this.send(subscribers, data, options);
     return null;
   }
@@ -929,9 +932,11 @@ export type SendOptions = {
  * @property {number} [msgHoldingSeconds] - Maximal message holding time in second. Message might be cached and held by node up to this duration if destination client is not online. Zero disables cache.
  */
 export type PublishOptions = {
-  txPool?: boolean,
   encrypt?: boolean,
   msgHoldingSeconds?: number,
   messageId?: Uint8Array,
   replyToId?: Uint8Array,
+  txPool?: boolean,
+  offset?: number,
+  limit?: number,
 }
