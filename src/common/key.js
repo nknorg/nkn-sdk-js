@@ -1,20 +1,16 @@
 'use strict';
 
-import nacl from 'tweetnacl';
-import ed2curve from 'ed2curve';
 import work from 'webworkify';
 
 import * as crypto from './crypto';
 import * as errors from './errors';
 import * as util from './util';
 
-export const publicKeyLength = nacl.box.publicKeyLength;
-
 export default class Key {
-  key;
   seed;
   publicKey;
-  curveSecretKey;
+  privateKey;
+  curvePrivateKey;
   sharedKeyCache;
   useWorker;
   worker;
@@ -29,13 +25,14 @@ export default class Key {
         throw new errors.InvalidArgumentError('seed is not a valid hex string');
       }
     } else {
-      seed = util.randomBytes(nacl.sign.seedLength);
+      seed = util.randomBytes(crypto.seedLength);
     }
 
-    this.key = nacl.sign.keyPair.fromSeed(seed);
-    this.publicKey = util.bytesToHex(this.key.publicKey);
+    let key = crypto.keyPair(seed);
+    this.publicKey = util.bytesToHex(key.publicKey);
+    this.privateKey = key.privateKey;
+    this.curvePrivateKey = key.curvePrivateKey;
     this.seed = util.bytesToHex(seed);
-    this.curveSecretKey = ed2curve.convertSecretKey(this.key.secretKey);
     this.sharedKeyCache = new Map();
     this.useWorker = this._shouldUseWorker(options.worker);
     this.worker = null;
@@ -109,7 +106,7 @@ export default class Key {
         console.warn('worker computeSharedKey failed, fallback to main thread:', e);
       }
     }
-    return crypto.computeSharedKey(this.curveSecretKey, otherPubkey);
+    return await crypto.computeSharedKey(this.curvePrivateKey, otherPubkey);
   }
 
   async getOrComputeSharedKey(otherPubkey) {
@@ -123,18 +120,18 @@ export default class Key {
 
   async encrypt(message, destPubkey, options = {}) {
     let sharedKey = await this.getOrComputeSharedKey(destPubkey);
-    sharedKey = util.hexToBytes(sharedKey);
-    let nonce = options.nonce || util.randomBytes(nacl.box.nonceLength);
+    sharedKey = Buffer.from(sharedKey, 'hex');
+    let nonce = options.nonce || util.randomBytes(crypto.nonceLength);
     return {
-      message: nacl.box.after(message, nonce, sharedKey),
+      message: await crypto.encryptSymmetric(message, nonce, sharedKey),
       nonce: nonce,
     };
   }
 
-  async decrypt(encryptedMessage, nonce, srcPubkey, options = {}) {
+  async decrypt(message, nonce, srcPubkey, options = {}) {
     let sharedKey = await this.getOrComputeSharedKey(srcPubkey);
-    sharedKey = util.hexToBytes(sharedKey);
-    return nacl.box.open.after(encryptedMessage, nonce, sharedKey);
+    sharedKey = Buffer.from(sharedKey, 'hex');
+    return await crypto.decryptSymmetric(message, nonce, sharedKey);
   }
 
   async sign(message) {
@@ -145,6 +142,6 @@ export default class Key {
         console.warn('worker sign failed, fallback to main thread:', e);
       }
     }
-    return await crypto.sign(this.key.secretKey, message);
+    return await crypto.sign(this.privateKey, message);
   }
 }

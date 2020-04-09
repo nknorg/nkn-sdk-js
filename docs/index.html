@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
   <meta charset='utf-8'>
-  <title>nkn-sdk 1.0.8 | Documentation</title>
+  <title>nkn-sdk 1.1.0 | Documentation</title>
   <meta name='description' content='NKN client and wallet SDK'>
   <meta name='viewport' content='width=device-width,initial-scale=1'>
   <link href='assets/bass.css' rel='stylesheet'>
@@ -15,7 +15,7 @@
       <div id='split-left' class='overflow-auto fs0 height-viewport-100'>
         <div class='py1 px2'>
           <h3 class='mb0 no-anchor'>nkn-sdk</h3>
-          <div class='mb1'><code>1.0.8</code></div>
+          <div class='mb1'><code>1.1.0</code></div>
           <input
             placeholder='Filter'
             id='filter-input'
@@ -1051,7 +1051,7 @@ name is not registered, <code>registrant</code> will be '' and <code>expiresAt</
 
   
 
-  <p>Get subscribers count of a topic.</p>
+  <p>Get subscribers count of a topic (not including txPool).</p>
 
     <div class='pre p1 fill-light mt0'>getSubscribersCount(topic: <a href="https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/String">string</a>, options: {rpcServerAddr: <a href="https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/String">string</a>}): <a href="https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/Promise">Promise</a>&#x3C;<a href="https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/Number">number</a>></div>
   
@@ -4971,10 +4971,11 @@ address will be used.</p>
 
   
 
-  <p>Register a name for this wallet at the cost of 10 NKN. The name will be
-valid for 1,576,800 blocks (around 1 year). Register name already owned by
-this wallet will extend the duration of the name to current block height +
-1,576,800.</p>
+  <p>Register a name for this wallet's public key at the cost of 10 NKN. The
+name will be valid for 1,576,800 blocks (around 1 year). Register name
+currently owned by this wallet will extend the duration of the name to
+current block height + 1,576,800. Registration will fail if the name is
+currently owned by another account.</p>
 
     <div class='pre p1 fill-light mt0'>registerName(name: <a href="https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/String">string</a>, options: <a href="#transactionoptions">TransactionOptions</a>): <a href="https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/Promise">Promise</a>&#x3C;<a href="#txnorhash">TxnOrHash</a>></div>
   
@@ -5116,7 +5117,9 @@ wallet's rpcServerAddr as rpcServerAddr.</p>
 
   <p>Subscribe to a topic with an identifier for a number of blocks. Client
 using the same key pair and identifier will be able to receive messages
-from this topic.</p>
+from this topic. If this (identifier, public key) pair is already
+subscribed to this topic, the subscription expiration will be extended to
+current block height + duration.</p>
 
     <div class='pre p1 fill-light mt0'>subscribe(topic: <a href="https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/String">string</a>, duration: <a href="https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/Number">number</a>, identifier: <a href="https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/String">string</a>, meta: <a href="https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/String">string</a>, options: <a href="#transactionoptions">TransactionOptions</a>): <a href="https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/Promise">Promise</a>&#x3C;<a href="#txnorhash">TxnOrHash</a>></div>
   

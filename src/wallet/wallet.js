@@ -252,10 +252,11 @@ export default class Wallet {
   }
 
   /**
-   * Register a name for this wallet at the cost of 10 NKN. The name will be
-   * valid for 1,576,800 blocks (around 1 year). Register name already owned by
-   * this wallet will extend the duration of the name to current block height +
-   * 1,576,800.
+   * Register a name for this wallet's public key at the cost of 10 NKN. The
+   * name will be valid for 1,576,800 blocks (around 1 year). Register name
+   * currently owned by this wallet will extend the duration of the name to
+   * current block height + 1,576,800. Registration will fail if the name is
+   * currently owned by another account.
    */
   async registerName(name: string, options: TransactionOptions = {}): Promise<TxnOrHash> {
     let nonce = options.nonce || await this.getNonce();
@@ -285,7 +286,9 @@ export default class Wallet {
   /**
    * Subscribe to a topic with an identifier for a number of blocks. Client
    * using the same key pair and identifier will be able to receive messages
-   * from this topic.
+   * from this topic. If this (identifier, public key) pair is already
+   * subscribed to this topic, the subscription expiration will be extended to
+   * current block height + duration.
    * @param {number} duration - Duration in unit of blocks.
    * @param {string} identifier - Client identifier.
    * @param {string} meta - Metadata of this subscription.

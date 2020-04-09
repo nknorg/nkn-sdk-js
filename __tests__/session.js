@@ -115,14 +115,12 @@ new SessionTest('default', {
   numClients: 4,
   numBytes: 1 << 14,
   writeChunkSize: 1024,
-  sessionConfig: { sessionWindowSize: 1 << 12 },
 }).run();
 
 // new SessionTest('single client', {
 //   numClients: 1,
 //   numBytes: 1 << 14,
 //   writeChunkSize: 1024,
-//   sessionConfig: { sessionWindowSize: 1 << 12 },
 // }).run();
 //
 // new SessionTest('original client', {
@@ -130,7 +128,6 @@ new SessionTest('default', {
 //   originalClient: true,
 //   numBytes: 1 << 14,
 //   writeChunkSize: 1024,
-//   sessionConfig: { sessionWindowSize: 1 << 12 },
 // }).run();
 //
 // new SessionTest('minimal session window', {
@@ -144,12 +141,11 @@ new SessionTest('default', {
 //   numClients: 4,
 //   numBytes: 1 << 14,
 //   writeChunkSize: 2048,
-//   sessionConfig: { sessionWindowSize: 1 << 12 },
 // }).run();
 //
 // new SessionTest('non stream', {
 //   numClients: 4,
 //   numBytes: 1 << 24,
 //   writeChunkSize: 1000,
-//   sessionConfig: { sessionWindowSize: 1 << 12, nonStream: true },
+//   sessionConfig: { nonStream: true },
 // }).run();

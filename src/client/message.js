@@ -89,22 +89,22 @@ export async function newOutboundMessage(client, dest, payload, maxHoldingSecond
   }
 
   let sigChainElem = new common.pb.sigchain.SigChainElem();
-  sigChainElem.setNextPubkey(common.util.hexToBytes(client.node.pubkey));
+  sigChainElem.setNextPubkey(Buffer.from(client.node.pubkey, 'hex'));
   let sigChainElemSerialized = serializeSigChainElem(sigChainElem);
 
   let sigChain = new common.pb.sigchain.SigChain();
   sigChain.setNonce(common.util.randomInt32());
   if (client.sigChainBlockHash) {
-    sigChain.setBlockHash(common.util.hexToBytes(client.sigChainBlockHash));
+    sigChain.setBlockHash(Buffer.from(client.sigChainBlockHash, 'hex'));
   }
-  sigChain.setSrcId(common.util.hexToBytes(addrToID(client.addr)));
-  sigChain.setSrcPubkey(common.util.hexToBytes(client.key.publicKey));
+  sigChain.setSrcId(Buffer.from(addrToID(client.addr), 'hex'));
+  sigChain.setSrcPubkey(Buffer.from(client.key.publicKey, 'hex'));
 
   let signatures = [];
   let hex, digest, signature;
   for (let i = 0; i < dest.length; i++) {
-    sigChain.setDestId(common.util.hexToBytes(addrToID(dest[i])));
-    sigChain.setDestPubkey(common.util.hexToBytes(addrToPubkey(dest[i])));
+    sigChain.setDestId(Buffer.from(addrToID(dest[i]), 'hex'));
+    sigChain.setDestPubkey(Buffer.from(addrToPubkey(dest[i]), 'hex'));
     if (payload.length > 1) {
       sigChain.setDataSize(payload[i].length);
     } else {
@@ -114,7 +114,7 @@ export async function newOutboundMessage(client, dest, payload, maxHoldingSecond
     digest = common.hash.sha256Hex(hex);
     digest = common.hash.sha256Hex(digest + sigChainElemSerialized);
     signature = await client.key.sign(digest);
-    signatures.push(common.util.hexToBytes(signature));
+    signatures.push(Buffer.from(signature, 'hex'));
   }
 
   let msg = new common.pb.messages.OutboundMessage();
@@ -142,8 +142,8 @@ export async function newReceipt(client, prevSignature) {
   digest = common.hash.sha256Hex(digest + sigChainElemSerialized);
   let signature = await client.key.sign(digest);
   let msg = new common.pb.messages.Receipt();
-  msg.setPrevSignature(common.util.hexToBytes(prevSignature));
-  msg.setSignature(common.util.hexToBytes(signature));
+  msg.setPrevSignature(Buffer.from(prevSignature, 'hex'));
+  msg.setSignature(Buffer.from(signature, 'hex'));
   return newClientMessage(common.pb.messages.ClientMessageType.RECEIPT, msg.serializeBinary(), common.pb.messages.CompressionType.COMPRESSION_NONE);
 }
 

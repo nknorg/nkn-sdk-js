@@ -1,7 +1,6 @@
 // @flow
 'use strict';
 
-import nacl from 'tweetnacl';
 import WebSocket from 'isomorphic-ws';
 
 import * as common from '../common';
@@ -250,7 +249,7 @@ export default class Client {
     if (pldMsg.length > 1) {
       let totalSize = 0, size = 0;
       for (let i = 0; i < pldMsg.length; i++) {
-        size = pldMsg[i].length + dest[i].length + nacl.sign.signatureLength;
+        size = pldMsg[i].length + dest[i].length + common.crypto.signatureLength;
         if (size > message.maxClientMessageSize) {
           throw new common.errors.DataSizeTooLargeError('encoded message is greater than ' + message.maxClientMessageSize + ' bytes');
         }
@@ -268,10 +267,10 @@ export default class Client {
       let size = pldMsg[0].length;
       if (Array.isArray(dest)) {
         for (let i = 0; i < dest.length; i++) {
-          size += dest[i].length + nacl.sign.signatureLength;
+          size += dest[i].length + common.crypto.signatureLength;
         }
       } else {
-        size += dest.length + nacl.sign.signatureLength;
+        size += dest.length + common.crypto.signatureLength;
       }
       if (size > message.maxClientMessageSize) {
         throw new common.errors.DataSizeTooLargeError('encoded message is greater than ' + message.maxClientMessageSize + ' bytes');
@@ -407,7 +406,7 @@ export default class Client {
   }
 
   /**
-   * Get subscribers count of a topic.
+   * Get subscribers count of a topic (not including txPool).
    */
   static getSubscribersCount(topic: string, options: { rpcServerAddr: string } = {}): Promise<number> {
     return common.rpc.getSubscribersCount(
@@ -709,9 +708,9 @@ export default class Client {
 
   async _encryptPayload(payload: Uint8Array, dest: Destination): Promise<Array<common.pb.payloads.Message>> {
     if (Array.isArray(dest)) {
-      let nonce = common.util.randomBytes(nacl.secretbox.nonceLength);
-      let key = common.util.randomBytes(nacl.secretbox.keyLength);
-      let encryptedPayload = nacl.secretbox(payload, nonce, key);
+      let nonce = common.util.randomBytes(common.crypto.nonceLength);
+      let key = common.util.randomBytes(common.crypto.keyLength);
+      let encryptedPayload = await common.crypto.encryptSymmetric(payload, nonce, key);
 
       let msgs: Array<common.pb.payloads.Message> = [];
       for (let i = 0; i < dest.length; i++) {
@@ -736,19 +735,19 @@ export default class Client {
     let encryptedKey = msg.getEncryptedKey();
     let decryptedPayload;
     if (encryptedKey && encryptedKey.length > 0) {
-      if (nonce.length != nacl.box.nonceLength + nacl.secretbox.nonceLength) {
+      if (nonce.length != common.crypto.nonceLength * 2 ) {
         throw new common.errors.DecryptionError('invalid nonce length');
       }
-      let sharedKey = await this.key.decrypt(encryptedKey, nonce.slice(0, nacl.box.nonceLength), srcPubkey);
+      let sharedKey = await this.key.decrypt(encryptedKey, nonce.slice(0, common.crypto.nonceLength), srcPubkey);
       if (sharedKey === null) {
         throw new common.errors.DecryptionError('decrypt shared key failed');
       }
-      decryptedPayload = nacl.secretbox.open(rawPayload, nonce.slice(nacl.box.nonceLength), sharedKey)
+      decryptedPayload = await common.crypto.decryptSymmetric(rawPayload, nonce.slice(common.crypto.nonceLength), sharedKey)
       if (decryptedPayload === null) {
         throw new common.errors.DecryptionError('decrypt message failed');
       }
     } else {
-      if (nonce.length != nacl.box.nonceLength) {
+      if (nonce.length != common.crypto.nonceLength) {
         throw new common.errors.DecryptionError('invalid nonce length');
       }
       decryptedPayload = await this.key.decrypt(rawPayload, nonce, srcPubkey);
