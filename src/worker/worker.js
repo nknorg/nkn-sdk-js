@@ -1,33 +1,29 @@
 'use strict';
 
-import nacl from 'tweetnacl';
-import ed2curve from 'ed2curve';
-
 import * as crypto from '../common/crypto';
 import * as util from '../common/util';
 
 module.exports = function(self) {
-  let key, curveSecretKey;
-  self.onmessage = function(e) {
+  let key;
+  self.onmessage = async function(e) {
     try {
       let result = null;
       switch (e.data.action) {
         case 'setSeed':
           if (!key) {
-            key = nacl.sign.keyPair.fromSeed(util.hexToBytes(e.data.seed));
-            curveSecretKey = ed2curve.convertSecretKey(key.secretKey);
+            key = crypto.keyPair(Buffer.from(e.data.seed, 'hex'));
           }
           break;
         case 'computeSharedKey':
           if (key) {
-            result = crypto.computeSharedKey(curveSecretKey, e.data.otherPubkey);
+            result = await crypto.computeSharedKey(key.curvePrivateKey, e.data.otherPubkey);
           } else {
             throw 'worker key not created';
           }
           break;
         case 'sign':
           if (key) {
-            result = crypto.sign(key.secretKey, e.data.message)
+            result = await crypto.sign(key.privateKey, e.data.message)
           } else {
             throw 'worker key not created';
           }

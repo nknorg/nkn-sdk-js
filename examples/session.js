@@ -5,11 +5,10 @@ const nkn = require('../lib');
 const numBytes = 16 << 20;
 const numSubClients = 4;
 const writeChunkSize = 1024;
-const sessionConfig = { mtu: 16000 }; // default mtu (1024) leads to lower latency, while large mtu leads to higher throughput
 
 (async function () {
-  let alice = new nkn.MultiClient({ numSubClients, sessionConfig, identifier: 'alice' });
-  let bob = new nkn.MultiClient({ numSubClients, sessionConfig, identifier: 'bob', seed: alice.getSeed() });
+  let alice = new nkn.MultiClient({ numSubClients, identifier: 'alice' });
+  let bob = new nkn.MultiClient({ numSubClients, identifier: 'bob', seed: alice.getSeed() });
 
   console.log('Secret seed:', alice.getSeed());
 
