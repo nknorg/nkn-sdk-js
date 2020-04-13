@@ -59,6 +59,12 @@ And then in your code:
 const nkn = require('nkn-sdk');
 ```
 
+or using ES6 import:
+
+```javascript
+import nkn from 'nkn-sdk';
+```
+
 For browser, use `dist/nkn.js` or `dist/nkn.min.js`.
 
 If you use it in React Native, you also need to follow the installation guide in
