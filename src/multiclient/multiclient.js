@@ -6,12 +6,15 @@ import { Cache } from 'memory-cache';
 import Promise from 'core-js-pure/features/promise';
 
 import Client from '../client';
+import Wallet from '../wallet';
 import { defaultPublishOptions } from '../client/consts';
-import type { ConnectHandler, MessageHandler, Destination, MessageData, ReplyData, SendOptions, PublishOptions } from '../client';
 import * as common from '../common';
 import * as consts from './consts';
 import * as message from '../client/message';
 import * as util from './util';
+
+import type { ConnectHandler, MessageHandler, Destination, MessageData, ReplyData, SendOptions, PublishOptions } from '../client';
+import type { CreateTransactionOptions, TransactionOptions, TxnOrHash } from '../wallet';
 
 /**
  * NKN client that sends data to and receives data from other NKN clients.
@@ -337,12 +340,12 @@ export default class MultiClient {
   async publish(topic: string, data: MessageData, options: PublishOptions = {}): Promise<null> {
     options = common.util.assignDefined({}, defaultPublishOptions, options, { noReply: true });
     let offset = options.offset;
-    let res = await this.defaultClient.getSubscribers(topic, { offset, limit: options.limit, txPool: options.txPool });
+    let res = await this.getSubscribers(topic, { offset, limit: options.limit, txPool: options.txPool });
     let subscribers = res.subscribers;
     let subscribersInTxPool = res.subscribersInTxPool;
     while (res.subscribers && res.subscribers.length >= options.limit) {
       offset += options.limit;
-      res = await this.defaultClient.getSubscribers(topic, { offset, limit: options.limit });
+      res = await this.getSubscribers(topic, { offset, limit: options.limit });
       subscribers = subscribers.concat(res.subscribers);
     }
     if (options.txPool) {
@@ -481,6 +484,210 @@ export default class MultiClient {
     this.sessions.set(sessionKey, session);
     await session.dial(dialTimeout);
     return session;
+  }
+
+  /**
+   * Same as [Wallet.getLatestBlock](#walletgetlatestblock), but using this
+   * multiclient's connected node as rpcServerAddr, followed by this
+   * multiclient's rpcServerAddr if failed.
+   */
+  async getLatestBlock(): Promise<{ height: number, hash: string }> {
+    for (let clientID of Object.keys(this.clients)) {
+      if (this.clients[clientID].wallet.options.rpcServerAddr) {
+        try {
+          return await Wallet.getLatestBlock(this.clients[clientID].wallet.options);
+        } catch (e) {
+        }
+      }
+    }
+    return await Wallet.getLatestBlock(this.options);
+  }
+
+  /**
+   * Same as [Wallet.getRegistrant](#walletgetregistrant), but using this
+   * multiclient's connected node as rpcServerAddr, followed by this
+   * multiclient's rpcServerAddr if failed.
+   */
+  async getRegistrant(name: string): Promise<{ registrant: string, expiresAt: number }> {
+    for (let clientID of Object.keys(this.clients)) {
+      if (this.clients[clientID].wallet.options.rpcServerAddr) {
+        try {
+          return await Wallet.getRegistrant(name, this.clients[clientID].wallet.options);
+        } catch (e) {
+        }
+      }
+    }
+    return await Wallet.getRegistrant(name, this.options);
+  }
+
+  /**
+   * Same as [Wallet.getSubscribers](#walletgetsubscribers), but using this
+   * multiclient's connected node as rpcServerAddr, followed by this
+   * multiclient's rpcServerAddr if failed.
+   */
+  async getSubscribers(
+    topic: string,
+    options: {
+      offset?: number,
+      limit?: number,
+      meta?: boolean,
+      txPool?: boolean,
+    } = {},
+  ): Promise<{
+    subscribers: Array<string> | { [string]: string },
+    subscribersInTxPool?: Array<string> | { [string]: string },
+  }> {
+    for (let clientID of Object.keys(this.clients)) {
+      if (this.clients[clientID].wallet.options.rpcServerAddr) {
+        try {
+          return await Wallet.getSubscribers(topic, Object.assign({}, this.clients[clientID].wallet.options, options));
+        } catch (e) {
+        }
+      }
+    }
+    return await Wallet.getSubscribers(topic, Object.assign({}, this.options, options));
+  }
+
+  /**
+   * Same as [Wallet.getSubscribersCount](#walletgetsubscriberscount), but using
+   * this multiclient's connected node as rpcServerAddr, followed by this
+   * multiclient's rpcServerAddr if failed.
+   */
+  async getSubscribersCount(topic: string): Promise<number> {
+    for (let clientID of Object.keys(this.clients)) {
+      if (this.clients[clientID].wallet.options.rpcServerAddr) {
+        try {
+          return await Wallet.getSubscribersCount(topic, this.clients[clientID].wallet.options);
+        } catch (e) {
+        }
+      }
+    }
+    return await Wallet.getSubscribersCount(topic, this.options);
+  }
+
+  /**
+   * Same as [Wallet.getSubscription](#walletgetsubscription), but using this
+   * multiclient's connected node as rpcServerAddr, followed by this
+   * multiclient's rpcServerAddr if failed.
+   */
+  async getSubscription(topic: string, subscriber: string): Promise<{ meta: string, expiresAt: number }> {
+    for (let clientID of Object.keys(this.clients)) {
+      if (this.clients[clientID].wallet.options.rpcServerAddr) {
+        try {
+          return await Wallet.getSubscription(topic, subscriber, this.clients[clientID].wallet.options);
+        } catch (e) {
+        }
+      }
+    }
+    return await Wallet.getSubscription(topic, subscriber, this.options);
+  }
+
+  /**
+   * Same as [Wallet.getBalance](#walletgetbalance), but using this
+   * multiclient's connected node as rpcServerAddr, followed by this
+   * multiclient's rpcServerAddr if failed.
+   */
+  async getBalance(address: ?string): Promise<common.Amount> {
+    for (let clientID of Object.keys(this.clients)) {
+      if (this.clients[clientID].wallet.options.rpcServerAddr) {
+        try {
+          return await Wallet.getBalance(address || this.defaultClient.wallet.address, this.clients[clientID].wallet.options);
+        } catch (e) {
+        }
+      }
+    }
+    return await Wallet.getBalance(address || this.defaultClient.wallet.address, this.options);
+  }
+
+  /**
+   * Same as [Wallet.getNonce](#walletgetnonce), but using this
+   * multiclient's connected node as rpcServerAddr, followed by this
+   * multiclient's rpcServerAddr if failed.
+   */
+  async getNonce(address: ?string, options: { txPool: boolean } = {}): Promise<number> {
+    for (let clientID of Object.keys(this.clients)) {
+      if (this.clients[clientID].wallet.options.rpcServerAddr) {
+        try {
+          return await Wallet.getNonce(address || this.defaultClient.wallet.address, Object.assign({}, this.clients[clientID].wallet.options, options));
+        } catch (e) {
+        }
+      }
+    }
+    return await Wallet.getNonce(address || this.defaultClient.wallet.address, Object.assign({}, this.options, options));
+  }
+
+  /**
+   * Same as [Wallet.sendTransaction](#walletsendtransaction), but using this
+   * multiclient's connected node as rpcServerAddr, followed by this
+   * multiclient's rpcServerAddr if failed.
+   */
+  async sendTransaction(txn: common.pb.transaction.Transaction): Promise<string> {
+    let clients = Object.values(this.clients).filter((client: Client) => client.wallet.options.rpcServerAddr);
+    if (clients.length > 0) {
+      try {
+        return await Promise.any(clients.map((client: Client) => Wallet.sendTransaction(txn, client.wallet.options)));
+      } catch (e) {
+      }
+    }
+    return await Wallet.sendTransaction(txn, this.options);
+  }
+
+  /**
+   * Same as [wallet.transferTo](#wallettransferto), but using this
+   * multiclient's connected node as rpcServerAddr, followed by this
+   * multiclient's rpcServerAddr if failed.
+   */
+  transferTo(toAddress: string, amount: number | string | common.Amount, options: TransactionOptions = {}): Promise<TxnOrHash> {
+    return common.rpc.transferTo.call(this, toAddress, amount, options);
+  }
+
+  /**
+   * Same as [wallet.registerName](#walletregistername), but using this
+   * multiclient's connected node as rpcServerAddr, followed by this
+   * multiclient's rpcServerAddr if failed.
+   */
+  registerName(name: string, options: TransactionOptions = {}): Promise<TxnOrHash> {
+    return common.rpc.registerName.call(this, name, options);
+  }
+
+  /**
+   * Same as [wallet.transferName](#wallettransfername), but using this
+   * multiclient's connected node as rpcServerAddr, followed by this
+   * multiclient's rpcServerAddr if failed.
+   */
+  transferName(name: string, recipient: string, options: TransactionOptions = {}): Promise<TxnOrHash> {
+    return common.rpc.transferName.call(this, name, recipient, options);
+  }
+
+  /**
+   * Same as [wallet.deleteName](#walletdeletename), but using this
+   * multiclient's connected node as rpcServerAddr, followed by this
+   * multiclient's rpcServerAddr if failed.
+   */
+  deleteName(name: string, options: TransactionOptions = {}): Promise<TxnOrHash> {
+    return common.rpc.deleteName.call(this, name, options);
+  }
+
+  /**
+   * Same as [wallet.subscribe](#walletsubscribe), but using this
+   * multiclient's connected node as rpcServerAddr, followed by this
+   * multiclient's rpcServerAddr if failed.
+   */
+  subscribe(topic: string, duration: number, identifier: ?string = '', meta: ?string = '', options: TransactionOptions = {}): Promise<TxnOrHash> {
+    return common.rpc.subscribe.call(this, topic, duration, identifier, meta, options);
+  }
+
+  /**
+   * Same as [wallet.unsubscribe](#walletunsubscribe), but using this
+   * multiclient's connected node as rpcServerAddr, followed by this
+   * multiclient's rpcServerAddr if failed.
+   */
+  unsubscribe(topic: string, identifier: string = '', options: TransactionOptions = {}): Promise<TxnOrHash> {
+    return common.rpc.unsubscribe.call(this, topic, identifier, options);
+  }
+
+  createTransaction(pld: common.pb.transaction.Payload, nonce: number, options: CreateTransactionOptions = {}): Promise<common.pb.transaction.Transaction> {
+    return this.defaultClient.wallet.createTransaction(pld, nonce, options);
   }
 }
 

@@ -8,6 +8,8 @@ exports.default = void 0;
 
 var _isomorphicWs = _interopRequireDefault(require("isomorphic-ws"));
 
+var _wallet = _interopRequireDefault(require("../wallet"));
+
 var common = _interopRequireWildcard(require("../common"));
 
 var consts = _interopRequireWildcard(require("./consts"));
@@ -81,6 +83,8 @@ class Client {
 
     _defineProperty(this, "isClosed", void 0);
 
+    _defineProperty(this, "wallet", void 0);
+
     options = common.util.assignDefined({}, consts.defaultOptions, options);
     let key = new common.Key(options.seed, {
       worker: options.worker
@@ -88,6 +92,9 @@ class Client {
     let identifier = options.identifier || '';
     let pubkey = key.publicKey;
     let addr = (identifier ? identifier + '.' : '') + pubkey;
+    let wallet = new _wallet.default(Object.assign({}, options, {
+      seed: key.seed
+    }));
     delete options.seed;
     this.options = options;
     this.key = key;
@@ -105,6 +112,7 @@ class Client {
     this.node = null;
     this.isReady = false;
     this.isClosed = false;
+    this.wallet = wallet;
 
     this._connect();
   }
@@ -133,9 +141,7 @@ class Client {
 
     for (let i = 0; i < 3; i++) {
       try {
-        res = await getAddr(this.options.rpcServerAddr, {
-          address: this.addr
-        });
+        res = await getAddr(this.addr, this.options);
       } catch (e) {
         error = e;
         continue;
@@ -380,106 +386,9 @@ class Client {
   }
 
   /**
-   * Get the registrant's public key and expiration block height of a name. If
-   * name is not registered, `registrant` will be '' and `expiresAt` will be 0.
-   */
-  static getRegistrant(name, options = {}) {
-    return common.rpc.getRegistrant(options.rpcServerAddr || consts.defaultOptions.rpcServerAddr, {
-      name
-    });
-  }
-  /**
-   * Same as [Client.getRegistrant](#clientgetregistrant), but using this
-   * client's rpcServerAddr as rpcServerAddr.
-   */
-
-
-  getRegistrant(name) {
-    return Client.getRegistrant(name, {
-      rpcServerAddr: this.options.rpcServerAddr
-    });
-  }
-  /**
-   * Get subscribers of a topic.
-   * @param options - Get subscribers options.
-   * @param {number} [options.offset=0] - Offset of subscribers to get.
-   * @param {number} [options.limit=1000] - Max number of subscribers to get. This does not affect subscribers in txpool.
-   * @param {boolean} [options.meta=false] - Whether to include metadata of subscribers in the topic.
-   * @param {boolean} [options.txPool=false] - Whether to include subscribers whose subscribe transaction is still in txpool. Enabling this will get subscribers sooner after they send subscribe transactions, but might affect the correctness of subscribers because transactions in txpool is not guaranteed to be packed into a block.
-   * @param {string} [options.rpcServerAddr='https://mainnet-rpc-node-0001.nkn.org/mainnet/api/wallet'] - RPC server address.
-   * @returns A promise that will be resolved with subscribers info. Note that `options.meta=false/true` will cause results to be an array (of subscriber address) or map (subscriber address -> metadata), respectively.
-   */
-
-
-  static getSubscribers(topic, options = {}) {
-    return common.rpc.getSubscribers(options.rpcServerAddr || consts.defaultOptions.rpcServerAddr, {
-      topic,
-      offset: options.offset,
-      limit: options.limit,
-      meta: options.meta,
-      txPool: options.txPool
-    });
-  }
-  /**
-   * Same as [Client.getSubscribers](#clientgetsubscribers), but using this
-   * client's rpcServerAddr as rpcServerAddr.
-   */
-
-
-  getSubscribers(topic, options = {}) {
-    return Client.getSubscribers(topic, Object.assign({}, options, {
-      rpcServerAddr: this.options.rpcServerAddr
-    }));
-  }
-  /**
-   * Get subscribers count of a topic (not including txPool).
-   */
-
-
-  static getSubscribersCount(topic, options = {}) {
-    return common.rpc.getSubscribersCount(options.rpcServerAddr || consts.defaultOptions.rpcServerAddr, {
-      topic
-    });
-  }
-  /**
-   * Same as [Client.getSubscribersCount](#clientgetsubscriberscount), but using
-   * this client's rpcServerAddr as rpcServerAddr.
-   */
-
-
-  getSubscribersCount(topic) {
-    return Client.getSubscribersCount(topic, {
-      rpcServerAddr: this.options.rpcServerAddr
-    });
-  }
-  /**
-   * Get the subscription details of a subscriber in a topic.
-   */
-
-
-  static getSubscription(topic, subscriber, options = {}) {
-    return common.rpc.getSubscription(options.rpcServerAddr || consts.defaultOptions.rpcServerAddr, {
-      topic,
-      subscriber
-    });
-  }
-  /**
-   * Same as [Client.getSubscription](#clientgetsubscription), but using this
-   * client's rpcServerAddr as rpcServerAddr.
-   */
-
-
-  getSubscription(topic, subscriber) {
-    return Client.getSubscription(topic, subscriber, {
-      rpcServerAddr: this.options.rpcServerAddr
-    });
-  }
-  /**
    * Send byte or string data to all subscribers of a topic.
    * @returns A promise that will be resolved with null when send success.
    */
-
-
   async publish(topic, data, options = {}) {
     options = common.util.assignDefined({}, consts.defaultPublishOptions, options, {
       noReply: true
@@ -682,10 +591,12 @@ class Client {
       return;
     }
 
+    let tls = this._shouldUseTls();
+
     let ws;
 
     try {
-      ws = new _isomorphicWs.default((this._shouldUseTls() ? 'wss://' : 'ws://') + nodeInfo.addr);
+      ws = new _isomorphicWs.default((tls ? 'wss' : 'ws') + '://' + nodeInfo.addr);
       ws.binaryType = 'arraybuffer';
     } catch (e) {
       console.log('Create WebSocket failed,', e);
@@ -707,6 +618,12 @@ class Client {
 
     this.ws = ws;
     this.node = nodeInfo;
+
+    if (nodeInfo.rpcAddr) {
+      this.wallet.options.rpcServerAddr = (tls ? 'https' : 'http') + '://' + nodeInfo.rpcAddr;
+    } else {
+      this.wallet.options.rpcServerAddr = '';
+    }
 
     ws.onopen = () => {
       ws.send(JSON.stringify({
@@ -844,6 +761,198 @@ class Client {
 
     return decryptedPayload;
   }
+  /**
+   * Same as [Wallet.getLatestBlock](#walletgetlatestblock), but using this
+   * client's connected node as rpcServerAddr, followed by this client's
+   * rpcServerAddr if failed.
+   */
+
+
+  async getLatestBlock() {
+    if (this.wallet.options.rpcServerAddr) {
+      try {
+        return await _wallet.default.getLatestBlock(this.options);
+      } catch (e) {}
+    }
+
+    return await _wallet.default.getLatestBlock(this.options);
+  }
+  /**
+   * Same as [Wallet.getRegistrant](#walletgetregistrant), but using this
+   * client's connected node as rpcServerAddr, followed by this client's
+   * rpcServerAddr if failed.
+   */
+
+
+  async getRegistrant(name) {
+    if (this.wallet.options.rpcServerAddr) {
+      try {
+        return await _wallet.default.getRegistrant(name, this.wallet.options);
+      } catch (e) {}
+    }
+
+    return await _wallet.default.getRegistrant(name, this.options);
+  }
+  /**
+   * Same as [Wallet.getSubscribers](#walletgetsubscribers), but using this
+   * client's connected node as rpcServerAddr, followed by this client's
+   * rpcServerAddr if failed.
+   */
+
+
+  async getSubscribers(topic, options = {}) {
+    if (this.wallet.options.rpcServerAddr) {
+      try {
+        return await _wallet.default.getSubscribers(topic, Object.assign({}, this.wallet.options, options));
+      } catch (e) {}
+    }
+
+    return await _wallet.default.getSubscribers(topic, Object.assign({}, this.options, options));
+  }
+  /**
+   * Same as [Wallet.getSubscribersCount](#walletgetsubscriberscount), but using
+   * this client's connected node as rpcServerAddr, followed by this client's
+   * rpcServerAddr if failed.
+   */
+
+
+  async getSubscribersCount(topic) {
+    if (this.wallet.options.rpcServerAddr) {
+      try {
+        return await _wallet.default.getSubscribersCount(topic, this.wallet.options);
+      } catch (e) {}
+    }
+
+    return await _wallet.default.getSubscribersCount(topic, this.options);
+  }
+  /**
+   * Same as [Wallet.getSubscription](#walletgetsubscription), but using this
+   * client's connected node as rpcServerAddr, followed by this client's
+   * rpcServerAddr if failed.
+   */
+
+
+  async getSubscription(topic, subscriber) {
+    if (this.wallet.options.rpcServerAddr) {
+      try {
+        return await _wallet.default.getSubscription(topic, subscriber, this.wallet.options);
+      } catch (e) {}
+    }
+
+    return await _wallet.default.getSubscription(topic, subscriber, this.options);
+  }
+  /**
+   * Same as [Wallet.getBalance](#walletgetbalance), but using this
+   * client's connected node as rpcServerAddr, followed by this client's
+   * rpcServerAddr if failed.
+   */
+
+
+  async getBalance(address) {
+    if (this.wallet.options.rpcServerAddr) {
+      try {
+        return await _wallet.default.getBalance(address || this.wallet.address, this.wallet.options);
+      } catch (e) {}
+    }
+
+    return await _wallet.default.getBalance(address || this.wallet.address, this.options);
+  }
+  /**
+   * Same as [Wallet.getNonce](#walletgetnonce), but using this
+   * client's connected node as rpcServerAddr, followed by this client's
+   * rpcServerAddr if failed.
+   */
+
+
+  async getNonce(address, options = {}) {
+    if (this.wallet.options.rpcServerAddr) {
+      try {
+        return await _wallet.default.getNonce(address || this.wallet.address, Object.assign({}, this.wallet.options, options));
+      } catch (e) {}
+    }
+
+    return await _wallet.default.getNonce(address || this.wallet.address, Object.assign({}, this.options, options));
+  }
+  /**
+   * Same as [Wallet.sendTransaction](#walletsendtransaction), but using this
+   * client's connected node as rpcServerAddr, followed by this client's
+   * rpcServerAddr if failed.
+   */
+
+
+  async sendTransaction(txn) {
+    if (this.wallet.options.rpcServerAddr) {
+      try {
+        return await _wallet.default.sendTransaction(txn, this.wallet.options);
+      } catch (e) {}
+    }
+
+    return await _wallet.default.sendTransaction(txn, this.options);
+  }
+  /**
+   * Same as [wallet.transferTo](#wallettransferto), but using this
+   * client's connected node as rpcServerAddr, followed by this client's
+   * rpcServerAddr if failed.
+   */
+
+
+  transferTo(toAddress, amount, options = {}) {
+    return common.rpc.transferTo.call(this, toAddress, amount, options);
+  }
+  /**
+   * Same as [wallet.registerName](#walletregistername), but using this
+   * client's connected node as rpcServerAddr, followed by this client's
+   * rpcServerAddr if failed.
+   */
+
+
+  registerName(name, options = {}) {
+    return common.rpc.registerName.call(this, name, options);
+  }
+  /**
+   * Same as [wallet.transferName](#wallettransfername), but using this
+   * client's connected node as rpcServerAddr, followed by this client's
+   * rpcServerAddr if failed.
+   */
+
+
+  transferName(name, recipient, options = {}) {
+    return common.rpc.transferName.call(this, name, recipient, options);
+  }
+  /**
+   * Same as [wallet.deleteName](#walletdeletename), but using this
+   * client's connected node as rpcServerAddr, followed by this client's
+   * rpcServerAddr if failed.
+   */
+
+
+  deleteName(name, options = {}) {
+    return common.rpc.deleteName.call(this, name, options);
+  }
+  /**
+   * Same as [wallet.subscribe](#walletsubscribe), but using this
+   * client's connected node as rpcServerAddr, followed by this client's
+   * rpcServerAddr if failed.
+   */
+
+
+  subscribe(topic, duration, identifier = '', meta = '', options = {}) {
+    return common.rpc.subscribe.call(this, topic, duration, identifier, meta, options);
+  }
+  /**
+   * Same as [wallet.unsubscribe](#walletunsubscribe), but using this
+   * client's connected node as rpcServerAddr, followed by this client's
+   * rpcServerAddr if failed.
+   */
+
+
+  unsubscribe(topic, identifier = '', options = {}) {
+    return common.rpc.unsubscribe.call(this, topic, identifier, options);
+  }
+
+  createTransaction(pld, nonce, options = {}) {
+    return this.wallet.createTransaction(pld, nonce, options);
+  }
 
 }
 
@@ -958,7 +1067,7 @@ class ResponseManager {
   }
 
 }
-},{"../common":8,"./consts":2,"./message":4,"isomorphic-ws":307}],2:[function(require,module,exports){
+},{"../common":9,"../wallet":28,"./consts":2,"./message":4,"isomorphic-ws":307}],2:[function(require,module,exports){
 'use strict';
 
 Object.defineProperty(exports, "__esModule", {
@@ -1221,7 +1330,38 @@ function addrToPubkey(addr) {
   return s[s.length - 1];
 }
 }).call(this,require("buffer").Buffer)
-},{"../common":8,"buffer":117,"pako":315}],5:[function(require,module,exports){
+},{"../common":9,"buffer":117,"pako":315}],5:[function(require,module,exports){
+'use strict';
+
+Object.defineProperty(exports, "__esModule", {
+  value: true
+});
+exports.default = void 0;
+
+var _decimal = require("decimal.js");
+
+function _defineProperty(obj, key, value) { if (key in obj) { Object.defineProperty(obj, key, { value: value, enumerable: true, configurable: true, writable: true }); } else { obj[key] = value; } return obj; }
+
+_decimal.Decimal.set({
+  minE: -8
+});
+/**
+ * Amount of NKN tokens. See documentation at
+ * [decimal.js](https://mikemcl.github.io/decimal.js/).
+ */
+
+
+class Amount extends _decimal.Decimal {
+  value() {
+    return this.times(Amount.unit).floor();
+  }
+
+}
+
+exports.default = Amount;
+
+_defineProperty(Amount, "unit", new _decimal.Decimal('100000000'));
+},{"decimal.js":256}],6:[function(require,module,exports){
 (function (Buffer){
 'use strict';
 
@@ -1367,7 +1507,7 @@ async function sign(privateKey, message) {
   return util.bytesToHex(sig);
 }
 }).call(this,require("buffer").Buffer)
-},{"./util":17,"buffer":117,"ed2curve":267,"libsodium-wrappers":308,"tweetnacl":380}],6:[function(require,module,exports){
+},{"./util":18,"buffer":117,"ed2curve":267,"libsodium-wrappers":308,"tweetnacl":380}],7:[function(require,module,exports){
 'use strict';
 
 Object.defineProperty(exports, "__esModule", {
@@ -1602,7 +1742,7 @@ class InvalidDestinationError extends Error {
 }
 
 exports.InvalidDestinationError = InvalidDestinationError;
-},{}],7:[function(require,module,exports){
+},{}],8:[function(require,module,exports){
 'use strict';
 
 Object.defineProperty(exports, "__esModule", {
@@ -1647,11 +1787,17 @@ function ripemd160(str) {
 function ripemd160Hex(hexStr) {
   return ripemd160(cryptoHexStringParse(hexStr));
 }
-},{"crypto-js":230}],8:[function(require,module,exports){
+},{"crypto-js":230}],9:[function(require,module,exports){
 'use strict';
 
 Object.defineProperty(exports, "__esModule", {
   value: true
+});
+Object.defineProperty(exports, "Amount", {
+  enumerable: true,
+  get: function () {
+    return _amount.default;
+  }
 });
 Object.defineProperty(exports, "Key", {
   enumerable: true,
@@ -1660,6 +1806,8 @@ Object.defineProperty(exports, "Key", {
   }
 });
 exports.util = exports.serialize = exports.rpc = exports.pb = exports.hash = exports.errors = exports.crypto = exports.key = void 0;
+
+var _amount = _interopRequireDefault(require("./amount"));
 
 var _key = _interopRequireWildcard(require("./key"));
 
@@ -1696,7 +1844,9 @@ exports.util = _util;
 function _getRequireWildcardCache() { if (typeof WeakMap !== "function") return null; var cache = new WeakMap(); _getRequireWildcardCache = function () { return cache; }; return cache; }
 
 function _interopRequireWildcard(obj) { if (obj && obj.__esModule) { return obj; } if (obj === null || typeof obj !== "object" && typeof obj !== "function") { return { default: obj }; } var cache = _getRequireWildcardCache(); if (cache && cache.has(obj)) { return cache.get(obj); } var newObj = {}; var hasPropertyDescriptor = Object.defineProperty && Object.getOwnPropertyDescriptor; for (var key in obj) { if (Object.prototype.hasOwnProperty.call(obj, key)) { var desc = hasPropertyDescriptor ? Object.getOwnPropertyDescriptor(obj, key) : null; if (desc && (desc.get || desc.set)) { Object.defineProperty(newObj, key, desc); } else { newObj[key] = obj[key]; } } } newObj.default = obj; if (cache) { cache.set(obj, newObj); } return newObj; }
-},{"./crypto":5,"./errors":6,"./hash":7,"./key":9,"./pb":10,"./rpc":15,"./serialize":16,"./util":17}],9:[function(require,module,exports){
+
+function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
+},{"./amount":5,"./crypto":6,"./errors":7,"./hash":8,"./key":10,"./pb":11,"./rpc":16,"./serialize":17,"./util":18}],10:[function(require,module,exports){
 (function (Buffer){
 'use strict';
 
@@ -1898,7 +2048,7 @@ class Key {
 
 exports.default = Key;
 }).call(this,require("buffer").Buffer)
-},{"../worker/webpack.worker.js":31,"../worker/worker.js":32,"./crypto":5,"./errors":6,"./util":17,"buffer":117,"webworkify":383}],10:[function(require,module,exports){
+},{"../worker/webpack.worker.js":31,"../worker/worker.js":32,"./crypto":6,"./errors":7,"./util":18,"buffer":117,"webworkify":383}],11:[function(require,module,exports){
 'use strict';
 
 Object.defineProperty(exports, "__esModule", {
@@ -1925,7 +2075,7 @@ exports.transaction = _transaction;
 function _getRequireWildcardCache() { if (typeof WeakMap !== "function") return null; var cache = new WeakMap(); _getRequireWildcardCache = function () { return cache; }; return cache; }
 
 function _interopRequireWildcard(obj) { if (obj && obj.__esModule) { return obj; } if (obj === null || typeof obj !== "object" && typeof obj !== "function") { return { default: obj }; } var cache = _getRequireWildcardCache(); if (cache && cache.has(obj)) { return cache.get(obj); } var newObj = {}; var hasPropertyDescriptor = Object.defineProperty && Object.getOwnPropertyDescriptor; for (var key in obj) { if (Object.prototype.hasOwnProperty.call(obj, key)) { var desc = hasPropertyDescriptor ? Object.getOwnPropertyDescriptor(obj, key) : null; if (desc && (desc.get || desc.set)) { Object.defineProperty(newObj, key, desc); } else { newObj[key] = obj[key]; } } } newObj.default = obj; if (cache) { cache.set(obj, newObj); } return newObj; }
-},{"./messages_pb":11,"./payloads_pb":12,"./sigchain_pb":13,"./transaction_pb":14}],11:[function(require,module,exports){
+},{"./messages_pb":12,"./payloads_pb":13,"./sigchain_pb":14,"./transaction_pb":15}],12:[function(require,module,exports){
 "use strict";
 
 /**
@@ -3279,7 +3429,7 @@ proto.messages.CompressionType = {
   COMPRESSION_ZLIB: 1
 };
 goog.object.extend(exports, proto.messages);
-},{"google-protobuf":286}],12:[function(require,module,exports){
+},{"google-protobuf":286}],13:[function(require,module,exports){
 "use strict";
 
 /**
@@ -4170,7 +4320,7 @@ proto.payloads.PayloadType = {
   SESSION: 3
 };
 goog.object.extend(exports, proto.payloads);
-},{"google-protobuf":286}],13:[function(require,module,exports){
+},{"google-protobuf":286}],14:[function(require,module,exports){
 "use strict";
 
 /**
@@ -5230,7 +5380,7 @@ proto.sigchain.SigAlgo = {
   VRF: 1
 };
 goog.object.extend(exports, proto.sigchain);
-},{"google-protobuf":286}],14:[function(require,module,exports){
+},{"google-protobuf":286}],15:[function(require,module,exports){
 "use strict";
 
 /**
@@ -9277,12 +9427,38 @@ proto.transaction.PayloadType = {
   ISSUE_ASSET_TYPE: 10
 };
 goog.object.extend(exports, proto.transaction);
-},{"google-protobuf":286}],15:[function(require,module,exports){
+},{"google-protobuf":286}],16:[function(require,module,exports){
 'use strict';
+
+Object.defineProperty(exports, "__esModule", {
+  value: true
+});
+exports.getWsAddr = getWsAddr;
+exports.getWssAddr = getWssAddr;
+exports.getLatestBlock = getLatestBlock;
+exports.getRegistrant = getRegistrant;
+exports.getSubscribers = getSubscribers;
+exports.getSubscribersCount = getSubscribersCount;
+exports.getSubscription = getSubscription;
+exports.getBalance = getBalance;
+exports.getNonce = getNonce;
+exports.sendTransaction = sendTransaction;
+exports.transferTo = transferTo;
+exports.registerName = registerName;
+exports.transferName = transferName;
+exports.deleteName = deleteName;
+exports.subscribe = subscribe;
+exports.unsubscribe = unsubscribe;
 
 var _axios = _interopRequireDefault(require("axios"));
 
+var _amount = _interopRequireDefault(require("./amount"));
+
+var address = _interopRequireWildcard(require("../wallet/address"));
+
 var errors = _interopRequireWildcard(require("./errors"));
+
+var transaction = _interopRequireWildcard(require("../wallet/transaction"));
 
 var util = _interopRequireWildcard(require("./util"));
 
@@ -9330,11 +9506,11 @@ const methods = {
     method: 'sendrawtransaction'
   }
 };
-var exported = {};
+var rpc = {};
 
 for (let method in methods) {
   if (methods.hasOwnProperty(method)) {
-    exported[method] = (addr, params) => {
+    rpc[method] = (addr, params) => {
       params = util.assignDefined({}, methods[method].defaultParams, params);
       return rpcCall(addr, methods[method].method, params);
     };
@@ -9366,8 +9542,146 @@ async function rpcCall(addr, method, params = {}) {
   throw new errors.InvalidResponseError('rpc response contains no result or error field');
 }
 
-module.exports = exported;
-},{"./errors":6,"./util":17,"axios":57}],16:[function(require,module,exports){
+async function getWsAddr(address, options = {}) {
+  return rpc.getWsAddr(options.rpcServerAddr, {
+    address
+  });
+}
+
+async function getWssAddr(address, options = {}) {
+  return rpc.getWssAddr(options.rpcServerAddr, {
+    address
+  });
+}
+
+async function getLatestBlock(options = {}) {
+  return rpc.getLatestBlockHash(options.rpcServerAddr);
+}
+
+async function getRegistrant(name, options = {}) {
+  return rpc.getRegistrant(options.rpcServerAddr, {
+    name
+  });
+}
+
+async function getSubscribers(topic, options = {}) {
+  return rpc.getSubscribers(options.rpcServerAddr, {
+    topic,
+    offset: options.offset,
+    limit: options.limit,
+    meta: options.meta,
+    txPool: options.txPool
+  });
+}
+
+async function getSubscribersCount(topic, options = {}) {
+  return rpc.getSubscribersCount(options.rpcServerAddr, {
+    topic
+  });
+}
+
+async function getSubscription(topic, subscriber, options = {}) {
+  return rpc.getSubscription(options.rpcServerAddr, {
+    topic,
+    subscriber
+  });
+}
+
+async function getBalance(address, options = {}) {
+  if (!address) {
+    throw new errors.InvalidArgumentError('address is empty');
+  }
+
+  let data = await rpc.getBalanceByAddr(options.rpcServerAddr, {
+    address
+  });
+
+  if (!data.amount) {
+    throw new errors.InvalidResponseError('amount is empty');
+  }
+
+  return new _amount.default(data.amount);
+}
+
+async function getNonce(address, options = {}) {
+  if (!address) {
+    throw new errors.InvalidArgumentError('address is empty');
+  }
+
+  options = util.assignDefined({
+    txPool: true
+  }, options);
+  let data = await rpc.getNonceByAddr(options.rpcServerAddr, {
+    address
+  });
+
+  if (typeof data.nonce !== 'number') {
+    throw new errors.InvalidResponseError('nonce is not a number');
+  }
+
+  let nonce = data.nonce;
+
+  if (options.txPool && data.nonceInTxPool && data.nonceInTxPool > nonce) {
+    nonce = data.nonceInTxPool;
+  }
+
+  return nonce;
+}
+
+async function sendTransaction(txn, options = {}) {
+  return rpc.sendRawTransaction(options.rpcServerAddr, {
+    tx: util.bytesToHex(txn.serializeBinary())
+  });
+}
+
+async function transferTo(toAddress, amount, options = {}) {
+  if (!address.verifyAddress(toAddress)) {
+    throw new errors.InvalidAddressError('invalid recipient address');
+  }
+
+  let nonce = options.nonce || (await this.getNonce());
+  let signatureRedeem = address.publicKeyToSignatureRedeem(this.getPublicKey());
+  let programHash = address.hexStringToProgramHash(signatureRedeem);
+  let pld = transaction.newTransferPayload(programHash, address.addressStringToProgramHash(toAddress), amount);
+  let txn = await this.createTransaction(pld, nonce, options);
+  return options.buildOnly ? txn : await this.sendTransaction(txn);
+}
+
+async function registerName(name, options = {}) {
+  let nonce = options.nonce || (await this.getNonce());
+  let pld = transaction.newRegisterNamePayload(this.getPublicKey(), name);
+  let txn = await this.createTransaction(pld, nonce, options);
+  return options.buildOnly ? txn : await this.sendTransaction(txn);
+}
+
+async function transferName(name, recipient, options = {}) {
+  let nonce = options.nonce || (await this.getNonce());
+  let pld = transaction.newTransferNamePayload(name, this.getPublicKey(), recipient);
+  let txn = await this.createTransaction(pld, nonce, options);
+  return options.buildOnly ? txn : await this.sendTransaction(txn);
+}
+
+async function deleteName(name, options = {}) {
+  let nonce = options.nonce || (await this.getNonce());
+  let pld = transaction.newDeleteNamePayload(this.getPublicKey(), name);
+  let txn = await this.createTransaction(pld, nonce, options);
+  return options.buildOnly ? txn : await this.sendTransaction(txn);
+}
+
+async function subscribe(topic, duration, identifier, meta, options = {}) {
+  let nonce = options.nonce || (await this.getNonce());
+  let pld = transaction.newSubscribePayload(this.getPublicKey(), identifier, topic, duration, meta);
+  let txn = await this.createTransaction(pld, nonce, options);
+  return options.buildOnly ? txn : await this.sendTransaction(txn);
+}
+
+async function unsubscribe(topic, identifier, options = {}) {
+  let nonce = options.nonce || (await this.getNonce());
+  let pld = transaction.newUnsubscribePayload(this.getPublicKey(), identifier, topic);
+  let txn = await this.createTransaction(pld, nonce, options);
+  return options.buildOnly ? txn : await this.sendTransaction(txn);
+}
+},{"../wallet/address":25,"../wallet/transaction":29,"./amount":5,"./errors":7,"./util":18,"axios":57}],17:[function(require,module,exports){
 (function (Buffer){
 'use strict';
 
@@ -9447,7 +9761,7 @@ function encodeBool(value) {
   return encodeUint8(value ? 1 : 0);
 }
 }).call(this,require("buffer").Buffer)
-},{"./errors":6,"buffer":117}],17:[function(require,module,exports){
+},{"./errors":7,"buffer":117}],18:[function(require,module,exports){
 'use strict';
 
 Object.defineProperty(exports, "__esModule", {
@@ -9528,7 +9842,7 @@ function assignDefined(target, ...sources) {
 
   return target;
 }
-},{"./serialize":16,"crypto":87,"tweetnacl":380}],18:[function(require,module,exports){
+},{"./serialize":17,"crypto":87,"tweetnacl":380}],19:[function(require,module,exports){
 'use strict';
 
 Object.defineProperty(exports, "__esModule", {
@@ -9599,7 +9913,7 @@ nkn.MultiClient = _multiclient.default;
 nkn.Wallet = _wallet.default;
 var _default = nkn;
 exports.default = _default;
-},{"./client":3,"./common":8,"./multiclient":20,"./wallet":28,"libsodium-wrappers":308}],19:[function(require,module,exports){
+},{"./client":3,"./common":9,"./multiclient":21,"./wallet":28,"libsodium-wrappers":308}],20:[function(require,module,exports){
 'use strict';
 
 Object.defineProperty(exports, "__esModule", {
@@ -9621,7 +9935,7 @@ const multiclientIdentifierRe = /^__\d+__$/;
 exports.multiclientIdentifierRe = multiclientIdentifierRe;
 const sessionIDSize = 8;
 exports.sessionIDSize = sessionIDSize;
-},{}],20:[function(require,module,exports){
+},{}],21:[function(require,module,exports){
 'use strict';
 
 Object.defineProperty(exports, "__esModule", {
@@ -9637,7 +9951,7 @@ Object.defineProperty(exports, "default", {
 var _multiclient = _interopRequireDefault(require("./multiclient"));
 
 function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
-},{"./multiclient":21}],21:[function(require,module,exports){
+},{"./multiclient":22}],22:[function(require,module,exports){
 'use strict';
 
 Object.defineProperty(exports, "__esModule", {
@@ -9652,6 +9966,8 @@ var _memoryCache = require("memory-cache");
 var _promise = _interopRequireDefault(require("core-js-pure/features/promise"));
 
 var _client = _interopRequireDefault(require("../client"));
+
+var _wallet = _interopRequireDefault(require("../wallet"));
 
 var _consts = require("../client/consts");
 
@@ -10024,7 +10340,7 @@ class MultiClient {
       noReply: true
     });
     let offset = options.offset;
-    let res = await this.defaultClient.getSubscribers(topic, {
+    let res = await this.getSubscribers(topic, {
       offset,
       limit: options.limit,
       txPool: options.txPool
@@ -10034,7 +10350,7 @@ class MultiClient {
 
     while (res.subscribers && res.subscribers.length >= options.limit) {
       offset += options.limit;
-      res = await this.defaultClient.getSubscribers(topic, {
+      res = await this.getSubscribers(topic, {
         offset,
         limit: options.limit
       });
@@ -10193,6 +10509,214 @@ class MultiClient {
     await session.dial(dialTimeout);
     return session;
   }
+  /**
+   * Same as [Wallet.getLatestBlock](#walletgetlatestblock), but using this
+   * multiclient's connected node as rpcServerAddr, followed by this
+   * multiclient's rpcServerAddr if failed.
+   */
+
+
+  async getLatestBlock() {
+    for (let clientID of Object.keys(this.clients)) {
+      if (this.clients[clientID].wallet.options.rpcServerAddr) {
+        try {
+          return await _wallet.default.getLatestBlock(this.clients[clientID].wallet.options);
+        } catch (e) {}
+      }
+    }
+
+    return await _wallet.default.getLatestBlock(this.options);
+  }
+  /**
+   * Same as [Wallet.getRegistrant](#walletgetregistrant), but using this
+   * multiclient's connected node as rpcServerAddr, followed by this
+   * multiclient's rpcServerAddr if failed.
+   */
+
+
+  async getRegistrant(name) {
+    for (let clientID of Object.keys(this.clients)) {
+      if (this.clients[clientID].wallet.options.rpcServerAddr) {
+        try {
+          return await _wallet.default.getRegistrant(name, this.clients[clientID].wallet.options);
+        } catch (e) {}
+      }
+    }
+
+    return await _wallet.default.getRegistrant(name, this.options);
+  }
+  /**
+   * Same as [Wallet.getSubscribers](#walletgetsubscribers), but using this
+   * multiclient's connected node as rpcServerAddr, followed by this
+   * multiclient's rpcServerAddr if failed.
+   */
+
+
+  async getSubscribers(topic, options = {}) {
+    for (let clientID of Object.keys(this.clients)) {
+      if (this.clients[clientID].wallet.options.rpcServerAddr) {
+        try {
+          return await _wallet.default.getSubscribers(topic, Object.assign({}, this.clients[clientID].wallet.options, options));
+        } catch (e) {}
+      }
+    }
+
+    return await _wallet.default.getSubscribers(topic, Object.assign({}, this.options, options));
+  }
+  /**
+   * Same as [Wallet.getSubscribersCount](#walletgetsubscriberscount), but using
+   * this multiclient's connected node as rpcServerAddr, followed by this
+   * multiclient's rpcServerAddr if failed.
+   */
+
+
+  async getSubscribersCount(topic) {
+    for (let clientID of Object.keys(this.clients)) {
+      if (this.clients[clientID].wallet.options.rpcServerAddr) {
+        try {
+          return await _wallet.default.getSubscribersCount(topic, this.clients[clientID].wallet.options);
+        } catch (e) {}
+      }
+    }
+
+    return await _wallet.default.getSubscribersCount(topic, this.options);
+  }
+  /**
+   * Same as [Wallet.getSubscription](#walletgetsubscription), but using this
+   * multiclient's connected node as rpcServerAddr, followed by this
+   * multiclient's rpcServerAddr if failed.
+   */
+
+
+  async getSubscription(topic, subscriber) {
+    for (let clientID of Object.keys(this.clients)) {
+      if (this.clients[clientID].wallet.options.rpcServerAddr) {
+        try {
+          return await _wallet.default.getSubscription(topic, subscriber, this.clients[clientID].wallet.options);
+        } catch (e) {}
+      }
+    }
+
+    return await _wallet.default.getSubscription(topic, subscriber, this.options);
+  }
+  /**
+   * Same as [Wallet.getBalance](#walletgetbalance), but using this
+   * multiclient's connected node as rpcServerAddr, followed by this
+   * multiclient's rpcServerAddr if failed.
+   */
+
+
+  async getBalance(address) {
+    for (let clientID of Object.keys(this.clients)) {
+      if (this.clients[clientID].wallet.options.rpcServerAddr) {
+        try {
+          return await _wallet.default.getBalance(address || this.defaultClient.wallet.address, this.clients[clientID].wallet.options);
+        } catch (e) {}
+      }
+    }
+
+    return await _wallet.default.getBalance(address || this.defaultClient.wallet.address, this.options);
+  }
+  /**
+   * Same as [Wallet.getNonce](#walletgetnonce), but using this
+   * multiclient's connected node as rpcServerAddr, followed by this
+   * multiclient's rpcServerAddr if failed.
+   */
+
+
+  async getNonce(address, options = {}) {
+    for (let clientID of Object.keys(this.clients)) {
+      if (this.clients[clientID].wallet.options.rpcServerAddr) {
+        try {
+          return await _wallet.default.getNonce(address || this.defaultClient.wallet.address, Object.assign({}, this.clients[clientID].wallet.options, options));
+        } catch (e) {}
+      }
+    }
+
+    return await _wallet.default.getNonce(address || this.defaultClient.wallet.address, Object.assign({}, this.options, options));
+  }
+  /**
+   * Same as [Wallet.sendTransaction](#walletsendtransaction), but using this
+   * multiclient's connected node as rpcServerAddr, followed by this
+   * multiclient's rpcServerAddr if failed.
+   */
+
+
+  async sendTransaction(txn) {
+    let clients = Object.values(this.clients).filter(client => client.wallet.options.rpcServerAddr);
+
+    if (clients.length > 0) {
+      try {
+        return await _promise.default.any(clients.map(client => _wallet.default.sendTransaction(txn, client.wallet.options)));
+      } catch (e) {}
+    }
+
+    return await _wallet.default.sendTransaction(txn, this.options);
+  }
+  /**
+   * Same as [wallet.transferTo](#wallettransferto), but using this
+   * multiclient's connected node as rpcServerAddr, followed by this
+   * multiclient's rpcServerAddr if failed.
+   */
+
+
+  transferTo(toAddress, amount, options = {}) {
+    return common.rpc.transferTo.call(this, toAddress, amount, options);
+  }
+  /**
+   * Same as [wallet.registerName](#walletregistername), but using this
+   * multiclient's connected node as rpcServerAddr, followed by this
+   * multiclient's rpcServerAddr if failed.
+   */
+
+
+  registerName(name, options = {}) {
+    return common.rpc.registerName.call(this, name, options);
+  }
+  /**
+   * Same as [wallet.transferName](#wallettransfername), but using this
+   * multiclient's connected node as rpcServerAddr, followed by this
+   * multiclient's rpcServerAddr if failed.
+   */
+
+
+  transferName(name, recipient, options = {}) {
+    return common.rpc.transferName.call(this, name, recipient, options);
+  }
+  /**
+   * Same as [wallet.deleteName](#walletdeletename), but using this
+   * multiclient's connected node as rpcServerAddr, followed by this
+   * multiclient's rpcServerAddr if failed.
+   */
+
+
+  deleteName(name, options = {}) {
+    return common.rpc.deleteName.call(this, name, options);
+  }
+  /**
+   * Same as [wallet.subscribe](#walletsubscribe), but using this
+   * multiclient's connected node as rpcServerAddr, followed by this
+   * multiclient's rpcServerAddr if failed.
+   */
+
+
+  subscribe(topic, duration, identifier = '', meta = '', options = {}) {
+    return common.rpc.subscribe.call(this, topic, duration, identifier, meta, options);
+  }
+  /**
+   * Same as [wallet.unsubscribe](#walletunsubscribe), but using this
+   * multiclient's connected node as rpcServerAddr, followed by this
+   * multiclient's rpcServerAddr if failed.
+   */
+
+
+  unsubscribe(topic, identifier = '', options = {}) {
+    return common.rpc.unsubscribe.call(this, topic, identifier, options);
+  }
+
+  createTransaction(pld, nonce, options = {}) {
+    return this.defaultClient.wallet.createTransaction(pld, nonce, options);
+  }
 
 }
 /**
@@ -10201,7 +10725,7 @@ class MultiClient {
 
 
 exports.default = MultiClient;
-},{"../client":3,"../client/consts":2,"../client/message":4,"../common":8,"./consts":19,"./util":22,"@nkn/ncp":38,"core-js-pure/features/promise":120,"memory-cache":311}],22:[function(require,module,exports){
+},{"../client":3,"../client/consts":2,"../client/message":4,"../common":9,"../wallet":28,"./consts":20,"./util":23,"@nkn/ncp":38,"core-js-pure/features/promise":120,"memory-cache":311}],23:[function(require,module,exports){
 'use strict';
 
 Object.defineProperty(exports, "__esModule", {
@@ -10266,7 +10790,7 @@ function addIdentifierPrefixAll(dest, clientID) {
 function sessionKey(remoteAddr, sessionID) {
   return remoteAddr + sessionID;
 }
-},{"./consts":19}],23:[function(require,module,exports){
+},{"./consts":20}],24:[function(require,module,exports){
 'use strict';
 
 Object.defineProperty(exports, "__esModule", {
@@ -10323,7 +10847,7 @@ function genAccountContractString(signatureRedeem, programHash) {
   contract += programHash;
   return contract;
 }
-},{"../common":8,"./address":24}],24:[function(require,module,exports){
+},{"../common":9,"./address":25}],25:[function(require,module,exports){
 (function (Buffer){
 'use strict';
 
@@ -10451,7 +10975,7 @@ function prefixByteCountToHexString(hexString) {
   return byteCount + hexString;
 }
 }).call(this,require("buffer").Buffer)
-},{"../common":8,"base-x":83,"buffer":117}],25:[function(require,module,exports){
+},{"../common":9,"base-x":83,"buffer":117}],26:[function(require,module,exports){
 'use strict';
 
 Object.defineProperty(exports, "__esModule", {
@@ -10485,51 +11009,18 @@ function decrypt(ciphertext, password, iv) {
     padding: _cryptoJs.default.pad.NoPadding
   }).toString();
 }
-},{"../common":8,"crypto-js":230}],26:[function(require,module,exports){
+},{"../common":9,"crypto-js":230}],27:[function(require,module,exports){
 'use strict';
 
 Object.defineProperty(exports, "__esModule", {
   value: true
 });
-exports.default = void 0;
-
-var _decimal = require("decimal.js");
-
-function _defineProperty(obj, key, value) { if (key in obj) { Object.defineProperty(obj, key, { value: value, enumerable: true, configurable: true, writable: true }); } else { obj[key] = value; } return obj; }
-
-_decimal.Decimal.set({
-  minE: -8
-});
-/**
- * Amount of NKN tokens. See documentation at
- * [decimal.js](https://mikemcl.github.io/decimal.js/).
- */
-
-
-class Amount extends _decimal.Decimal {
-  value() {
-    return this.times(Amount.unit).floor();
-  }
-
-}
-
-exports.default = Amount;
-
-_defineProperty(Amount, "unit", new _decimal.Decimal('100000000'));
-},{"decimal.js":256}],27:[function(require,module,exports){
-'use strict';
-
-Object.defineProperty(exports, "__esModule", {
-  value: true
-});
-exports.nameRegistrationFee = exports.defaultOptions = void 0;
+exports.defaultOptions = void 0;
 const defaultOptions = {
   rpcServerAddr: 'https://mainnet-rpc-node-0001.nkn.org/mainnet/api/wallet',
   worker: false
 };
 exports.defaultOptions = defaultOptions;
-const nameRegistrationFee = '10';
-exports.nameRegistrationFee = nameRegistrationFee;
 },{}],28:[function(require,module,exports){
 'use strict';
 
@@ -10564,8 +11055,7 @@ exports.serializePayload = serializePayload;
 exports.newTransaction = newTransaction;
 exports.serializeUnsignedTx = serializeUnsignedTx;
 exports.signTx = signTx;
-
-var _amount = _interopRequireDefault(require("./amount"));
+exports.nameRegistrationFee = void 0;
 
 var address = _interopRequireWildcard(require("./address"));
 
@@ -10575,24 +11065,25 @@ function _getRequireWildcardCache() { if (typeof WeakMap !== "function") return 
 
 function _interopRequireWildcard(obj) { if (obj && obj.__esModule) { return obj; } if (obj === null || typeof obj !== "object" && typeof obj !== "function") { return { default: obj }; } var cache = _getRequireWildcardCache(); if (cache && cache.has(obj)) { return cache.get(obj); } var newObj = {}; var hasPropertyDescriptor = Object.defineProperty && Object.getOwnPropertyDescriptor; for (var key in obj) { if (Object.prototype.hasOwnProperty.call(obj, key)) { var desc = hasPropertyDescriptor ? Object.getOwnPropertyDescriptor(obj, key) : null; if (desc && (desc.get || desc.set)) { Object.defineProperty(newObj, key, desc); } else { newObj[key] = obj[key]; } } } newObj.default = obj; if (cache) { cache.set(obj, newObj); } return newObj; }
 
-function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
+const nameRegistrationFee = '10';
+exports.nameRegistrationFee = nameRegistrationFee;
 
 function newTransferPayload(sender, recipient, amount) {
   let transfer = new common.pb.transaction.TransferAsset();
   transfer.setSender(Buffer.from(sender, 'hex'));
   transfer.setRecipient(Buffer.from(recipient, 'hex'));
-  transfer.setAmount(new _amount.default(amount).value());
+  transfer.setAmount(new common.Amount(amount).value());
   let pld = new common.pb.transaction.Payload();
   pld.setType(common.pb.transaction.PayloadType.TRANSFER_ASSET_TYPE);
   pld.setData(transfer.serializeBinary());
   return pld;
 }
 
-function newRegisterNamePayload(registrant, name, registrationFee) {
+function newRegisterNamePayload(registrant, name, registrationFee = nameRegistrationFee) {
   let registerName = new common.pb.transaction.RegisterName();
   registerName.setRegistrant(Buffer.from(registrant, 'hex'));
   registerName.setName(name);
-  registerName.setRegistrationFee(new _amount.default(registrationFee).value());
+  registerName.setRegistrationFee(new common.Amount(registrationFee).value());
   let pld = new common.pb.transaction.Payload();
   pld.setType(common.pb.transaction.PayloadType.REGISTER_NAME_TYPE);
   pld.setData(registerName.serializeBinary());
@@ -10649,7 +11140,7 @@ function newNanoPayPayload(sender, recipient, id, amount, txnExpiration, nanoPay
   nanoPay.setSender(Buffer.from(sender, 'hex'));
   nanoPay.setRecipient(Buffer.from(recipient, 'hex'));
   nanoPay.setId(id);
-  nanoPay.setAmount(new _amount.default(amount).value());
+  nanoPay.setAmount(new common.Amount(amount).value());
   nanoPay.setTxnExpiration(txnExpiration);
   nanoPay.setNanoPayExpiration(nanoPayExpiration);
   let pld = new common.pb.transaction.Payload();
@@ -10669,7 +11160,7 @@ async function newTransaction(account, pld, nonce, fee = '0', attrs = '') {
   let unsignedTx = new common.pb.transaction.UnsignedTx();
   unsignedTx.setPayload(pld);
   unsignedTx.setNonce(nonce);
-  unsignedTx.setFee(new _amount.default(fee).value());
+  unsignedTx.setFee(new common.Amount(fee).value());
   unsignedTx.setAttributes(Buffer.from(attrs, 'hex'));
   let txn = new common.pb.transaction.Transaction();
   txn.setUnsignedTx(unsignedTx);
@@ -10698,7 +11189,7 @@ async function signTx(account, txn) {
   txn.setProgramsList([prgm]);
 }
 }).call(this,require("buffer").Buffer)
-},{"../common":8,"./address":24,"./amount":26,"buffer":117}],30:[function(require,module,exports){
+},{"../common":9,"./address":25,"buffer":117}],30:[function(require,module,exports){
 'use strict';
 
 Object.defineProperty(exports, "__esModule", {
@@ -10707,8 +11198,6 @@ Object.defineProperty(exports, "__esModule", {
 exports.default = void 0;
 
 var _account = _interopRequireDefault(require("./account"));
-
-var _amount = _interopRequireDefault(require("./amount"));
 
 var address = _interopRequireWildcard(require("./address"));
 
@@ -10893,27 +11382,115 @@ class Wallet {
     return this.passwordHash === common.hash.sha256Hex(pswdHash);
   }
   /**
+   * Get latest block height and hash.
+   * @param {Object} [options={}] - Get nonce options.
+   * @param {string} [options.rpcServerAddr='https://mainnet-rpc-node-0001.nkn.org/mainnet/api/wallet'] - RPC server address to query nonce.
+   */
+
+
+  static getLatestBlock(options = {}) {
+    options = common.util.assignDefined({}, consts.defaultOptions, options);
+    return common.rpc.getLatestBlock(options);
+  }
+  /**
+   * Same as [Wallet.getLatestBlock](#walletgetlatestblock), but using this
+   * wallet's rpcServerAddr as rpcServerAddr.
+   */
+
+
+  getLatestBlock() {
+    return Wallet.getLatestBlock(this.options);
+  }
+  /**
+   * Get the registrant's public key and expiration block height of a name. If
+   * name is not registered, `registrant` will be '' and `expiresAt` will be 0.
+   */
+
+
+  static getRegistrant(name, options = {}) {
+    options = common.util.assignDefined({}, consts.defaultOptions, options);
+    return common.rpc.getRegistrant(name, options);
+  }
+  /**
+   * Same as [Wallet.getRegistrant](#walletgetregistrant), but using this
+   * wallet's rpcServerAddr as rpcServerAddr.
+   */
+
+
+  getRegistrant(name) {
+    return Wallet.getRegistrant(name, this.options);
+  }
+  /**
+   * Get subscribers of a topic.
+   * @param options - Get subscribers options.
+   * @param {number} [options.offset=0] - Offset of subscribers to get.
+   * @param {number} [options.limit=1000] - Max number of subscribers to get. This does not affect subscribers in txpool.
+   * @param {boolean} [options.meta=false] - Whether to include metadata of subscribers in the topic.
+   * @param {boolean} [options.txPool=false] - Whether to include subscribers whose subscribe transaction is still in txpool. Enabling this will get subscribers sooner after they send subscribe transactions, but might affect the correctness of subscribers because transactions in txpool is not guaranteed to be packed into a block.
+   * @param {string} [options.rpcServerAddr='https://mainnet-rpc-node-0001.nkn.org/mainnet/api/wallet'] - RPC server address.
+   * @returns A promise that will be resolved with subscribers info. Note that `options.meta=false/true` will cause results to be an array (of subscriber address) or map (subscriber address -> metadata), respectively.
+   */
+
+
+  static getSubscribers(topic, options = {}) {
+    options = common.util.assignDefined({}, consts.defaultOptions, options);
+    return common.rpc.getSubscribers(topic, options);
+  }
+  /**
+   * Same as [Wallet.getSubscribers](#walletgetsubscribers), but using this
+   * wallet's rpcServerAddr as rpcServerAddr.
+   */
+
+
+  getSubscribers(topic, options = {}) {
+    return Wallet.getSubscribers(topic, Object.assign({}, this.options, options));
+  }
+  /**
+   * Get subscribers count of a topic (not including txPool).
+   */
+
+
+  static getSubscribersCount(topic, options = {}) {
+    options = common.util.assignDefined({}, consts.defaultOptions, options);
+    return common.rpc.getSubscribersCount(topic, options);
+  }
+  /**
+   * Same as [Wallet.getSubscribersCount](#walletgetsubscriberscount), but using
+   * this wallet's rpcServerAddr as rpcServerAddr.
+   */
+
+
+  getSubscribersCount(topic) {
+    return Wallet.getSubscribersCount(topic, this.options);
+  }
+  /**
+   * Get the subscription details of a subscriber in a topic.
+   */
+
+
+  static getSubscription(topic, subscriber, options = {}) {
+    options = common.util.assignDefined({}, consts.defaultOptions, options);
+    return common.rpc.getSubscription(topic, subscriber, options);
+  }
+  /**
+   * Same as [Wallet.getSubscription](#walletgetsubscription), but using this
+   * wallet's rpcServerAddr as rpcServerAddr.
+   */
+
+
+  getSubscription(topic, subscriber) {
+    return Wallet.getSubscription(topic, subscriber, this.options);
+  }
+  /**
    * Get the balance of a NKN wallet address.
    * @param {Object} [options={}] - Get nonce options.
    * @param {string} [options.rpcServerAddr='https://mainnet-rpc-node-0001.nkn.org/mainnet/api/wallet'] - RPC server address to query nonce.
    */
 
 
-  static async getBalance(address, options = {}) {
-    if (!address) {
-      throw new common.errors.InvalidArgumentError('address is empty');
-    }
-
+  static getBalance(address, options = {}) {
     options = common.util.assignDefined({}, consts.defaultOptions, options);
-    let data = await common.rpc.getBalanceByAddr(options.rpcServerAddr, {
-      address
-    });
-
-    if (!data.amount) {
-      throw new common.errors.InvalidResponseError('amount is empty');
-    }
-
-    return new _amount.default(data.amount);
+    return common.rpc.getBalance(address, options);
   }
   /**
    * Same as [Wallet.getBalance](#walletgetbalance), but using this wallet's
@@ -10933,29 +11510,9 @@ class Wallet {
    */
 
 
-  static async getNonce(address, options = {}) {
-    if (!address) {
-      throw new common.errors.InvalidArgumentError('address is empty');
-    }
-
-    options = common.util.assignDefined({
-      txPool: true
-    }, consts.defaultOptions, options);
-    let data = await common.rpc.getNonceByAddr(options.rpcServerAddr, {
-      address
-    });
-
-    if (typeof data.nonce !== 'number') {
-      throw new common.errors.InvalidResponseError('nonce is not a number');
-    }
-
-    let nonce = data.nonce;
-
-    if (options.txPool && data.nonceInTxPool && data.nonceInTxPool > nonce) {
-      nonce = data.nonceInTxPool;
-    }
-
-    return nonce;
+  static getNonce(address, options = {}) {
+    options = common.util.assignDefined({}, consts.defaultOptions, options);
+    return common.rpc.getNonce(address, options);
   }
   /**
    * Same as [Wallet.getNonce](#walletgetnonce), but using this wallet's
@@ -10969,19 +11526,32 @@ class Wallet {
     return Wallet.getNonce(address || this.address, options);
   }
   /**
+   * Send a transaction to RPC server.
+   * @param {Object} [options={}] - Send transaction options.
+   * @param {string} [options.rpcServerAddr='https://mainnet-rpc-node-0001.nkn.org/mainnet/api/wallet'] - RPC server address to query nonce.
+   */
+
+
+  static sendTransaction(txn, options = {}) {
+    options = common.util.assignDefined({}, consts.defaultOptions, options);
+    return common.rpc.sendTransaction(txn, options);
+  }
+  /**
+   * Same as [Wallet.sendTransaction](#walletsendtransaction), but using this
+   * wallet's rpcServerAddr as rpcServerAddr.
+   */
+
+
+  sendTransaction(txn) {
+    return Wallet.sendTransaction(txn, this.options);
+  }
+  /**
    * Transfer token from this wallet to another wallet address.
    */
 
 
-  async transferTo(toAddress, amount, options = {}) {
-    if (!address.verifyAddress(toAddress)) {
-      throw new common.errors.InvalidAddressError('invalid recipient address');
-    }
-
-    options = common.util.assignDefined({}, consts.defaultOptions, options);
-    let nonce = options.nonce || (await this.getNonce());
-    let pld = transaction.newTransferPayload(this.programHash, address.addressStringToProgramHash(toAddress), amount);
-    return await this.createTransaction(pld, nonce, options);
+  transferTo(toAddress, amount, options = {}) {
+    return common.rpc.transferTo.call(this, toAddress, amount, options);
   }
   /**
    * Register a name for this wallet's public key at the cost of 10 NKN. The
@@ -10992,10 +11562,8 @@ class Wallet {
    */
 
 
-  async registerName(name, options = {}) {
-    let nonce = options.nonce || (await this.getNonce());
-    let pld = transaction.newRegisterNamePayload(this.getPublicKey(), name, consts.nameRegistrationFee);
-    return await this.createTransaction(pld, nonce, options);
+  registerName(name, options = {}) {
+    return common.rpc.registerName.call(this, name, options);
   }
   /**
    * Transfer a name owned by this wallet to another public key. Does not change
@@ -11003,20 +11571,16 @@ class Wallet {
    */
 
 
-  async transferName(name, recipient, options = {}) {
-    let nonce = options.nonce || (await this.getNonce());
-    let pld = transaction.newTransferNamePayload(name, this.getPublicKey(), recipient);
-    return await this.createTransaction(pld, nonce, options);
+  transferName(name, recipient, options = {}) {
+    return common.rpc.transferName.call(this, name, recipient, options);
   }
   /**
    * Delete a name owned by this wallet.
    */
 
 
-  async deleteName(name, options = {}) {
-    let nonce = options.nonce || (await this.getNonce());
-    let pld = transaction.newDeleteNamePayload(this.getPublicKey(), name);
-    return await this.createTransaction(pld, nonce, options);
+  deleteName(name, options = {}) {
+    return common.rpc.deleteName.call(this, name, options);
   }
   /**
    * Subscribe to a topic with an identifier for a number of blocks. Client
@@ -11030,10 +11594,8 @@ class Wallet {
    */
 
 
-  async subscribe(topic, duration, identifier = '', meta = '', options = {}) {
-    let nonce = options.nonce || (await this.getNonce());
-    let pld = transaction.newSubscribePayload(this.getPublicKey(), identifier, topic, duration, meta);
-    return await this.createTransaction(pld, nonce, options);
+  subscribe(topic, duration, identifier = '', meta = '', options = {}) {
+    return common.rpc.subscribe.call(this, topic, duration, identifier, meta, options);
   }
   /**
    * Unsubscribe from a topic for an identifier. Client using the same key pair
@@ -11042,10 +11604,8 @@ class Wallet {
    */
 
 
-  async unsubscribe(topic, identifier = '', options = {}) {
-    let nonce = options.nonce || (await this.getNonce());
-    let pld = transaction.newUnsubscribePayload(this.getPublicKey(), identifier, topic);
-    return await this.createTransaction(pld, nonce, options);
+  unsubscribe(topic, identifier = '', options = {}) {
+    return common.rpc.unsubscribe.call(this, topic, identifier, options);
   }
   /**
    * Create or update a NanoPay channel. NanoPay transaction does not have
@@ -11065,41 +11625,11 @@ class Wallet {
     }
 
     let pld = transaction.newNanoPayPayload(this.programHash, address.addressStringToProgramHash(toAddress), id, amount, expiration, expiration);
-    return await this.createTransaction(pld, 0, common.util.assignDefined({}, options, {
-      buildOnly: true
-    }));
+    return await this.createTransaction(pld, 0, options);
   }
 
-  async createTransaction(pld, nonce, options = {}) {
-    let txn = await transaction.newTransaction(this.account, pld, nonce, options.fee, options.attrs);
-
-    if (options.buildOnly) {
-      return txn;
-    }
-
-    return await this.sendTransaction(txn);
-  }
-  /**
-   * Send a transaction to RPC server.
-   * @param {Object} [options={}] - Send transaction options.
-   * @param {string} [options.rpcServerAddr='https://mainnet-rpc-node-0001.nkn.org/mainnet/api/wallet'] - RPC server address to query nonce.
-   */
-
-
-  static sendTransaction(txn, options = {}) {
-    options = common.util.assignDefined({}, consts.defaultOptions, options);
-    return common.rpc.sendRawTransaction(options.rpcServerAddr, {
-      tx: common.util.bytesToHex(txn.serializeBinary())
-    });
-  }
-  /**
-   * Same as [Wallet.sendTransaction](#walletsendtransaction), but using this
-   * wallet's rpcServerAddr as rpcServerAddr.
-   */
-
-
-  sendTransaction(txn) {
-    return Wallet.sendTransaction(txn, this.options);
+  createTransaction(pld, nonce, options = {}) {
+    return transaction.newTransaction(this.account, pld, nonce, options.fee, options.attrs);
   }
   /**
    * Convert a NKN public key to NKN wallet address.
@@ -11111,26 +11641,6 @@ class Wallet {
     let programHash = address.hexStringToProgramHash(signatureRedeem);
     return address.programHashStringToAddress(programHash);
   }
-  /**
-   * Get latest block height and hash.
-   * @param {Object} [options={}] - Get nonce options.
-   * @param {string} [options.rpcServerAddr='https://mainnet-rpc-node-0001.nkn.org/mainnet/api/wallet'] - RPC server address to query nonce.
-   */
-
-
-  static getLatestBlock(options = {}) {
-    options = common.util.assignDefined({}, consts.defaultOptions, options);
-    return common.rpc.getLatestBlockHash(options.rpcServerAddr);
-  }
-  /**
-   * Same as [Wallet.getLatestBlock](#walletgetlatestblock), but using this
-   * wallet's rpcServerAddr as rpcServerAddr.
-   */
-
-
-  getLatestBlock() {
-    return Wallet.getLatestBlock(this.options);
-  }
 
 }
 
@@ -11141,7 +11651,7 @@ _defineProperty(Wallet, "version", 1);
 _defineProperty(Wallet, "minCompatibleVersion", 1);
 
 _defineProperty(Wallet, "maxCompatibleVersion", 1);
-},{"../common":8,"./account":23,"./address":24,"./aes":25,"./amount":26,"./consts":27,"./transaction":29}],31:[function(require,module,exports){
+},{"../common":9,"./account":24,"./address":25,"./aes":26,"./consts":27,"./transaction":29}],31:[function(require,module,exports){
 'use strict';
 
 var _worker = _interopRequireDefault(require("./worker"));
@@ -11213,7 +11723,7 @@ module.exports = function (self) {
   };
 };
 }).call(this,require("buffer").Buffer)
-},{"../common/crypto":5,"../common/util":17,"buffer":117}],33:[function(require,module,exports){
+},{"../common/crypto":6,"../common/util":18,"buffer":117}],33:[function(require,module,exports){
 'use strict';
 
 Object.defineProperty(exports, "__esModule", {
@@ -63058,5 +63568,5 @@ module.exports = function (fn, options) {
     return worker;
 };
 
-},{}]},{},[18])(18)
+},{}]},{},[19])(19)
 });
