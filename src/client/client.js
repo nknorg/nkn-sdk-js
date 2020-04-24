@@ -3,9 +3,12 @@
 
 import WebSocket from 'isomorphic-ws';
 
+import Wallet from '../wallet';
 import * as common from '../common';
 import * as consts from './consts';
 import * as message from './message';
+
+import type { CreateTransactionOptions, TransactionOptions, TxnOrHash } from '../wallet';
 
 /**
  * NKN client that sends data to and receives data from other NKN clients.
@@ -53,7 +56,7 @@ export default class Client {
   reconnectInterval: number;
   responseManager: ResponseManager;
   ws: WebSocket | null;
-  node: { addr: string } | null;
+  node: { addr: string, rpcAddr: string } | null;
   /**
    * Whether client is ready (connected to a node).
    */
@@ -62,6 +65,7 @@ export default class Client {
    * Whether client is closed.
    */
   isClosed: boolean;
+  wallet: Wallet;
 
   constructor(options: {
     seed?: string,
@@ -81,6 +85,7 @@ export default class Client {
     let identifier = options.identifier || '';
     let pubkey = key.publicKey;
     let addr = (identifier ? identifier + '.' : '') + pubkey;
+    let wallet = new Wallet(Object.assign({}, options, { seed: key.seed }));
 
     delete options.seed;
 
@@ -100,6 +105,7 @@ export default class Client {
     this.node = null;
     this.isReady = false;
     this.isClosed = false;
+    this.wallet = wallet;
 
     this._connect();
   }
@@ -125,7 +131,7 @@ export default class Client {
     let res, error;
     for (let i = 0; i < 3; i++) {
       try {
-        res = await getAddr(this.options.rpcServerAddr, { address: this.addr });
+        res = await getAddr(this.addr, this.options);
       } catch (e) {
         error = e;
         continue;
@@ -339,116 +345,6 @@ export default class Client {
   };
 
   /**
-   * Get the registrant's public key and expiration block height of a name. If
-   * name is not registered, `registrant` will be '' and `expiresAt` will be 0.
-   */
-  static getRegistrant(name: string, options: { rpcServerAddr?: string } = {}): Promise<{ registrant: string, expiresAt: number }> {
-    return common.rpc.getRegistrant(
-      options.rpcServerAddr || consts.defaultOptions.rpcServerAddr,
-      { name },
-    );
-  }
-
-  /**
-   * Same as [Client.getRegistrant](#clientgetregistrant), but using this
-   * client's rpcServerAddr as rpcServerAddr.
-   */
-  getRegistrant(name: string): Promise<{ registrant: string, expiresAt: number }> {
-    return Client.getRegistrant(name, { rpcServerAddr: this.options.rpcServerAddr });
-  }
-
-  /**
-   * Get subscribers of a topic.
-   * @param options - Get subscribers options.
-   * @param {number} [options.offset=0] - Offset of subscribers to get.
-   * @param {number} [options.limit=1000] - Max number of subscribers to get. This does not affect subscribers in txpool.
-   * @param {boolean} [options.meta=false] - Whether to include metadata of subscribers in the topic.
-   * @param {boolean} [options.txPool=false] - Whether to include subscribers whose subscribe transaction is still in txpool. Enabling this will get subscribers sooner after they send subscribe transactions, but might affect the correctness of subscribers because transactions in txpool is not guaranteed to be packed into a block.
-   * @param {string} [options.rpcServerAddr='https://mainnet-rpc-node-0001.nkn.org/mainnet/api/wallet'] - RPC server address.
-   * @returns A promise that will be resolved with subscribers info. Note that `options.meta=false/true` will cause results to be an array (of subscriber address) or map (subscriber address -> metadata), respectively.
-   */
-  static getSubscribers(
-    topic: string,
-    options: {
-      offset?: number,
-      limit?: number,
-      meta?: boolean,
-      txPool?: boolean,
-      rpcServerAddr?: string,
-    } = {},
-  ): Promise<{
-    subscribers: Array<string> | { [string]: string },
-    subscribersInTxPool?: Array<string> | { [string]: string },
-  }> {
-    return common.rpc.getSubscribers(
-      options.rpcServerAddr || consts.defaultOptions.rpcServerAddr,
-      { topic, offset: options.offset, limit: options.limit, meta: options.meta, txPool: options.txPool },
-    );
-  }
-
-  /**
-   * Same as [Client.getSubscribers](#clientgetsubscribers), but using this
-   * client's rpcServerAddr as rpcServerAddr.
-   */
-  getSubscribers(
-    topic: string,
-    options: {
-      offset?: number,
-      limit?: number,
-      meta?: boolean,
-      txPool?: boolean,
-    } = {},
-  ): Promise<{
-    subscribers: Array<string> | { [string]: string },
-    subscribersInTxPool?: Array<string> | { [string]: string },
-  }> {
-    return Client.getSubscribers(topic, Object.assign({}, options, { rpcServerAddr: this.options.rpcServerAddr }));
-  }
-
-  /**
-   * Get subscribers count of a topic (not including txPool).
-   */
-  static getSubscribersCount(topic: string, options: { rpcServerAddr: string } = {}): Promise<number> {
-    return common.rpc.getSubscribersCount(
-      options.rpcServerAddr || consts.defaultOptions.rpcServerAddr,
-      { topic },
-    );
-  }
-
-  /**
-   * Same as [Client.getSubscribersCount](#clientgetsubscriberscount), but using
-   * this client's rpcServerAddr as rpcServerAddr.
-   */
-  getSubscribersCount(topic: string): Promise<number> {
-    return Client.getSubscribersCount(topic, { rpcServerAddr: this.options.rpcServerAddr });
-  }
-
-  /**
-   * Get the subscription details of a subscriber in a topic.
-   */
-  static getSubscription(
-    topic: string,
-    subscriber: string,
-    options: { rpcServerAddr: string } = {},
-  ): Promise<{ meta: string, expiresAt: number }> {
-    return common.rpc.getSubscription(
-      options.rpcServerAddr || consts.defaultOptions.rpcServerAddr,
-      { topic, subscriber },
-    );
-  }
-
-  /**
-   * Same as [Client.getSubscription](#clientgetsubscription), but using this
-   * client's rpcServerAddr as rpcServerAddr.
-   */
-  getSubscription(
-    topic: string,
-    subscriber: string,
-  ): Promise<{ meta: string, expiresAt: number }> {
-    return Client.getSubscription(topic, subscriber, { rpcServerAddr: this.options.rpcServerAddr });
-  }
-
-  /**
    * Send byte or string data to all subscribers of a topic.
    * @returns A promise that will be resolved with null when send success.
    */
@@ -609,7 +505,7 @@ export default class Client {
     return false;
   }
 
-  _newWsAddr(nodeInfo: { addr: string }) {
+  _newWsAddr(nodeInfo: { addr: string, rpcAddr: string }) {
     if (!nodeInfo.addr) {
       console.log('No address in node info', nodeInfo);
       if (this.shouldReconnect) {
@@ -618,9 +514,10 @@ export default class Client {
       return;
     }
 
+    let tls = this._shouldUseTls();
     let ws;
     try {
-      ws = new WebSocket((this._shouldUseTls() ? 'wss://' : 'ws://') + nodeInfo.addr);
+      ws = new WebSocket((tls ? 'wss' : 'ws') + '://' + nodeInfo.addr);
       ws.binaryType = 'arraybuffer';
     } catch (e) {
       console.log('Create WebSocket failed,', e);
@@ -640,6 +537,11 @@ export default class Client {
 
     this.ws = ws;
     this.node = nodeInfo;
+    if (nodeInfo.rpcAddr) {
+      this.wallet.options.rpcServerAddr = (tls ? 'https' : 'http') + '://' + nodeInfo.rpcAddr;
+    } else {
+      this.wallet.options.rpcServerAddr = '';
+    }
 
     ws.onopen = () => {
       ws.send(JSON.stringify({
@@ -756,6 +658,195 @@ export default class Client {
       }
     }
     return decryptedPayload;
+  }
+
+  /**
+   * Same as [Wallet.getLatestBlock](#walletgetlatestblock), but using this
+   * client's connected node as rpcServerAddr, followed by this client's
+   * rpcServerAddr if failed.
+   */
+  async getLatestBlock(): Promise<{ height: number, hash: string }> {
+    if (this.wallet.options.rpcServerAddr) {
+      try {
+        return await Wallet.getLatestBlock(this.options);
+      } catch (e) {
+      }
+    }
+    return await Wallet.getLatestBlock(this.options);
+  }
+
+  /**
+   * Same as [Wallet.getRegistrant](#walletgetregistrant), but using this
+   * client's connected node as rpcServerAddr, followed by this client's
+   * rpcServerAddr if failed.
+   */
+  async getRegistrant(name: string): Promise<{ registrant: string, expiresAt: number }> {
+    if (this.wallet.options.rpcServerAddr) {
+      try {
+        return await Wallet.getRegistrant(name, this.wallet.options);
+      } catch (e) {
+      }
+    }
+    return await Wallet.getRegistrant(name, this.options);
+  }
+
+  /**
+   * Same as [Wallet.getSubscribers](#walletgetsubscribers), but using this
+   * client's connected node as rpcServerAddr, followed by this client's
+   * rpcServerAddr if failed.
+   */
+  async getSubscribers(
+    topic: string,
+    options: {
+      offset?: number,
+      limit?: number,
+      meta?: boolean,
+      txPool?: boolean,
+    } = {},
+  ): Promise<{
+    subscribers: Array<string> | { [string]: string },
+    subscribersInTxPool?: Array<string> | { [string]: string },
+  }> {
+    if (this.wallet.options.rpcServerAddr) {
+      try {
+        return await Wallet.getSubscribers(topic, Object.assign({}, this.wallet.options, options));
+      } catch (e) {
+      }
+    }
+    return await Wallet.getSubscribers(topic, Object.assign({}, this.options, options));
+  }
+
+  /**
+   * Same as [Wallet.getSubscribersCount](#walletgetsubscriberscount), but using
+   * this client's connected node as rpcServerAddr, followed by this client's
+   * rpcServerAddr if failed.
+   */
+  async getSubscribersCount(topic: string): Promise<number> {
+    if (this.wallet.options.rpcServerAddr) {
+      try {
+        return await Wallet.getSubscribersCount(topic, this.wallet.options);
+      } catch (e) {
+      }
+    }
+    return await Wallet.getSubscribersCount(topic, this.options);
+  }
+
+  /**
+   * Same as [Wallet.getSubscription](#walletgetsubscription), but using this
+   * client's connected node as rpcServerAddr, followed by this client's
+   * rpcServerAddr if failed.
+   */
+  async getSubscription(topic: string, subscriber: string): Promise<{ meta: string, expiresAt: number }> {
+    if (this.wallet.options.rpcServerAddr) {
+      try {
+        return await Wallet.getSubscription(topic, subscriber, this.wallet.options);
+      } catch (e) {
+      }
+    }
+    return await Wallet.getSubscription(topic, subscriber, this.options);
+  }
+
+  /**
+   * Same as [Wallet.getBalance](#walletgetbalance), but using this
+   * client's connected node as rpcServerAddr, followed by this client's
+   * rpcServerAddr if failed.
+   */
+  async getBalance(address: ?string): Promise<common.Amount> {
+    if (this.wallet.options.rpcServerAddr) {
+      try {
+        return await Wallet.getBalance(address || this.wallet.address, this.wallet.options);
+      } catch (e) {
+      }
+    }
+    return await Wallet.getBalance(address || this.wallet.address, this.options);
+  }
+
+  /**
+   * Same as [Wallet.getNonce](#walletgetnonce), but using this
+   * client's connected node as rpcServerAddr, followed by this client's
+   * rpcServerAddr if failed.
+   */
+  async getNonce(address: ?string, options: { txPool: boolean } = {}): Promise<number> {
+    if (this.wallet.options.rpcServerAddr) {
+      try {
+        return await Wallet.getNonce(address || this.wallet.address, Object.assign({}, this.wallet.options, options));
+      } catch (e) {
+      }
+    }
+    return await Wallet.getNonce(address || this.wallet.address, Object.assign({}, this.options, options));
+  }
+
+  /**
+   * Same as [Wallet.sendTransaction](#walletsendtransaction), but using this
+   * client's connected node as rpcServerAddr, followed by this client's
+   * rpcServerAddr if failed.
+   */
+  async sendTransaction(txn: common.pb.transaction.Transaction): Promise<string> {
+    if (this.wallet.options.rpcServerAddr) {
+      try {
+        return await Wallet.sendTransaction(txn, this.wallet.options);
+      } catch (e) {
+      }
+    }
+    return await Wallet.sendTransaction(txn, this.options);
+  }
+
+  /**
+   * Same as [wallet.transferTo](#wallettransferto), but using this
+   * client's connected node as rpcServerAddr, followed by this client's
+   * rpcServerAddr if failed.
+   */
+  transferTo(toAddress: string, amount: number | string | common.Amount, options: TransactionOptions = {}): Promise<TxnOrHash> {
+    return common.rpc.transferTo.call(this, toAddress, amount, options);
+  }
+
+  /**
+   * Same as [wallet.registerName](#walletregistername), but using this
+   * client's connected node as rpcServerAddr, followed by this client's
+   * rpcServerAddr if failed.
+   */
+  registerName(name: string, options: TransactionOptions = {}): Promise<TxnOrHash> {
+    return common.rpc.registerName.call(this, name, options);
+  }
+
+  /**
+   * Same as [wallet.transferName](#wallettransfername), but using this
+   * client's connected node as rpcServerAddr, followed by this client's
+   * rpcServerAddr if failed.
+   */
+  transferName(name: string, recipient: string, options: TransactionOptions = {}): Promise<TxnOrHash> {
+    return common.rpc.transferName.call(this, name, recipient, options);
+  }
+
+  /**
+   * Same as [wallet.deleteName](#walletdeletename), but using this
+   * client's connected node as rpcServerAddr, followed by this client's
+   * rpcServerAddr if failed.
+   */
+  deleteName(name: string, options: TransactionOptions = {}): Promise<TxnOrHash> {
+    return common.rpc.deleteName.call(this, name, options);
+  }
+
+  /**
+   * Same as [wallet.subscribe](#walletsubscribe), but using this
+   * client's connected node as rpcServerAddr, followed by this client's
+   * rpcServerAddr if failed.
+   */
+  subscribe(topic: string, duration: number, identifier: ?string = '', meta: ?string = '', options: TransactionOptions = {}): Promise<TxnOrHash> {
+    return common.rpc.subscribe.call(this, topic, duration, identifier, meta, options);
+  }
+
+  /**
+   * Same as [wallet.unsubscribe](#walletunsubscribe), but using this
+   * client's connected node as rpcServerAddr, followed by this client's
+   * rpcServerAddr if failed.
+   */
+  unsubscribe(topic: string, identifier: string = '', options: TransactionOptions = {}): Promise<TxnOrHash> {
+    return common.rpc.unsubscribe.call(this, topic, identifier, options);
+  }
+
+  createTransaction(pld: common.pb.transaction.Payload, nonce: number, options: CreateTransactionOptions = {}): Promise<common.pb.transaction.Transaction> {
+    return this.wallet.createTransaction(pld, nonce, options);
   }
 }
 

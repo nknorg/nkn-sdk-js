@@ -1,14 +1,15 @@
 'use strict';
 
-import Amount from './amount';
 import * as address from './address';
 import * as common from '../common';
+
+export const nameRegistrationFee = '10';
 
 export function newTransferPayload(sender, recipient, amount) {
   let transfer = new common.pb.transaction.TransferAsset();
   transfer.setSender(Buffer.from(sender, 'hex'));
   transfer.setRecipient(Buffer.from(recipient, 'hex'));
-  transfer.setAmount(new Amount(amount).value());
+  transfer.setAmount(new common.Amount(amount).value());
 
   let pld = new common.pb.transaction.Payload();
   pld.setType(common.pb.transaction.PayloadType.TRANSFER_ASSET_TYPE);
@@ -17,11 +18,11 @@ export function newTransferPayload(sender, recipient, amount) {
   return pld;
 }
 
-export function newRegisterNamePayload(registrant, name, registrationFee) {
+export function newRegisterNamePayload(registrant, name, registrationFee = nameRegistrationFee) {
   let registerName = new common.pb.transaction.RegisterName();
   registerName.setRegistrant(Buffer.from(registrant, 'hex'));
   registerName.setName(name);
-  registerName.setRegistrationFee(new Amount(registrationFee).value());
+  registerName.setRegistrationFee(new common.Amount(registrationFee).value());
 
   let pld = new common.pb.transaction.Payload();
   pld.setType(common.pb.transaction.PayloadType.REGISTER_NAME_TYPE);
@@ -88,7 +89,7 @@ export function newNanoPayPayload(sender, recipient, id, amount, txnExpiration, 
   nanoPay.setSender(Buffer.from(sender, 'hex'));
   nanoPay.setRecipient(Buffer.from(recipient, 'hex'));
   nanoPay.setId(id);
-  nanoPay.setAmount(new Amount(amount).value());
+  nanoPay.setAmount(new common.Amount(amount).value());
   nanoPay.setTxnExpiration(txnExpiration);
   nanoPay.setNanoPayExpiration(nanoPayExpiration);
 
@@ -110,7 +111,7 @@ export async function newTransaction(account, pld, nonce, fee = '0', attrs = '')
   let unsignedTx = new common.pb.transaction.UnsignedTx();
   unsignedTx.setPayload(pld);
   unsignedTx.setNonce(nonce);
-  unsignedTx.setFee(new Amount(fee).value());
+  unsignedTx.setFee(new common.Amount(fee).value());
   unsignedTx.setAttributes(Buffer.from(attrs, 'hex'));
 
   let txn = new common.pb.transaction.Transaction();

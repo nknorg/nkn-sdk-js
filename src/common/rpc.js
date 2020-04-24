@@ -2,7 +2,10 @@
 
 import axios from 'axios'
 
+import Amount from './amount';
+import * as address from '../wallet/address';
 import * as errors from './errors';
+import * as transaction from '../wallet/transaction';
 import * as util from './util';
 
 const methods = {
@@ -18,10 +21,10 @@ const methods = {
   sendRawTransaction: { method: 'sendrawtransaction' },
 }
 
-var exported = {};
+var rpc = {};
 for (let method in methods) {
   if (methods.hasOwnProperty(method)) {
-    exported[method] = (addr, params) => {
+    rpc[method] = (addr, params) => {
       params = util.assignDefined({}, methods[method].defaultParams, params)
       return rpcCall(addr, methods[method].method, params);
     }
@@ -54,4 +57,115 @@ async function rpcCall(addr, method, params = {}) {
   throw new errors.InvalidResponseError('rpc response contains no result or error field');
 }
 
-module.exports = exported;
+export async function getWsAddr(address, options = {}) {
+  return rpc.getWsAddr(options.rpcServerAddr, { address });
+}
+
+export async function getWssAddr(address, options = {}) {
+  return rpc.getWssAddr(options.rpcServerAddr, { address });
+}
+
+export async function getLatestBlock(options = {}) {
+  return rpc.getLatestBlockHash(options.rpcServerAddr);
+}
+
+export async function getRegistrant(name, options = {}) {
+  return rpc.getRegistrant(options.rpcServerAddr, { name });
+}
+
+export async function getSubscribers(topic, options = {}) {
+  return rpc.getSubscribers(
+    options.rpcServerAddr,
+    { topic, offset: options.offset, limit: options.limit, meta: options.meta, txPool: options.txPool },
+  );
+}
+
+export async function getSubscribersCount(topic, options = {}) {
+  return rpc.getSubscribersCount(options.rpcServerAddr, { topic });
+}
+
+export async function getSubscription(topic, subscriber, options = {}) {
+  return rpc.getSubscription(options.rpcServerAddr, { topic, subscriber });
+}
+
+export async function getBalance(address, options = {}) {
+  if (!address) {
+    throw new errors.InvalidArgumentError('address is empty')
+  }
+  let data = await rpc.getBalanceByAddr(options.rpcServerAddr, { address });
+  if (!data.amount) {
+    throw new errors.InvalidResponseError('amount is empty');
+  }
+  return new Amount(data.amount);
+}
+
+export async function getNonce(address, options = {}) {
+  if (!address) {
+    throw new errors.InvalidArgumentError('address is empty')
+  }
+  options = util.assignDefined({ txPool: true }, options);
+  let data = await rpc.getNonceByAddr(options.rpcServerAddr, { address });
+  if (typeof data.nonce !== 'number') {
+    throw new errors.InvalidResponseError('nonce is not a number');
+  }
+  let nonce = data.nonce;
+  if (options.txPool && data.nonceInTxPool && data.nonceInTxPool > nonce) {
+    nonce = data.nonceInTxPool;
+  }
+  return nonce;
+}
+
+export async function sendTransaction(txn, options = {}) {
+  return rpc.sendRawTransaction(options.rpcServerAddr, { tx: util.bytesToHex(txn.serializeBinary()) });
+}
+
+export async function transferTo(toAddress, amount, options = {}) {
+  if(!address.verifyAddress(toAddress)) {
+    throw new errors.InvalidAddressError('invalid recipient address')
+  }
+  let nonce = options.nonce || await this.getNonce();
+  let signatureRedeem = address.publicKeyToSignatureRedeem(this.getPublicKey());
+  let programHash = address.hexStringToProgramHash(signatureRedeem);
+  let pld = transaction.newTransferPayload(
+    programHash,
+    address.addressStringToProgramHash(toAddress),
+    amount,
+  );
+  let txn = await this.createTransaction(pld, nonce, options);
+  return options.buildOnly ? txn : await this.sendTransaction(txn);
+}
+
+export async function registerName(name, options = {}) {
+  let nonce = options.nonce || await this.getNonce();
+  let pld = transaction.newRegisterNamePayload(this.getPublicKey(), name);
+  let txn = await this.createTransaction(pld, nonce, options);
+  return options.buildOnly ? txn : await this.sendTransaction(txn);
+}
+
+export async function transferName(name, recipient, options = {}) {
+  let nonce = options.nonce || await this.getNonce();
+  let pld = transaction.newTransferNamePayload(name, this.getPublicKey(), recipient);
+  let txn = await this.createTransaction(pld, nonce, options);
+  return options.buildOnly ? txn : await this.sendTransaction(txn);
+}
+
+export async function deleteName(name, options = {}) {
+  let nonce = options.nonce || await this.getNonce();
+  let pld = transaction.newDeleteNamePayload(this.getPublicKey(), name);
+  let txn = await this.createTransaction(pld, nonce, options);
+  return options.buildOnly ? txn : await this.sendTransaction(txn);
+}
+
+export async function subscribe(topic, duration, identifier, meta, options = {}) {
+  let nonce = options.nonce || await this.getNonce();
+  let pld = transaction.newSubscribePayload(this.getPublicKey(), identifier, topic, duration, meta);
+  let txn = await this.createTransaction(pld, nonce, options);
+  return options.buildOnly ? txn : await this.sendTransaction(txn);
+}
+
+export async function unsubscribe(topic, identifier, options = {}) {
+  let nonce = options.nonce || await this.getNonce();
+  let pld = transaction.newUnsubscribePayload(this.getPublicKey(), identifier, topic);
+  let txn = await this.createTransaction(pld, nonce, options);
+  return options.buildOnly ? txn : await this.sendTransaction(txn);
+}
