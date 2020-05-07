@@ -19,10 +19,10 @@ test('from/to json', () => {
   }).toThrow();
 });
 
-test('verify password', () => {
+test('verify password', async () => {
   let wallet = new nkn.Wallet({ password: '42' });
-  expect(wallet.verifyPassword('42')).toBe(true);
-  expect(wallet.verifyPassword('233')).toBe(false);
+  expect(await wallet.verifyPassword('42')).toBe(true);
+  expect(await wallet.verifyPassword('233')).toBe(false);
 });
 
 test('verify address', () => {

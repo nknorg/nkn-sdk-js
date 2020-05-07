@@ -2,14 +2,14 @@
 
 import CryptoJS from 'crypto-js';
 
-import * as common from '../common';
+import * as hash from './hash';
 
 export function encrypt(plaintext, password, iv) {
   return CryptoJS.AES.encrypt(
-    plaintext,
-    common.hash.cryptoHexStringParse(password),
+    CryptoJS.enc.Hex.parse(plaintext),
+    CryptoJS.enc.Hex.parse(password),
     {
-      iv: common.hash.cryptoHexStringParse(iv),
+      iv: CryptoJS.enc.Hex.parse(iv),
       mode: CryptoJS.mode.CBC,
       padding: CryptoJS.pad.NoPadding
     }
@@ -18,10 +18,10 @@ export function encrypt(plaintext, password, iv) {
 
 export function decrypt(ciphertext, password, iv) {
   return CryptoJS.AES.decrypt(
-    CryptoJS.enc.Base64.stringify(ciphertext),
-    common.hash.cryptoHexStringParse(password),
+    CryptoJS.enc.Hex.parse(ciphertext).toString(CryptoJS.enc.Base64),
+    CryptoJS.enc.Hex.parse(password),
     {
-      iv: common.hash.cryptoHexStringParse(iv),
+      iv: CryptoJS.enc.Hex.parse(iv),
       mode: CryptoJS.mode.CBC,
       padding: CryptoJS.pad.NoPadding
     }

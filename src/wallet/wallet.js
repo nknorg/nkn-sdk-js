@@ -1,9 +1,10 @@
 // @flow
 'use strict';
 
+import scrypt from 'scrypt-js';
+
 import Account from './account';
 import * as address from './address';
-import * as aes from './aes';
 import * as common from '../common';
 import * as consts from './consts';
 import * as transaction from './transaction';
@@ -24,7 +25,6 @@ export default class Wallet {
     worker: boolean | () => Worker | Promise<Worker>,
   };
   account: Account;
-  passwordHash: string;
   iv: string;
   masterKey: string;
   /**
@@ -33,15 +33,15 @@ export default class Wallet {
   address: string;
   programHash: string;
   seedEncrypted: string;
-  contractData: string;
+  scryptParams: ScryptParams;
   /**
    * Wallet version.
    */
   version: number;
 
-  static version: number = 1;
+  static version: number = 2;
   static minCompatibleVersion: number = 1;
-  static maxCompatibleVersion: number = 1;
+  static maxCompatibleVersion: number = 2;
 
   constructor(options: {
     seed?: string,
@@ -49,16 +49,37 @@ export default class Wallet {
     rpcServerAddr?: string,
     iv?: string,
     masterKey?: string,
+    scrypt?: ScryptParams,
     worker?: boolean | () => Worker | Promise<Worker>,
   }) {
     options = common.util.assignDefined({}, consts.defaultOptions, options);
 
     let account = new Account(options.seed, { worker: options.worker });
-    let pswdHash = common.hash.doubleSha256(options.password);
+    let passwordKey;
+
+    switch (Wallet.version) {
+      case 1:
+        passwordKey = common.hash.doubleSha256(options.password);
+        break;
+      case 2:
+        let scryptParams = common.util.assignDefined({}, consts.scryptParams, options.scrypt);
+        scryptParams.salt = scryptParams.salt || common.util.randomBytesHex(scryptParams.saltLen);
+        this.scryptParams = scryptParams;
+        passwordKey = common.util.bytesToHex(scrypt.syncScrypt(
+          common.util.utf8ToBytes(options.password),
+          common.util.hexToBytes(scryptParams.salt),
+          scryptParams.N,
+          scryptParams.r,
+          scryptParams.p,
+          32,
+        ));
+        break;
+      default:
+        throw new common.errors.InvalidWalletFormatError('unsupported wallet verison '+ Wallet.version);
+    }
+
     let iv = options.iv || common.util.randomBytesHex(16);
     let masterKey = options.masterKey || common.util.randomBytesHex(32);
-    masterKey = common.hash.cryptoHexStringParse(masterKey);
-    let seed = common.hash.cryptoHexStringParse(account.getSeed());
 
     delete options.seed;
     delete options.password;
@@ -67,13 +88,11 @@ export default class Wallet {
 
     this.options = options;
     this.account = account;
-    this.passwordHash = common.hash.sha256Hex(pswdHash);
     this.iv = iv;
-    this.masterKey = aes.encrypt(masterKey, pswdHash, iv);
+    this.masterKey = common.aes.encrypt(masterKey, passwordKey, iv);
     this.address = account.address;
     this.programHash = account.programHash;
-    this.seedEncrypted = aes.encrypt(seed, masterKey.toString(), iv);
-    this.contractData = account.contract;
+    this.seedEncrypted = common.aes.encrypt(account.getSeed(), masterKey, iv);
     this.version = Wallet.version;
   }
 
@@ -92,7 +111,7 @@ export default class Wallet {
     }
 
     // convert all keys to lowercase
-    walletObj = Object.keys(walletObj).reduce((merged, key) => Object.assign(merged, {[key.toLowerCase()]: walletObj[key]}), {});
+    walletObj = common.util.toLowerKeys(walletObj);
 
     if (typeof walletObj.version !== 'number' || walletObj.version < Wallet.minCompatibleVersion || walletObj.version > Wallet.maxCompatibleVersion) {
       throw new common.errors.InvalidWalletVersionError('invalid wallet version ' + walletObj.version + ', should be between ' + Wallet.minCompatibleVersion + ' and ' + Wallet.maxCompatibleVersion);
@@ -110,35 +129,68 @@ export default class Wallet {
       throw new common.errors.InvalidWalletFormatError('missing seedEncrypted field');
     }
 
-    let pswdHash = common.hash.doubleSha256(options.password);
-    if (walletObj.passwordhash !== common.hash.sha256Hex(pswdHash)) {
+    if (!walletObj.address) {
+      throw new common.errors.InvalidWalletFormatError('missing address field');
+    }
+
+    let passwordKey;
+    options = Object.assign({}, options, { iv: walletObj.iv });
+    switch (walletObj.version) {
+      case 1:
+        passwordKey = common.hash.doubleSha256(options.password);
+        break;
+      case 2:
+        if (!walletObj.scrypt) {
+          throw new common.errors.InvalidWalletFormatError('missing scrypt field');
+        }
+        if (!walletObj.scrypt.salt || !walletObj.scrypt.n || !walletObj.scrypt.r || !walletObj.scrypt.p) {
+          throw new common.errors.InvalidWalletFormatError('incomplete scrypt parameters');
+        }
+        options.scrypt = { salt: walletObj.scrypt.salt, N: walletObj.scrypt.n, r: walletObj.scrypt.r, p: walletObj.scrypt.p };
+        passwordKey = common.util.bytesToHex(scrypt.syncScrypt(
+          common.util.utf8ToBytes(options.password),
+          common.util.hexToBytes(options.scrypt.salt),
+          options.scrypt.N,
+          options.scrypt.r,
+          options.scrypt.p,
+          32,
+        ));
+        break;
+      default:
+        throw new common.errors.InvalidWalletFormatError('unsupported wallet verison '+ walletObj.version);
+    }
+
+    options.masterKey = common.aes.decrypt(walletObj.masterkey, passwordKey, walletObj.iv);
+    options.seed = common.aes.decrypt(walletObj.seedencrypted, options.masterKey, walletObj.iv);
+
+    let account = new Account(options.seed, { worker: false });
+    if (account.address !== walletObj.address) {
       throw new common.errors.WrongPasswordError();
     }
 
-    let masterKey = aes.decrypt(common.hash.cryptoHexStringParse(walletObj.masterkey), pswdHash, walletObj.iv);
-    let seed = aes.decrypt(common.hash.cryptoHexStringParse(walletObj.seedencrypted), masterKey, walletObj.iv);
-
-    return new Wallet(Object.assign({}, options, {
-      seed,
-      masterKey,
-      iv: walletObj.iv,
-    }));
+    return new Wallet(options);
   }
 
   /**
    * Return the wallet object to be serialized by JSON.
    */
-  toJSON(): {} {
-    return {
+  toJSON(): WalletJson {
+    let walletJson: WalletJson = {
       Version: this.version,
-      PasswordHash: this.passwordHash,
       MasterKey: this.masterKey,
       IV: this.iv,
       SeedEncrypted: this.seedEncrypted,
       Address: this.address,
-      ProgramHash: this.programHash,
-      ContractData: this.contractData,
+    };
+    if (this.scryptParams) {
+      walletJson.Scrypt = {
+        Salt: this.scryptParams.salt,
+        N: this.scryptParams.N,
+        R: this.scryptParams.r,
+        P: this.scryptParams.p,
+      };
     }
+    return walletJson;
   }
 
   /**
@@ -167,9 +219,30 @@ export default class Wallet {
   /**
    * Verify whether the password is the correct password of this wallet.
    */
-  verifyPassword(password: string): boolean {
-    let pswdHash = common.hash.doubleSha256(password);
-    return this.passwordHash === common.hash.sha256Hex(pswdHash);
+  async verifyPassword(password: string): Promise<boolean> {
+    let passwordKey;
+    switch (this.version) {
+      case 1:
+        passwordKey = common.hash.doubleSha256(password);
+        break;
+      case 2:
+        passwordKey = await scrypt.scrypt(
+          common.util.utf8ToBytes(password),
+          common.util.hexToBytes(this.scryptParams.salt),
+          this.scryptParams.N,
+          this.scryptParams.r,
+          this.scryptParams.p,
+          32,
+        );
+        passwordKey = common.util.bytesToHex(passwordKey);
+        break;
+      default:
+        throw new common.errors.InvalidWalletFormatError('unsupported wallet verison '+ this.version);
+    }
+    let masterKey = common.aes.decrypt(this.masterKey, passwordKey, this.iv);
+    let seed = common.aes.decrypt(this.seedEncrypted, masterKey, this.iv);
+    let account = new Account(seed, { worker: false });
+    return account.address === this.address;
   }
 
   /**
@@ -447,15 +520,25 @@ export default class Wallet {
   }
 }
 
+type ScryptParams = {
+  salt: string,
+  N: number,
+  r: number,
+  p: number,
+};
+
 type WalletJson = {
   Version: number,
-  PasswordHash: string,
   MasterKey: string,
   IV: string,
   SeedEncrypted: string,
-  Address?: string,
-  ProgramHash?: string,
-  ContractData?: string,
+  Address: string,
+  Scrypt?: {
+    Salt: string,
+    N: number,
+    R: number,
+    P: number,
+  },
 };
 
 /**
