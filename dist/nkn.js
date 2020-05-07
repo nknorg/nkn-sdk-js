@@ -9822,7 +9822,17 @@ var _serialize = require("./serialize");
 
 function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
 
+const hexRe = /^[0-9a-f]+$/i;
+
 function hexToBytes(hex) {
+  if (hex.length % 2 === 1) {
+    throw new RangeError('invalid hex string length ' + hex.length);
+  }
+
+  if (!hexRe.test(hex)) {
+    throw new RangeError('invalid hex string');
+  }
+
   let bytes = [];
 
   for (let c = 0; c < hex.length; c += 2) {
@@ -9834,6 +9844,10 @@ function hexToBytes(hex) {
 
 function bytesToHex(bytes) {
   return Array.from(bytes, b => {
+    if (b < 0 || b > 255) {
+      throw new RangeError('invalid byte ' + b);
+    }
+
     return ('0' + (b & 0xFF).toString(16)).slice(-2);
   }).join('');
 }
