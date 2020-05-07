@@ -15,16 +15,19 @@ export const signatureLength = 64;
 let isReady = false;
 
 export function keyPair(seed) {
+  let seedBytes = util.hexToBytes(seed);
   try {
-    let key = sodium.crypto_sign_seed_keypair(seed);
+    let key = sodium.crypto_sign_seed_keypair(seedBytes);
     return {
+      seed: seed,
       publicKey: key.publicKey,
       privateKey: key.privateKey,
       curvePrivateKey: ed25519SkToCurve25519(key.privateKey),
     };
   } catch (e) { // libsodium not ready yet
-    let key = nacl.sign.keyPair.fromSeed(seed);
+    let key = nacl.sign.keyPair.fromSeed(seedBytes);
     return {
+      seed: seed,
       publicKey: key.publicKey,
       privateKey: key.secretKey,
       curvePrivateKey: ed2curve.convertSecretKey(key.secretKey),

@@ -11,7 +11,9 @@ module.exports = function(self) {
       switch (e.data.action) {
         case 'setSeed':
           if (!key) {
-            key = crypto.keyPair(Buffer.from(e.data.seed, 'hex'));
+            key = crypto.keyPair(e.data.seed);
+          } else if (e.data.seed !== key.seed) {
+            throw 'cannot set to different seed';
           }
           break;
         case 'computeSharedKey':

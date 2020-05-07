@@ -1438,19 +1438,23 @@ exports.signatureLength = signatureLength;
 let isReady = false;
 
 function keyPair(seed) {
+  let seedBytes = util.hexToBytes(seed);
+
   try {
-    let key = _libsodiumWrappers.default.crypto_sign_seed_keypair(seed);
+    let key = _libsodiumWrappers.default.crypto_sign_seed_keypair(seedBytes);
 
     return {
+      seed: seed,
       publicKey: key.publicKey,
       privateKey: key.privateKey,
       curvePrivateKey: ed25519SkToCurve25519(key.privateKey)
     };
   } catch (e) {
     // libsodium not ready yet
-    let key = _tweetnacl.default.sign.keyPair.fromSeed(seed);
+    let key = _tweetnacl.default.sign.keyPair.fromSeed(seedBytes);
 
     return {
+      seed: seed,
       publicKey: key.publicKey,
       privateKey: key.secretKey,
       curvePrivateKey: _ed2curve.default.convertSecretKey(key.secretKey)
@@ -1929,21 +1933,15 @@ class Key {
 
     _defineProperty(this, "workerMsgCache", void 0);
 
-    if (seed) {
-      try {
-        seed = util.hexToBytes(seed);
-      } catch (e) {
-        throw new errors.InvalidArgumentError('seed is not a valid hex string');
-      }
-    } else {
-      seed = util.randomBytes(crypto.seedLength);
+    if (!seed) {
+      seed = util.randomBytesHex(crypto.seedLength);
     }
 
     let key = crypto.keyPair(seed);
+    this.seed = seed;
     this.publicKey = util.bytesToHex(key.publicKey);
     this.privateKey = key.privateKey;
     this.curvePrivateKey = key.curvePrivateKey;
-    this.seed = util.bytesToHex(seed);
     this.sharedKeyCache = new Map();
     this.useWorker = this._shouldUseWorker(options.worker);
     this.worker = null;
@@ -11763,7 +11761,6 @@ if (typeof WorkerGlobalScope !== 'undefined' && self instanceof WorkerGlobalScop
   (0, _worker.default)(self);
 }
 },{"./worker":32}],32:[function(require,module,exports){
-(function (Buffer){
 'use strict';
 
 var crypto = _interopRequireWildcard(require("../common/crypto"));
@@ -11784,7 +11781,9 @@ module.exports = function (self) {
       switch (e.data.action) {
         case 'setSeed':
           if (!key) {
-            key = crypto.keyPair(Buffer.from(e.data.seed, 'hex'));
+            key = crypto.keyPair(e.data.seed);
+          } else if (e.data.seed !== key.seed) {
+            throw 'cannot set to different seed';
           }
 
           break;
@@ -11823,8 +11822,7 @@ module.exports = function (self) {
     }
   };
 };
-}).call(this,require("buffer").Buffer)
-},{"../common/crypto":7,"../common/util":19,"buffer":117}],33:[function(require,module,exports){
+},{"../common/crypto":7,"../common/util":19}],33:[function(require,module,exports){
 'use strict';
 
 Object.defineProperty(exports, "__esModule", {
