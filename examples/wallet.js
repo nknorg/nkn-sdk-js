@@ -14,11 +14,11 @@ const password = '42';
   // save wallet to json and recover from json
   wallet = nkn.Wallet.fromJSON(JSON.stringify(wallet), { password });
 
-  // verify whether an address is valid (static method)
-  console.log('verify address:', nkn.Wallet.verifyAddress(wallet.address));
-
   // verify password of a wallet
-  console.log('verify password', wallet.verifyPassword(password));
+  console.log('verify password', await wallet.verifyPassword(password));
+
+  // verify whether an address is a valid NKN wallet address (static method)
+  console.log('verify address:', nkn.Wallet.verifyAddress(wallet.address));
 
   // get balance of this wallet
   console.log('balance:', await wallet.getBalance());

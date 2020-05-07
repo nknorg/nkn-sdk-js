@@ -54,6 +54,7 @@
     "libsodium-wrappers": "^0.7.6",
     "memory-cache": "^0.2.0",
     "pako": "^1.0.11",
+    "scrypt-js": "^3.0.0",
     "tweetnacl": "^1.0.3",
     "webworkify": "^1.5.0",
     "ws": "^7.2.3"

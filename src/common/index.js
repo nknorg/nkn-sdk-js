@@ -2,6 +2,7 @@
 
 export Amount from './amount';
 export Key from './key';
+export * as aes from './aes';
 export * as crypto from './crypto';
 export * as errors from './errors';
 export * as hash from './hash';
