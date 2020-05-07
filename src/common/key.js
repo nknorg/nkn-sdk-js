@@ -18,21 +18,15 @@ export default class Key {
   workerMsgCache;
 
   constructor(seed, options = {}) {
-    if (seed) {
-      try {
-        seed = util.hexToBytes(seed);
-      } catch (e) {
-        throw new errors.InvalidArgumentError('seed is not a valid hex string');
-      }
-    } else {
-      seed = util.randomBytes(crypto.seedLength);
+    if (!seed) {
+      seed = util.randomBytesHex(crypto.seedLength);
     }
 
     let key = crypto.keyPair(seed);
+    this.seed = seed;
     this.publicKey = util.bytesToHex(key.publicKey);
     this.privateKey = key.privateKey;
     this.curvePrivateKey = key.curvePrivateKey;
-    this.seed = util.bytesToHex(seed);
     this.sharedKeyCache = new Map();
     this.useWorker = this._shouldUseWorker(options.worker);
     this.worker = null;
