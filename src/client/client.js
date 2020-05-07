@@ -85,7 +85,7 @@ export default class Client {
     let identifier = options.identifier || '';
     let pubkey = key.publicKey;
     let addr = (identifier ? identifier + '.' : '') + pubkey;
-    let wallet = new Wallet(Object.assign({}, options, { seed: key.seed }));
+    let wallet = new Wallet(Object.assign({}, options, { seed: key.seed, worker: false }));
 
     delete options.seed;
 
