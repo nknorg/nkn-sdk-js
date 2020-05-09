@@ -17,11 +17,14 @@ const password = '42';
   // load wallet from json and password
   wallet = nkn.Wallet.fromJSON(walletJson, { password });
 
-  // or load wallet using async to avoid UI stuck
+  // or load wallet asynchronously to avoid blocking eventloop
   wallet = await nkn.Wallet.fromJSON(walletJson, { password, async: true });
 
   // verify password of a wallet
-  console.log('verify password', await wallet.verifyPassword(password));
+  console.log('verify password', wallet.verifyPassword(password));
+
+  // verify password of a wallet asynchronously to avoid blocking eventloop
+  console.log('verify password', await wallet.verifyPassword(password, { async: true }));
 
   // verify whether an address is a valid NKN wallet address (static method)
   console.log('verify address:', nkn.Wallet.verifyAddress(wallet.address));

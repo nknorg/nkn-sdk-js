@@ -23,15 +23,19 @@ test('from json async', async () => {
   let wallet = new nkn.Wallet({ password: '42' });
   let walletFromJson = await nkn.Wallet.fromJSON(JSON.stringify(wallet), { password: '42', async: true });
   expect(walletFromJson.address).toBe(wallet.address);
-  expect(async () => {
-    await nkn.Wallet.fromJSON(JSON.stringify(wallet), { password: '233', async: true });
-  }).toThrow();
+  expect(nkn.Wallet.fromJSON(JSON.stringify(wallet), { password: '233', async: true })).rejects.toEqual(new nkn.errors.WrongPasswordError())
 });
 
-test('verify password', async () => {
+test('verify password', () => {
   let wallet = new nkn.Wallet({ password: '42' });
-  expect(await wallet.verifyPassword('42')).toBe(true);
-  expect(await wallet.verifyPassword('233')).toBe(false);
+  expect(wallet.verifyPassword('42')).toBe(true);
+  expect(wallet.verifyPassword('233')).toBe(false);
+});
+
+test('verify password async', async () => {
+  let wallet = new nkn.Wallet({ password: '42' });
+  expect(await wallet.verifyPassword('42', { async: true })).toBe(true);
+  expect(await wallet.verifyPassword('233', { async: true })).toBe(false);
 });
 
 test('verify address', () => {

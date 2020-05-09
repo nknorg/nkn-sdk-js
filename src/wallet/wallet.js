@@ -266,20 +266,33 @@ export default class Wallet {
     return address.verifyAddress(addr);
   }
 
-  /**
-   * Verify whether the password is the correct password of this wallet.
-   */
-  async verifyPassword(password: string): Promise<boolean> {
-    let passwordKey = await Wallet._computePasswordKey({
-      version: this.version,
-      password,
-      scrypt: this.scryptParams,
-      async: true,
-    });
+  _verifyPassword(passwordKey: string): boolean {
     let masterKey = common.aes.decrypt(this.masterKey, passwordKey, this.iv);
     let seed = common.aes.decrypt(this.seedEncrypted, masterKey, this.iv);
     let account = new Account(seed, { worker: false });
     return account.address === this.address;
+  }
+
+  /**
+   * Verify whether the password is the correct password of this wallet.
+   * @param {Object} options - Verify password options.
+   * @param {bool} [options.async=false] - If true, return value will be a promise, and more importantly, the underlying scrypt computation will not block eventloop.
+   */
+  verifyPassword(password: string, options: { async: bool } = {}): boolean | Promise<boolean> {
+    let opts = {
+      version: this.version,
+      password,
+      scrypt: this.scryptParams,
+      async: options.async,
+    };
+    if (options.async) {
+      return Wallet._computePasswordKey(opts).then((passwordKey) => {
+        return this._verifyPassword(passwordKey);
+      })
+    } else {
+      let passwordKey = Wallet._computePasswordKey(opts);
+      return this._verifyPassword(passwordKey);
+    }
   }
 
   /**
