@@ -11,8 +11,14 @@ const password = '42';
   // wallet from seed
   wallet = new nkn.Wallet({ seed: wallet.getSeed(), password });
 
-  // save wallet to json and recover from json
-  wallet = nkn.Wallet.fromJSON(JSON.stringify(wallet), { password });
+  // save wallet to json
+  let walletJson = JSON.stringify(wallet);
+
+  // load wallet from json and password
+  wallet = nkn.Wallet.fromJSON(walletJson, { password });
+
+  // or load wallet using async to avoid UI stuck
+  wallet = await nkn.Wallet.fromJSON(walletJson, { password, async: true });
 
   // verify password of a wallet
   console.log('verify password', await wallet.verifyPassword(password));
