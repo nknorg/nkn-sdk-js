@@ -11516,24 +11516,39 @@ class Wallet {
   static verifyAddress(addr) {
     return address.verifyAddress(addr);
   }
-  /**
-   * Verify whether the password is the correct password of this wallet.
-   */
 
-
-  async verifyPassword(password) {
-    let passwordKey = await Wallet._computePasswordKey({
-      version: this.version,
-      password,
-      scrypt: this.scryptParams,
-      async: true
-    });
+  _verifyPassword(passwordKey) {
     let masterKey = common.aes.decrypt(this.masterKey, passwordKey, this.iv);
     let seed = common.aes.decrypt(this.seedEncrypted, masterKey, this.iv);
     let account = new _account.default(seed, {
       worker: false
     });
     return account.address === this.address;
+  }
+  /**
+   * Verify whether the password is the correct password of this wallet.
+   * @param {Object} options - Verify password options.
+   * @param {bool} [options.async=false] - If true, return value will be a promise, and more importantly, the underlying scrypt computation will not block eventloop.
+   */
+
+
+  verifyPassword(password, options = {}) {
+    let opts = {
+      version: this.version,
+      password,
+      scrypt: this.scryptParams,
+      async: options.async
+    };
+
+    if (options.async) {
+      return Wallet._computePasswordKey(opts).then(passwordKey => {
+        return this._verifyPassword(passwordKey);
+      });
+    } else {
+      let passwordKey = Wallet._computePasswordKey(opts);
+
+      return this._verifyPassword(passwordKey);
+    }
   }
   /**
    * Get latest block height and hash.
