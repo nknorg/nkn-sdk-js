@@ -51,10 +51,12 @@ export default class Wallet {
     masterKey?: string,
     scrypt?: ScryptParams,
     worker?: boolean | () => Worker | Promise<Worker>,
+    passwordKey?: { [string]: string },
+    version?: number,
   } = {}) {
     options = common.util.assignDefined({}, consts.defaultOptions, options);
 
-    this.version = Wallet.version;
+    this.version = options.version || Wallet.version;
 
     switch (this.version) {
       case 2:
@@ -88,6 +90,7 @@ export default class Wallet {
 
     delete options.seed;
     delete options.password;
+    delete options.passwordKey;
     delete options.iv;
     delete options.masterKey;
   }
