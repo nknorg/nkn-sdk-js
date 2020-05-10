@@ -94,7 +94,8 @@ class Client {
     let addr = (identifier ? identifier + '.' : '') + pubkey;
     let wallet = new _wallet.default(Object.assign({}, options, {
       seed: key.seed,
-      worker: false
+      worker: false,
+      version: 1
     }));
     delete options.seed;
     this.options = options;
@@ -11298,7 +11299,7 @@ class Wallet {
     _defineProperty(this, "version", void 0);
 
     options = common.util.assignDefined({}, consts.defaultOptions, options);
-    this.version = Wallet.version;
+    this.version = options.version || Wallet.version;
 
     switch (this.version) {
       case 2:
@@ -11333,6 +11334,7 @@ class Wallet {
     this.seedEncrypted = common.aes.encrypt(this.account.getSeed(), masterKey, iv);
     delete options.seed;
     delete options.password;
+    delete options.passwordKey;
     delete options.iv;
     delete options.masterKey;
   }
