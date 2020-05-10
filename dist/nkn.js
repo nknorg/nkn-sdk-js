@@ -11347,10 +11347,6 @@ class Wallet {
       throw new common.errors.InvalidArgumentError('missing version field');
     }
 
-    if (!options.password) {
-      throw new common.errors.InvalidArgumentError('missing password field');
-    }
-
     let passwordKey;
 
     switch (options.version) {
