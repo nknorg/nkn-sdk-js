@@ -11351,7 +11351,11 @@ class Wallet {
 
     switch (options.version) {
       case 1:
-        return common.hash.doubleSha256(options.password);
+        if (options.async) {
+          return new Promise(resolve => resolve(common.hash.doubleSha256(options.password)));
+        } else {
+          return common.hash.doubleSha256(options.password);
+        }
 
       case 2:
         if (!options.scrypt) {
