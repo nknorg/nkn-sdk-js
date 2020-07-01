@@ -530,9 +530,17 @@ export default class Client {
     if (this.ws) {
       this.ws.onclose = () => {};
       try {
-        this.ws && this.ws.close();
+        this.ws.close();
       } catch (e) {
       }
+    }
+
+    if (this.isClosed) {
+      try {
+        ws.close();
+      } catch (e) {
+      }
+      return;
     }
 
     this.ws = ws;
