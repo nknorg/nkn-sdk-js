@@ -202,7 +202,13 @@ export default class MultiClient {
           if (!responded) {
             for (let clientID: string of Object.keys(clients)) {
               if (clients[clientID].isReady) {
-                clients[clientID]._sendACK(util.addIdentifierPrefixAll(src, clientID), messageId, isEncrypted);
+                clients[clientID]._sendACK(
+                  util.addIdentifierPrefixAll(src, clientID),
+                  messageId,
+                  isEncrypted,
+                ).catch((e) => {
+                  console.log('Send ack error:', e);
+                });
               }
             }
           }
