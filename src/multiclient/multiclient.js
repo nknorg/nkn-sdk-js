@@ -385,16 +385,17 @@ export default class MultiClient {
    * in the order of added. Note that listeners added after client is connected
    * to node (i.e. `multiclient.isReady === true`) will not be called.
    */
-  onConnect(func: ConnectHandler) {
+  onConnect(f: ConnectHandler) {
     let promises = Object.keys(this.clients).map(clientID => new Promise((resolve, reject) => {
       this.clients[clientID].onConnect(resolve);
     }));
-    Promise.any(promises).then(r => {
+    Promise.any(promises).then(async r => {
       this.isReady = true;
-      func(r);
-    }).catch(e => {
-      console.log('Failed to connect to any client:', e.errors);
-      this.close();
+      try {
+        await f(r);
+      } catch (e) {
+        console.log('Connect handler error:', e);
+      }
     });
   }
 
