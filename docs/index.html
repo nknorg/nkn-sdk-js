@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
   <meta charset='utf-8'>
-  <title>nkn-sdk 1.1.7 | Documentation</title>
+  <title>nkn-sdk 1.1.8 | Documentation</title>
   <meta name='description' content='NKN client and wallet SDK'>
   <meta name='viewport' content='width=device-width,initial-scale=1'>
   <link href='assets/bass.css' rel='stylesheet'>
@@ -15,7 +15,7 @@
       <div id='split-left' class='overflow-auto fs0 height-viewport-100'>
         <div class='py1 px2'>
           <h3 class='mb0 no-anchor'>nkn-sdk</h3>
-          <div class='mb1'><code>1.1.7</code></div>
+          <div class='mb1'><code>1.1.8</code></div>
           <input
             placeholder='Filter'
             id='filter-input'
@@ -2264,7 +2264,7 @@ accepted. Each function call will overwrite previous listening addresses.</p>
       <div class="clearfix small pointer toggle-sibling">
         <div class="py1 contain">
             <a class='icon pin-right py1 dark-link caret-right'>▸</a>
-            <span class='code strong strong truncate'>onConnect(func)</span>
+            <span class='code strong strong truncate'>onConnect(f)</span>
         </div>
       </div>
       <div class="clearfix display-none toggle-target">
@@ -2277,7 +2277,7 @@ client is connected to node. Multiple listeners will be called sequentially
 in the order of added. Note that listeners added after client is connected
 to node (i.e. <code>multiclient.isReady === true</code>) will not be called.</p>
 
-    <div class='pre p1 fill-light mt0'>onConnect(func: <a href="#connecthandler">ConnectHandler</a>)</div>
+    <div class='pre p1 fill-light mt0'>onConnect(f: <a href="#connecthandler">ConnectHandler</a>)</div>
   
   
 
@@ -2294,7 +2294,7 @@ to node (i.e. <code>multiclient.isReady === true</code>) will not be called.</p>
       
         <div class='space-bottom0'>
           <div>
-            <span class='code bold'>func</span> <code class='quiet'>(<a href="#connecthandler">ConnectHandler</a>)</code>
+            <span class='code bold'>f</span> <code class='quiet'>(<a href="#connecthandler">ConnectHandler</a>)</code>
 	    
           </div>
           

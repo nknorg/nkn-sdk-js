@@ -460,7 +460,7 @@ export default class Client {
                 noReply: payload.getNoReply(),
               });
             } catch (e) {
-              console.log(e);
+              console.log('Message handler error:', e);
               return null;
             }
           }));
@@ -592,7 +592,13 @@ export default class Client {
           if (!this.isReady) {
             this.isReady = true;
             if (this.eventListeners.connect.length > 0) {
-              this.eventListeners.connect.forEach(f => f(msg.Result));
+              this.eventListeners.connect.forEach(async f => {
+                try {
+                  await f(msg.Result);
+                } catch (e) {
+                  console.log('Connect handler error:', e);
+                }
+              });
             }
           }
           break;
