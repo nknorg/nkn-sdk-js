@@ -515,10 +515,8 @@ class Client {
       case common.pb.payloads.PayloadType.TEXT:
       case common.pb.payloads.PayloadType.BINARY:
       case common.pb.payloads.PayloadType.SESSION:
-        let responses = [];
-
         if (this.eventListeners.message.length > 0) {
-          responses = await Promise.all(this.eventListeners.message.map(async f => {
+          let responses = await Promise.all(this.eventListeners.message.map(async f => {
             try {
               return await f({
                 src: msg.getSrc(),
@@ -533,29 +531,29 @@ class Client {
               return null;
             }
           }));
-        }
 
-        if (!payload.getNoReply()) {
-          let responded = false;
+          if (!payload.getNoReply()) {
+            let responded = false;
 
-          for (let response of responses) {
-            if (response === false) {
-              return true;
-            } else if (response !== undefined && response !== null) {
-              this.send(msg.getSrc(), response, {
-                encrypt: pldMsg.getEncrypted(),
-                msgHoldingSeconds: 0,
-                replyToId: payload.getMessageId()
-              }).catch(e => {
-                console.log('Send response error:', e);
-              });
-              responded = true;
-              break;
+            for (let response of responses) {
+              if (response === false) {
+                return true;
+              } else if (response !== undefined && response !== null) {
+                this.send(msg.getSrc(), response, {
+                  encrypt: pldMsg.getEncrypted(),
+                  msgHoldingSeconds: 0,
+                  replyToId: payload.getMessageId()
+                }).catch(e => {
+                  console.log('Send response error:', e);
+                });
+                responded = true;
+                break;
+              }
             }
-          }
 
-          if (!responded) {
-            await this._sendACK(msg.getSrc(), payload.getMessageId(), pldMsg.getEncrypted());
+            if (!responded) {
+              await this._sendACK(msg.getSrc(), payload.getMessageId(), pldMsg.getEncrypted());
+            }
           }
         }
 
@@ -10226,10 +10224,9 @@ class MultiClient {
 
         this.msgCache.put(key, clientID, options.msgCacheExpiration);
         src = util.removeIdentifier(src).addr;
-        let responses = [];
 
-        if (this.eventListeners.message) {
-          responses = await _promise.default.all(this.eventListeners.message.map(async f => {
+        if (this.eventListeners.message.length > 0) {
+          let responses = await _promise.default.all(this.eventListeners.message.map(async f => {
             try {
               return await f({
                 src,
@@ -10244,33 +10241,33 @@ class MultiClient {
               return null;
             }
           }));
-        }
 
-        if (!noReply) {
-          let responded = false;
+          if (!noReply) {
+            let responded = false;
 
-          for (let response of responses) {
-            if (response === false) {
-              return false;
-            } else if (response !== undefined && response !== null) {
-              this.send(src, response, {
-                encrypt: isEncrypted,
-                msgHoldingSeconds: 0,
-                replyToId: messageId
-              }).catch(e => {
-                console.log('Send response error:', e);
-              });
-              responded = true;
-              break;
-            }
-          }
-
-          if (!responded) {
-            for (let clientID of Object.keys(clients)) {
-              if (clients[clientID].isReady) {
-                clients[clientID]._sendACK(util.addIdentifierPrefixAll(src, clientID), messageId, isEncrypted).catch(e => {
-                  console.log('Send ack error:', e);
+            for (let response of responses) {
+              if (response === false) {
+                return false;
+              } else if (response !== undefined && response !== null) {
+                this.send(src, response, {
+                  encrypt: isEncrypted,
+                  msgHoldingSeconds: 0,
+                  replyToId: messageId
+                }).catch(e => {
+                  console.log('Send response error:', e);
                 });
+                responded = true;
+                break;
+              }
+            }
+
+            if (!responded) {
+              for (let clientID of Object.keys(clients)) {
+                if (clients[clientID].isReady) {
+                  clients[clientID]._sendACK(util.addIdentifierPrefixAll(src, clientID), messageId, isEncrypted).catch(e => {
+                    console.log('Send ack error:', e);
+                  });
+                }
               }
             }
           }
@@ -10333,7 +10330,7 @@ class MultiClient {
     if (!existed) {
       await session.accept();
 
-      if (this.eventListeners.session) {
+      if (this.eventListeners.session.length > 0) {
         await _promise.default.all(this.eventListeners.session.map(async f => {
           try {
             return await f(session);
