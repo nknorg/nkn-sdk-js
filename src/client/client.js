@@ -313,7 +313,7 @@ export default class Client {
 
     let messageId = await this._send(dest, payload, options.encrypt, options.msgHoldingSeconds);
     if (messageId === null || options.noReply) {
-      return messageId;
+      return null;
     }
 
     return await new Promise((resolve: ResponseHandler, reject: TimeoutHandler) => {
