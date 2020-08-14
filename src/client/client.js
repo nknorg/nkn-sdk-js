@@ -447,9 +447,8 @@ export default class Client {
       case common.pb.payloads.PayloadType.TEXT:
       case common.pb.payloads.PayloadType.BINARY:
       case common.pb.payloads.PayloadType.SESSION:
-        let responses = [];
         if (this.eventListeners.message.length > 0) {
-          responses = await Promise.all(this.eventListeners.message.map(async f => {
+          let responses = await Promise.all(this.eventListeners.message.map(async f => {
             try {
               return await f({
                 src: msg.getSrc(),
@@ -464,26 +463,26 @@ export default class Client {
               return null;
             }
           }));
-        }
-        if (!payload.getNoReply()) {
-          let responded = false;
-          for (let response of responses) {
-            if (response === false) {
-              return true;
-            } else if (response !== undefined && response !== null) {
-              this.send(msg.getSrc(), response, {
-                encrypt: pldMsg.getEncrypted(),
-                msgHoldingSeconds: 0,
-                replyToId: payload.getMessageId(),
-              }).catch((e) => {
-                console.log('Send response error:', e);
-              });
-              responded = true;
-              break;
+          if (!payload.getNoReply()) {
+            let responded = false;
+            for (let response of responses) {
+              if (response === false) {
+                return true;
+              } else if (response !== undefined && response !== null) {
+                this.send(msg.getSrc(), response, {
+                  encrypt: pldMsg.getEncrypted(),
+                  msgHoldingSeconds: 0,
+                  replyToId: payload.getMessageId(),
+                }).catch((e) => {
+                  console.log('Send response error:', e);
+                });
+                responded = true;
+                break;
+              }
             }
-          }
-          if (!responded) {
-            await this._sendACK(msg.getSrc(), payload.getMessageId(), pldMsg.getEncrypted());
+            if (!responded) {
+              await this._sendACK(msg.getSrc(), payload.getMessageId(), pldMsg.getEncrypted());
+            }
           }
         }
         return true;
