@@ -11323,35 +11323,24 @@ class Wallet {
         break;
     }
 
-    let passwordKey;
-
-    if (options.passwordKey && options.passwordKey[this.version]) {
-      passwordKey = options.passwordKey[this.version];
-    } else {
-      passwordKey = Wallet._computePasswordKey({
-        version: this.version,
-        password: options.password,
-        scrypt: this.scryptParams,
-        async: false
-      });
-    }
-
-    let iv = options.iv || common.util.randomBytesHex(16);
-    let masterKey = options.masterKey || common.util.randomBytesHex(32);
     this.options = options;
     this.account = new _account.default(options.seed, {
       worker: options.worker
     });
-    this.iv = iv;
-    this.masterKey = common.aes.encrypt(masterKey, passwordKey, iv);
     this.address = this.account.address;
     this.programHash = this.account.programHash;
-    this.seedEncrypted = common.aes.encrypt(this.account.getSeed(), masterKey, iv);
+
+    if (options.iv || options.masterKey || options.password || options.passwordKey) {
+      this._completeWallet(Object.assign({}, options, {
+        async: false
+      }));
+    }
+
     delete options.seed;
-    delete options.password;
-    delete options.passwordKey;
     delete options.iv;
     delete options.masterKey;
+    delete options.password;
+    delete options.passwordKey;
   }
 
   static _computePasswordKey(options) {
@@ -11367,7 +11356,7 @@ class Wallet {
     switch (options.version) {
       case 1:
         if (options.async) {
-          return new Promise(resolve => resolve(common.hash.doubleSha256(options.password)));
+          return Promise.resolve(common.hash.doubleSha256(options.password));
         } else {
           return common.hash.doubleSha256(options.password);
         }
@@ -11419,6 +11408,54 @@ class Wallet {
     }
 
     return new Wallet(options);
+  }
+
+  _completeWallet(options = {}) {
+    if (this.seedEncrypted) {
+      if (options.async) {
+        return Promise.resolve();
+      } else {
+        return;
+      }
+    }
+
+    let completeWallet = passwordKey => {
+      let iv = options.iv || common.util.randomBytesHex(16);
+      let masterKey = options.masterKey || common.util.randomBytesHex(32);
+      this.iv = iv;
+      this.masterKey = common.aes.encrypt(masterKey, passwordKey, iv);
+      this.seedEncrypted = common.aes.encrypt(this.account.getSeed(), masterKey, iv);
+    };
+
+    let passwordKey;
+
+    if (options.passwordKey && options.passwordKey['' + this.version]) {
+      passwordKey = options.passwordKey['' + this.version];
+    } else {
+      if (options.async) {
+        return Wallet._computePasswordKey({
+          version: this.version,
+          password: options.password || '',
+          scrypt: this.scryptParams,
+          async: true
+        }).then(completeWallet);
+      } else {
+        passwordKey = Wallet._computePasswordKey({
+          version: this.version,
+          password: options.password || '',
+          scrypt: this.scryptParams,
+          async: false
+        });
+      }
+    }
+
+    completeWallet(passwordKey);
+
+    if (options.async) {
+      return Promise.resolve();
+    } else {
+      return;
+    }
   }
   /**
    * Recover wallet from JSON string and password.
@@ -11488,6 +11525,10 @@ class Wallet {
 
 
   toJSON() {
+    this._completeWallet({
+      async: false
+    });
+
     let walletJson = {
       Version: this.version,
       MasterKey: this.masterKey,
@@ -11535,6 +11576,10 @@ class Wallet {
   }
 
   _verifyPassword(passwordKey) {
+    this._completeWallet({
+      async: false
+    });
+
     let masterKey = common.aes.decrypt(this.masterKey, passwordKey, this.iv);
     let seed = common.aes.decrypt(this.seedEncrypted, masterKey, this.iv);
     let account = new _account.default(seed, {
@@ -11558,10 +11603,20 @@ class Wallet {
     };
 
     if (options.async) {
-      return Wallet._computePasswordKey(opts).then(passwordKey => {
+      let verifyPassword = async () => {
+        await this._completeWallet({
+          async: true
+        });
+        let passwordKey = await Wallet._computePasswordKey(opts);
         return this._verifyPassword(passwordKey);
-      });
+      };
+
+      return verifyPassword();
     } else {
+      this._completeWallet({
+        async: false
+      });
+
       let passwordKey = Wallet._computePasswordKey(opts);
 
       return this._verifyPassword(passwordKey);
