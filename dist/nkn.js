@@ -1565,7 +1565,7 @@ async function sign(privateKey, message) {
 Object.defineProperty(exports, "__esModule", {
   value: true
 });
-exports.InvalidDestinationError = exports.ServerError = exports.InvalidResponseError = exports.InvalidArgumentError = exports.InvalidWalletVersionError = exports.InvalidWalletFormatError = exports.InvalidAddressError = exports.WrongPasswordError = exports.NotEnoughBalanceError = exports.UnknownError = exports.DecryptionError = exports.DataSizeTooLargeError = exports.ClientNotReadyError = exports.AddrNotAllowedError = exports.rpcRespErrCodes = void 0;
+exports.RpcError = exports.RpcTimeoutError = exports.InvalidDestinationError = exports.ServerError = exports.InvalidResponseError = exports.InvalidArgumentError = exports.InvalidWalletVersionError = exports.InvalidWalletFormatError = exports.InvalidAddressError = exports.WrongPasswordError = exports.NotEnoughBalanceError = exports.UnknownError = exports.DecryptionError = exports.DataSizeTooLargeError = exports.ClientNotReadyError = exports.AddrNotAllowedError = exports.rpcRespErrCodes = void 0;
 const rpcRespErrCodes = {
   success: 0,
   wrongNode: 48001,
@@ -1794,6 +1794,36 @@ class InvalidDestinationError extends Error {
 }
 
 exports.InvalidDestinationError = InvalidDestinationError;
+
+class RpcTimeoutError extends Error {
+  constructor(message = 'rpc timeout', ...params) {
+    super(message, ...params);
+
+    if (Error.captureStackTrace) {
+      Error.captureStackTrace(this, RpcTimeoutError);
+    }
+
+    this.name = 'RpcTimeoutError';
+  }
+
+}
+
+exports.RpcTimeoutError = RpcTimeoutError;
+
+class RpcError extends Error {
+  constructor(message = 'rpc error', ...params) {
+    super(message, ...params);
+
+    if (Error.captureStackTrace) {
+      Error.captureStackTrace(this, RpcError);
+    }
+
+    this.name = 'RpcError';
+  }
+
+}
+
+exports.RpcError = RpcError;
 },{}],9:[function(require,module,exports){
 'use strict';
 
@@ -9518,6 +9548,7 @@ function _interopRequireWildcard(obj) { if (obj && obj.__esModule) { return obj;
 
 function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
 
+const rpcTimeout = 10000;
 const methods = {
   getWsAddr: {
     method: 'getwsaddr'
@@ -9568,17 +9599,36 @@ for (let method in methods) {
 }
 
 async function rpcCall(addr, method, params = {}) {
-  let response = await (0, _axios.default)({
-    url: addr,
-    method: 'POST',
-    timeout: 10000,
-    data: {
-      id: 'nkn-sdk-js',
-      jsonrpc: '2.0',
-      method: method,
-      params: params
+  const source = _axios.default.CancelToken.source();
+
+  let response = null;
+  setTimeout(() => {
+    if (response === null) {
+      source.cancel('rpc timeout');
     }
-  });
+  }, rpcTimeout);
+
+  try {
+    response = await (0, _axios.default)({
+      url: addr,
+      method: 'POST',
+      timeout: rpcTimeout,
+      cancelToken: source.token,
+      data: {
+        id: 'nkn-sdk-js',
+        jsonrpc: '2.0',
+        method: method,
+        params: params
+      }
+    });
+  } catch (e) {
+    if (_axios.default.isCancel(e)) {
+      throw new errors.RpcTimeoutError(e.message);
+    } else {
+      throw new errors.RpcError(e.message);
+    }
+  }
+
   let data = response.data;
 
   if (data.error) {

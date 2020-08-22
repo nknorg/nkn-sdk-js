@@ -8,6 +8,8 @@ import * as errors from './errors';
 import * as transaction from '../wallet/transaction';
 import * as util from './util';
 
+const rpcTimeout = 10000;
+
 const methods = {
   getWsAddr: { method: 'getwsaddr' },
   getWssAddr: { method: 'getwssaddr' },
@@ -32,17 +34,35 @@ for (let method in methods) {
 }
 
 async function rpcCall(addr, method, params = {}) {
-  let response = await axios({
-    url: addr,
-    method: 'POST',
-    timeout: 10000,
-    data: {
-      id: 'nkn-sdk-js',
-      jsonrpc: '2.0',
-      method: method,
-      params: params,
-    },
-  });
+  const source = axios.CancelToken.source();
+  let response = null;
+
+  setTimeout(() => {
+    if (response === null) {
+      source.cancel('rpc timeout');
+    }
+  }, rpcTimeout);
+
+  try {
+    response = await axios({
+      url: addr,
+      method: 'POST',
+      timeout: rpcTimeout,
+      cancelToken: source.token,
+      data: {
+        id: 'nkn-sdk-js',
+        jsonrpc: '2.0',
+        method: method,
+        params: params,
+      },
+    });
+  } catch (e) {
+    if (axios.isCancel(e)) {
+      throw new errors.RpcTimeoutError(e.message);
+    } else {
+      throw new errors.RpcError(e.message);
+    }
+  }
 
   let data = response.data;
 
