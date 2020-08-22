@@ -154,3 +154,23 @@ export class InvalidDestinationError extends Error {
     this.name = 'InvalidDestinationError';
   }
 }
+
+export class RpcTimeoutError extends Error {
+  constructor(message = 'rpc timeout', ...params) {
+    super(message, ...params);
+    if (Error.captureStackTrace) {
+      Error.captureStackTrace(this, RpcTimeoutError);
+    }
+    this.name = 'RpcTimeoutError';
+  }
+}
+
+export class RpcError extends Error {
+  constructor(message = 'rpc error', ...params) {
+    super(message, ...params);
+    if (Error.captureStackTrace) {
+      Error.captureStackTrace(this, RpcError);
+    }
+    this.name = 'RpcError';
+  }
+}
