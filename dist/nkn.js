@@ -9870,6 +9870,7 @@ Object.defineProperty(exports, "__esModule", {
 });
 exports.hexToBytes = hexToBytes;
 exports.bytesToHex = bytesToHex;
+exports.setPRNG = setPRNG;
 exports.randomBytesHex = randomBytesHex;
 exports.randomInt32 = randomInt32;
 exports.randomUint64 = randomUint64;
@@ -9915,13 +9916,11 @@ function bytesToHex(bytes) {
   }).join('');
 }
 
-var randomBytes;
+var randomBytes = _tweetnacl.default.randomBytes;
 exports.randomBytes = randomBytes;
 
-if (typeof navigator != 'undefined' && navigator.product === 'ReactNative') {
-  exports.randomBytes = randomBytes = require('crypto').randomBytes;
-} else {
-  exports.randomBytes = randomBytes = _tweetnacl.default.randomBytes;
+function setPRNG(f) {
+  _tweetnacl.default.setPRNG(f);
 }
 
 function randomBytesHex(len) {
@@ -9975,13 +9974,14 @@ function toLowerKeys(obj) {
   }), {});
 }
 }).call(this,require("buffer").Buffer)
-},{"./serialize":18,"buffer":117,"crypto":87,"tweetnacl":381}],20:[function(require,module,exports){
+},{"./serialize":18,"buffer":117,"tweetnacl":381}],20:[function(require,module,exports){
 'use strict';
 
 Object.defineProperty(exports, "__esModule", {
   value: true
 });
 var _exportNames = {
+  setPRNG: true,
   ready: true,
   Client: true,
   MultiClient: true,
@@ -10011,7 +10011,7 @@ Object.defineProperty(exports, "Wallet", {
     return _wallet.default;
   }
 });
-exports.default = void 0;
+exports.setPRNG = exports.default = void 0;
 
 var _libsodiumWrappers = require("libsodium-wrappers");
 
@@ -10040,10 +10040,13 @@ function _getRequireWildcardCache() { if (typeof WeakMap !== "function") return 
 
 function _interopRequireWildcard(obj) { if (obj && obj.__esModule) { return obj; } if (obj === null || typeof obj !== "object" && typeof obj !== "function") { return { default: obj }; } var cache = _getRequireWildcardCache(); if (cache && cache.has(obj)) { return cache.get(obj); } var newObj = {}; var hasPropertyDescriptor = Object.defineProperty && Object.getOwnPropertyDescriptor; for (var key in obj) { if (Object.prototype.hasOwnProperty.call(obj, key)) { var desc = hasPropertyDescriptor ? Object.getOwnPropertyDescriptor(obj, key) : null; if (desc && (desc.get || desc.set)) { Object.defineProperty(newObj, key, desc); } else { newObj[key] = obj[key]; } } } newObj.default = obj; if (cache) { cache.set(obj, newObj); } return newObj; }
 
+var setPRNG = nkn.util.setPRNG;
+exports.setPRNG = setPRNG;
 nkn.ready = _libsodiumWrappers.ready;
 nkn.Client = _client.default;
 nkn.MultiClient = _multiclient.default;
 nkn.Wallet = _wallet.default;
+nkn.setPRNG = setPRNG;
 var _default = nkn;
 exports.default = _default;
 },{"./client":3,"./common":10,"./multiclient":22,"./wallet":28,"libsodium-wrappers":308}],21:[function(require,module,exports){
