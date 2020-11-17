@@ -29,11 +29,10 @@ export function bytesToHex(bytes) {
   }).join('');
 }
 
-export var randomBytes;
-if (typeof navigator != 'undefined' && navigator.product === 'ReactNative') {
-  randomBytes = require('crypto').randomBytes;
-} else {
-  randomBytes = nacl.randomBytes;
+export var randomBytes = nacl.randomBytes;
+
+export function setPRNG(f) {
+  nacl.setPRNG(f);
 }
 
 export function randomBytesHex(len) {

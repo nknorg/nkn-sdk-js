@@ -67,8 +67,9 @@ import nkn from 'nkn-sdk';
 
 For browser, use `dist/nkn.js` or `dist/nkn.min.js`.
 
-If you use it in React Native, you also need to follow the installation guide in
-[react-native-crypto](https://github.com/tradle/react-native-crypto).
+For environment where cryptographically secure random number generator is not
+natively implemented (e.g. React Native), see [Random bytes
+generation](#random-bytes-generation).
 
 ## Client
 
@@ -410,6 +411,36 @@ wallet.subscribe('topic', 100, 'identifier', 'metadata', { fee: '0.1' }).then((t
 Check [examples/wallet.js](examples/wallet.js) for complete examples and
 [https://docs.nkn.org/nkn-sdk-js](https://docs.nkn.org/nkn-sdk-js) for full
 documentation.
+
+## Random bytes generation
+
+By default, this library uses the same random bytes generator as
+[tweetnacl-js](https://github.com/dchest/tweetnacl-js).
+
+If a platform you are targeting doesn't implement secure random number
+generator, but you somehow have a cryptographically-strong source of entropy
+(not `Math.random`!), and you know what you are doing, you can plug it like
+this:
+
+```javascript
+nkn.setPRNG(function(x, n) {
+  // ... copy n random bytes into x ...
+});
+```
+
+An example using node.js native crypto library:
+
+```javascript
+crypto = require('crypto');
+nkn.setPRNG(function(x, n) {
+  var i, v = crypto.randomBytes(n);
+  for (i = 0; i < n; i++) x[i] = v[i];
+  // clean up v
+});
+```
+
+Note that `setPRNG` *completely replaces* internal random byte generator
+with the one provided.
 
 ## Contributing
 
