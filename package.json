@@ -38,7 +38,7 @@
     "streaming"
   ],
   "dependencies": {
-    "@nkn/ncp": "^1.0.7",
+    "@nkn/ncp": "^1.0.8",
     "axios": "^0.21.1",
     "base-x": "^3.0.7",
     "buffer": "^5.4.3",
