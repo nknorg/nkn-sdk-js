@@ -1188,22 +1188,14 @@
     "@types/yargs" "^15.0.0"
     chalk "^3.0.0"
 
-"@nkn/ncp@^1.0.6":
-  version "1.0.6"
-  resolved "https://registry.yarnpkg.com/@nkn/ncp/-/ncp-1.0.6.tgz#74b6f0a9ea02803a5d0c2a4b48bff6784b409e9a"
-  integrity sha512-qMFNZ9eN9z+lWEonyJ2V60y5mQeUxhUl4KBGiqhgBquY11RObEmWuUZ7GS5+N6AeJ7N1uMQQCFb2m8EKKNAuqw==
+"@nkn/ncp@^1.0.7":
+  version "1.0.7"
+  resolved "https://registry.yarnpkg.com/@nkn/ncp/-/ncp-1.0.7.tgz#0ab3ae387d9b844f03247e416bf61ece3d25ddd7"
+  integrity sha512-0BjFy0L2PzqSOmLz+pf51xps55jC8wi9DFxQks3Yj1pWzsLmjdgXRcQX93Cs3AVgLiw2w+UoyeBqdbcj/Oz4wA==
   dependencies:
-    "@nodeguy/channel" "^0.6.6"
     core-js-pure "^3.6.4"
     google-protobuf "^3.11.2"
     heap "^0.2.6"
-
-"@nodeguy/channel@^0.6.6":
-  version "0.6.6"
-  resolved "https://registry.yarnpkg.com/@nodeguy/channel/-/channel-0.6.6.tgz#21e6c6402533f047ef511b838d3ee94813a36bc6"
-  integrity sha512-5azDfNQk/XlZg9NpDw5LI8TQi2yvktPvxaE/4NXS4c941paVVES44Kzwqx3bhAU3hYMfLlhrW0RCGdEGGeZ7dQ==
-  dependencies:
-    setimmediate "1.0.5"
 
 "@sinonjs/commons@^1.7.0":
   version "1.7.0"
@@ -5780,11 +5772,6 @@ set-value@^2.0.0, set-value@^2.0.1:
     is-extendable "^0.1.1"
     is-plain-object "^2.0.3"
     split-string "^3.0.1"
-
-setimmediate@1.0.5:
-  version "1.0.5"
-  resolved "https://registry.yarnpkg.com/setimmediate/-/setimmediate-1.0.5.tgz#290cbb232e306942d7d7ea9b83732ab7856f8285"
-  integrity sha1-KQy7Iy4waULX1+qbg3Mqt4VvgoU=
 
 sha.js@^2.4.0, sha.js@^2.4.8, sha.js@~2.4.4:
   version "2.4.11"
