@@ -1,6 +1,6 @@
 {
   "name": "nkn-sdk",
-  "version": "1.2.1",
+  "version": "1.2.2",
   "description": "NKN client and wallet SDK",
   "main": "lib/index.js",
   "exports": {
@@ -38,7 +38,7 @@
     "streaming"
   ],
   "dependencies": {
-    "@nkn/ncp": "^1.0.8",
+    "@nkn/ncp": "^1.0.9",
     "axios": "^0.21.1",
     "base-x": "^3.0.7",
     "buffer": "^5.4.3",
@@ -58,13 +58,13 @@
     "ws": "^7.2.3"
   },
   "devDependencies": {
-    "@babel/cli": "^7.8.3",
-    "@babel/core": "^7.8.3",
-    "@babel/plugin-proposal-class-properties": "^7.8.3",
-    "@babel/plugin-proposal-export-default-from": "^7.8.3",
-    "@babel/plugin-proposal-export-namespace-from": "^7.8.3",
-    "@babel/preset-env": "^7.8.3",
-    "@babel/preset-flow": "^7.8.3",
+    "@babel/cli": "^7.16.0",
+    "@babel/core": "^7.16.5",
+    "@babel/plugin-proposal-class-properties": "^7.16.5",
+    "@babel/plugin-proposal-export-default-from": "^7.16.5",
+    "@babel/plugin-proposal-export-namespace-from": "^7.16.5",
+    "@babel/preset-env": "^7.16.5",
+    "@babel/preset-flow": "^7.16.5",
     "browserify": "^16.5.0",
     "documentation": "^12.1.4",
     "flow-bin": "^0.118.0",

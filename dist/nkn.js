@@ -16,9 +16,9 @@ var consts = _interopRequireWildcard(require("./consts"));
 
 var message = _interopRequireWildcard(require("./message"));
 
-function _getRequireWildcardCache() { if (typeof WeakMap !== "function") return null; var cache = new WeakMap(); _getRequireWildcardCache = function () { return cache; }; return cache; }
+function _getRequireWildcardCache(nodeInterop) { if (typeof WeakMap !== "function") return null; var cacheBabelInterop = new WeakMap(); var cacheNodeInterop = new WeakMap(); return (_getRequireWildcardCache = function (nodeInterop) { return nodeInterop ? cacheNodeInterop : cacheBabelInterop; })(nodeInterop); }
 
-function _interopRequireWildcard(obj) { if (obj && obj.__esModule) { return obj; } if (obj === null || typeof obj !== "object" && typeof obj !== "function") { return { default: obj }; } var cache = _getRequireWildcardCache(); if (cache && cache.has(obj)) { return cache.get(obj); } var newObj = {}; var hasPropertyDescriptor = Object.defineProperty && Object.getOwnPropertyDescriptor; for (var key in obj) { if (Object.prototype.hasOwnProperty.call(obj, key)) { var desc = hasPropertyDescriptor ? Object.getOwnPropertyDescriptor(obj, key) : null; if (desc && (desc.get || desc.set)) { Object.defineProperty(newObj, key, desc); } else { newObj[key] = obj[key]; } } } newObj.default = obj; if (cache) { cache.set(obj, newObj); } return newObj; }
+function _interopRequireWildcard(obj, nodeInterop) { if (!nodeInterop && obj && obj.__esModule) { return obj; } if (obj === null || typeof obj !== "object" && typeof obj !== "function") { return { default: obj }; } var cache = _getRequireWildcardCache(nodeInterop); if (cache && cache.has(obj)) { return cache.get(obj); } var newObj = {}; var hasPropertyDescriptor = Object.defineProperty && Object.getOwnPropertyDescriptor; for (var key in obj) { if (key !== "default" && Object.prototype.hasOwnProperty.call(obj, key)) { var desc = hasPropertyDescriptor ? Object.getOwnPropertyDescriptor(obj, key) : null; if (desc && (desc.get || desc.set)) { Object.defineProperty(newObj, key, desc); } else { newObj[key] = obj[key]; } } } newObj.default = obj; if (cache) { cache.set(obj, newObj); } return newObj; }
 
 function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
 
@@ -292,7 +292,7 @@ class Client {
         }
 
         if (totalSize + size > message.maxClientMessageSize) {
-          msgs.push((await message.newOutboundMessage(this, destList, pldList, maxHoldingSeconds)));
+          msgs.push(await message.newOutboundMessage(this, destList, pldList, maxHoldingSeconds));
           destList = [];
           pldList = [];
           totalSize = 0;
@@ -321,7 +321,7 @@ class Client {
       pldList = pldMsg;
     }
 
-    msgs.push((await message.newOutboundMessage(this, destList, pldList, maxHoldingSeconds)));
+    msgs.push(await message.newOutboundMessage(this, destList, pldList, maxHoldingSeconds));
 
     if (msgs.length > 1) {
       console.log(`Client message size is greater than ${message.maxClientMessageSize} bytes, split into ${msgs.length} batches.`);
@@ -1087,7 +1087,7 @@ class ResponseManager {
 Object.defineProperty(exports, "__esModule", {
   value: true
 });
-exports.checkTimeoutInterval = exports.defaultPublishOptions = exports.defaultOptions = void 0;
+exports.defaultPublishOptions = exports.defaultOptions = exports.checkTimeoutInterval = void 0;
 const defaultOptions = {
   reconnectIntervalMin: 1000,
   reconnectIntervalMax: 64000,
@@ -1129,28 +1129,28 @@ function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { de
 Object.defineProperty(exports, "__esModule", {
   value: true
 });
-exports.newPayload = newPayload;
-exports.newBinaryPayload = newBinaryPayload;
-exports.newTextPayload = newTextPayload;
-exports.newAckPayload = newAckPayload;
-exports.newSessionPayload = newSessionPayload;
-exports.newMessage = newMessage;
-exports.newClientMessage = newClientMessage;
-exports.newOutboundMessage = newOutboundMessage;
-exports.newReceipt = newReceipt;
-exports.serializeSigChainMetadata = serializeSigChainMetadata;
-exports.serializeSigChainElem = serializeSigChainElem;
 exports.addrToID = addrToID;
 exports.addrToPubkey = addrToPubkey;
-exports.maxClientMessageSize = exports.messageIdSize = void 0;
+exports.messageIdSize = exports.maxClientMessageSize = void 0;
+exports.newAckPayload = newAckPayload;
+exports.newBinaryPayload = newBinaryPayload;
+exports.newClientMessage = newClientMessage;
+exports.newMessage = newMessage;
+exports.newOutboundMessage = newOutboundMessage;
+exports.newPayload = newPayload;
+exports.newReceipt = newReceipt;
+exports.newSessionPayload = newSessionPayload;
+exports.newTextPayload = newTextPayload;
+exports.serializeSigChainElem = serializeSigChainElem;
+exports.serializeSigChainMetadata = serializeSigChainMetadata;
 
 var _pako = _interopRequireDefault(require("pako"));
 
 var common = _interopRequireWildcard(require("../common"));
 
-function _getRequireWildcardCache() { if (typeof WeakMap !== "function") return null; var cache = new WeakMap(); _getRequireWildcardCache = function () { return cache; }; return cache; }
+function _getRequireWildcardCache(nodeInterop) { if (typeof WeakMap !== "function") return null; var cacheBabelInterop = new WeakMap(); var cacheNodeInterop = new WeakMap(); return (_getRequireWildcardCache = function (nodeInterop) { return nodeInterop ? cacheNodeInterop : cacheBabelInterop; })(nodeInterop); }
 
-function _interopRequireWildcard(obj) { if (obj && obj.__esModule) { return obj; } if (obj === null || typeof obj !== "object" && typeof obj !== "function") { return { default: obj }; } var cache = _getRequireWildcardCache(); if (cache && cache.has(obj)) { return cache.get(obj); } var newObj = {}; var hasPropertyDescriptor = Object.defineProperty && Object.getOwnPropertyDescriptor; for (var key in obj) { if (Object.prototype.hasOwnProperty.call(obj, key)) { var desc = hasPropertyDescriptor ? Object.getOwnPropertyDescriptor(obj, key) : null; if (desc && (desc.get || desc.set)) { Object.defineProperty(newObj, key, desc); } else { newObj[key] = obj[key]; } } } newObj.default = obj; if (cache) { cache.set(obj, newObj); } return newObj; }
+function _interopRequireWildcard(obj, nodeInterop) { if (!nodeInterop && obj && obj.__esModule) { return obj; } if (obj === null || typeof obj !== "object" && typeof obj !== "function") { return { default: obj }; } var cache = _getRequireWildcardCache(nodeInterop); if (cache && cache.has(obj)) { return cache.get(obj); } var newObj = {}; var hasPropertyDescriptor = Object.defineProperty && Object.getOwnPropertyDescriptor; for (var key in obj) { if (key !== "default" && Object.prototype.hasOwnProperty.call(obj, key)) { var desc = hasPropertyDescriptor ? Object.getOwnPropertyDescriptor(obj, key) : null; if (desc && (desc.get || desc.set)) { Object.defineProperty(newObj, key, desc); } else { newObj[key] = obj[key]; } } } newObj.default = obj; if (cache) { cache.set(obj, newObj); } return newObj; }
 
 function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
 
@@ -1350,16 +1350,16 @@ function addrToPubkey(addr) {
 Object.defineProperty(exports, "__esModule", {
   value: true
 });
-exports.encrypt = encrypt;
 exports.decrypt = decrypt;
+exports.encrypt = encrypt;
 
 var _cryptoJs = _interopRequireDefault(require("crypto-js"));
 
 var hash = _interopRequireWildcard(require("./hash"));
 
-function _getRequireWildcardCache() { if (typeof WeakMap !== "function") return null; var cache = new WeakMap(); _getRequireWildcardCache = function () { return cache; }; return cache; }
+function _getRequireWildcardCache(nodeInterop) { if (typeof WeakMap !== "function") return null; var cacheBabelInterop = new WeakMap(); var cacheNodeInterop = new WeakMap(); return (_getRequireWildcardCache = function (nodeInterop) { return nodeInterop ? cacheNodeInterop : cacheBabelInterop; })(nodeInterop); }
 
-function _interopRequireWildcard(obj) { if (obj && obj.__esModule) { return obj; } if (obj === null || typeof obj !== "object" && typeof obj !== "function") { return { default: obj }; } var cache = _getRequireWildcardCache(); if (cache && cache.has(obj)) { return cache.get(obj); } var newObj = {}; var hasPropertyDescriptor = Object.defineProperty && Object.getOwnPropertyDescriptor; for (var key in obj) { if (Object.prototype.hasOwnProperty.call(obj, key)) { var desc = hasPropertyDescriptor ? Object.getOwnPropertyDescriptor(obj, key) : null; if (desc && (desc.get || desc.set)) { Object.defineProperty(newObj, key, desc); } else { newObj[key] = obj[key]; } } } newObj.default = obj; if (cache) { cache.set(obj, newObj); } return newObj; }
+function _interopRequireWildcard(obj, nodeInterop) { if (!nodeInterop && obj && obj.__esModule) { return obj; } if (obj === null || typeof obj !== "object" && typeof obj !== "function") { return { default: obj }; } var cache = _getRequireWildcardCache(nodeInterop); if (cache && cache.has(obj)) { return cache.get(obj); } var newObj = {}; var hasPropertyDescriptor = Object.defineProperty && Object.getOwnPropertyDescriptor; for (var key in obj) { if (key !== "default" && Object.prototype.hasOwnProperty.call(obj, key)) { var desc = hasPropertyDescriptor ? Object.getOwnPropertyDescriptor(obj, key) : null; if (desc && (desc.get || desc.set)) { Object.defineProperty(newObj, key, desc); } else { newObj[key] = obj[key]; } } } newObj.default = obj; if (cache) { cache.set(obj, newObj); } return newObj; }
 
 function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
 
@@ -1416,14 +1416,16 @@ _defineProperty(Amount, "unit", new _decimal.Decimal('100000000'));
 Object.defineProperty(exports, "__esModule", {
   value: true
 });
-exports.keyPair = keyPair;
-exports.ed25519SkToCurve25519 = ed25519SkToCurve25519;
-exports.ed25519PkToCurve25519 = ed25519PkToCurve25519;
 exports.computeSharedKey = computeSharedKey;
-exports.encryptSymmetric = encryptSymmetric;
 exports.decryptSymmetric = decryptSymmetric;
+exports.ed25519PkToCurve25519 = ed25519PkToCurve25519;
+exports.ed25519SkToCurve25519 = ed25519SkToCurve25519;
+exports.encryptSymmetric = encryptSymmetric;
+exports.keyLength = void 0;
+exports.keyPair = keyPair;
+exports.seedLength = exports.publicKeyLength = exports.nonceLength = void 0;
 exports.sign = sign;
-exports.signatureLength = exports.seedLength = exports.publicKeyLength = exports.nonceLength = exports.keyLength = void 0;
+exports.signatureLength = void 0;
 
 var _ed2curve = _interopRequireDefault(require("ed2curve"));
 
@@ -1433,9 +1435,9 @@ var _tweetnacl = _interopRequireDefault(require("tweetnacl"));
 
 var util = _interopRequireWildcard(require("./util"));
 
-function _getRequireWildcardCache() { if (typeof WeakMap !== "function") return null; var cache = new WeakMap(); _getRequireWildcardCache = function () { return cache; }; return cache; }
+function _getRequireWildcardCache(nodeInterop) { if (typeof WeakMap !== "function") return null; var cacheBabelInterop = new WeakMap(); var cacheNodeInterop = new WeakMap(); return (_getRequireWildcardCache = function (nodeInterop) { return nodeInterop ? cacheNodeInterop : cacheBabelInterop; })(nodeInterop); }
 
-function _interopRequireWildcard(obj) { if (obj && obj.__esModule) { return obj; } if (obj === null || typeof obj !== "object" && typeof obj !== "function") { return { default: obj }; } var cache = _getRequireWildcardCache(); if (cache && cache.has(obj)) { return cache.get(obj); } var newObj = {}; var hasPropertyDescriptor = Object.defineProperty && Object.getOwnPropertyDescriptor; for (var key in obj) { if (Object.prototype.hasOwnProperty.call(obj, key)) { var desc = hasPropertyDescriptor ? Object.getOwnPropertyDescriptor(obj, key) : null; if (desc && (desc.get || desc.set)) { Object.defineProperty(newObj, key, desc); } else { newObj[key] = obj[key]; } } } newObj.default = obj; if (cache) { cache.set(obj, newObj); } return newObj; }
+function _interopRequireWildcard(obj, nodeInterop) { if (!nodeInterop && obj && obj.__esModule) { return obj; } if (obj === null || typeof obj !== "object" && typeof obj !== "function") { return { default: obj }; } var cache = _getRequireWildcardCache(nodeInterop); if (cache && cache.has(obj)) { return cache.get(obj); } var newObj = {}; var hasPropertyDescriptor = Object.defineProperty && Object.getOwnPropertyDescriptor; for (var key in obj) { if (key !== "default" && Object.prototype.hasOwnProperty.call(obj, key)) { var desc = hasPropertyDescriptor ? Object.getOwnPropertyDescriptor(obj, key) : null; if (desc && (desc.get || desc.set)) { Object.defineProperty(newObj, key, desc); } else { newObj[key] = obj[key]; } } } newObj.default = obj; if (cache) { cache.set(obj, newObj); } return newObj; }
 
 function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
 
@@ -1565,7 +1567,7 @@ async function sign(privateKey, message) {
 Object.defineProperty(exports, "__esModule", {
   value: true
 });
-exports.RpcError = exports.RpcTimeoutError = exports.InvalidDestinationError = exports.ServerError = exports.InvalidResponseError = exports.InvalidArgumentError = exports.InvalidWalletVersionError = exports.InvalidWalletFormatError = exports.InvalidAddressError = exports.WrongPasswordError = exports.NotEnoughBalanceError = exports.UnknownError = exports.DecryptionError = exports.DataSizeTooLargeError = exports.ClientNotReadyError = exports.AddrNotAllowedError = exports.rpcRespErrCodes = void 0;
+exports.rpcRespErrCodes = exports.WrongPasswordError = exports.UnknownError = exports.ServerError = exports.RpcTimeoutError = exports.RpcError = exports.NotEnoughBalanceError = exports.InvalidWalletVersionError = exports.InvalidWalletFormatError = exports.InvalidResponseError = exports.InvalidDestinationError = exports.InvalidArgumentError = exports.InvalidAddressError = exports.DecryptionError = exports.DataSizeTooLargeError = exports.ClientNotReadyError = exports.AddrNotAllowedError = void 0;
 const rpcRespErrCodes = {
   success: 0,
   wrongNode: 48001,
@@ -1831,12 +1833,12 @@ Object.defineProperty(exports, "__esModule", {
   value: true
 });
 exports.cryptoHexStringParse = cryptoHexStringParse;
-exports.sha256 = sha256;
-exports.sha256Hex = sha256Hex;
 exports.doubleSha256 = doubleSha256;
 exports.doubleSha256Hex = doubleSha256Hex;
 exports.ripemd160 = ripemd160;
 exports.ripemd160Hex = ripemd160Hex;
+exports.sha256 = sha256;
+exports.sha256Hex = sha256Hex;
 
 var _cryptoJs = _interopRequireDefault(require("crypto-js"));
 
@@ -1887,7 +1889,7 @@ Object.defineProperty(exports, "Key", {
     return _key.default;
   }
 });
-exports.util = exports.serialize = exports.rpc = exports.pb = exports.hash = exports.errors = exports.crypto = exports.aes = exports.key = void 0;
+exports.util = exports.serialize = exports.rpc = exports.pb = exports.key = exports.hash = exports.errors = exports.crypto = exports.aes = void 0;
 
 var _amount = _interopRequireDefault(require("./amount"));
 
@@ -1927,9 +1929,9 @@ var _util = _interopRequireWildcard(require("./util"));
 
 exports.util = _util;
 
-function _getRequireWildcardCache() { if (typeof WeakMap !== "function") return null; var cache = new WeakMap(); _getRequireWildcardCache = function () { return cache; }; return cache; }
+function _getRequireWildcardCache(nodeInterop) { if (typeof WeakMap !== "function") return null; var cacheBabelInterop = new WeakMap(); var cacheNodeInterop = new WeakMap(); return (_getRequireWildcardCache = function (nodeInterop) { return nodeInterop ? cacheNodeInterop : cacheBabelInterop; })(nodeInterop); }
 
-function _interopRequireWildcard(obj) { if (obj && obj.__esModule) { return obj; } if (obj === null || typeof obj !== "object" && typeof obj !== "function") { return { default: obj }; } var cache = _getRequireWildcardCache(); if (cache && cache.has(obj)) { return cache.get(obj); } var newObj = {}; var hasPropertyDescriptor = Object.defineProperty && Object.getOwnPropertyDescriptor; for (var key in obj) { if (Object.prototype.hasOwnProperty.call(obj, key)) { var desc = hasPropertyDescriptor ? Object.getOwnPropertyDescriptor(obj, key) : null; if (desc && (desc.get || desc.set)) { Object.defineProperty(newObj, key, desc); } else { newObj[key] = obj[key]; } } } newObj.default = obj; if (cache) { cache.set(obj, newObj); } return newObj; }
+function _interopRequireWildcard(obj, nodeInterop) { if (!nodeInterop && obj && obj.__esModule) { return obj; } if (obj === null || typeof obj !== "object" && typeof obj !== "function") { return { default: obj }; } var cache = _getRequireWildcardCache(nodeInterop); if (cache && cache.has(obj)) { return cache.get(obj); } var newObj = {}; var hasPropertyDescriptor = Object.defineProperty && Object.getOwnPropertyDescriptor; for (var key in obj) { if (key !== "default" && Object.prototype.hasOwnProperty.call(obj, key)) { var desc = hasPropertyDescriptor ? Object.getOwnPropertyDescriptor(obj, key) : null; if (desc && (desc.get || desc.set)) { Object.defineProperty(newObj, key, desc); } else { newObj[key] = obj[key]; } } } newObj.default = obj; if (cache) { cache.set(obj, newObj); } return newObj; }
 
 function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
 },{"./aes":5,"./amount":6,"./crypto":7,"./errors":8,"./hash":9,"./key":11,"./pb":12,"./rpc":17,"./serialize":18,"./util":19}],11:[function(require,module,exports){
@@ -1949,9 +1951,9 @@ var errors = _interopRequireWildcard(require("./errors"));
 
 var util = _interopRequireWildcard(require("./util"));
 
-function _getRequireWildcardCache() { if (typeof WeakMap !== "function") return null; var cache = new WeakMap(); _getRequireWildcardCache = function () { return cache; }; return cache; }
+function _getRequireWildcardCache(nodeInterop) { if (typeof WeakMap !== "function") return null; var cacheBabelInterop = new WeakMap(); var cacheNodeInterop = new WeakMap(); return (_getRequireWildcardCache = function (nodeInterop) { return nodeInterop ? cacheNodeInterop : cacheBabelInterop; })(nodeInterop); }
 
-function _interopRequireWildcard(obj) { if (obj && obj.__esModule) { return obj; } if (obj === null || typeof obj !== "object" && typeof obj !== "function") { return { default: obj }; } var cache = _getRequireWildcardCache(); if (cache && cache.has(obj)) { return cache.get(obj); } var newObj = {}; var hasPropertyDescriptor = Object.defineProperty && Object.getOwnPropertyDescriptor; for (var key in obj) { if (Object.prototype.hasOwnProperty.call(obj, key)) { var desc = hasPropertyDescriptor ? Object.getOwnPropertyDescriptor(obj, key) : null; if (desc && (desc.get || desc.set)) { Object.defineProperty(newObj, key, desc); } else { newObj[key] = obj[key]; } } } newObj.default = obj; if (cache) { cache.set(obj, newObj); } return newObj; }
+function _interopRequireWildcard(obj, nodeInterop) { if (!nodeInterop && obj && obj.__esModule) { return obj; } if (obj === null || typeof obj !== "object" && typeof obj !== "function") { return { default: obj }; } var cache = _getRequireWildcardCache(nodeInterop); if (cache && cache.has(obj)) { return cache.get(obj); } var newObj = {}; var hasPropertyDescriptor = Object.defineProperty && Object.getOwnPropertyDescriptor; for (var key in obj) { if (key !== "default" && Object.prototype.hasOwnProperty.call(obj, key)) { var desc = hasPropertyDescriptor ? Object.getOwnPropertyDescriptor(obj, key) : null; if (desc && (desc.get || desc.set)) { Object.defineProperty(newObj, key, desc); } else { newObj[key] = obj[key]; } } } newObj.default = obj; if (cache) { cache.set(obj, newObj); } return newObj; }
 
 function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
 
@@ -2152,9 +2154,9 @@ var _transaction = _interopRequireWildcard(require("./transaction_pb"));
 
 exports.transaction = _transaction;
 
-function _getRequireWildcardCache() { if (typeof WeakMap !== "function") return null; var cache = new WeakMap(); _getRequireWildcardCache = function () { return cache; }; return cache; }
+function _getRequireWildcardCache(nodeInterop) { if (typeof WeakMap !== "function") return null; var cacheBabelInterop = new WeakMap(); var cacheNodeInterop = new WeakMap(); return (_getRequireWildcardCache = function (nodeInterop) { return nodeInterop ? cacheNodeInterop : cacheBabelInterop; })(nodeInterop); }
 
-function _interopRequireWildcard(obj) { if (obj && obj.__esModule) { return obj; } if (obj === null || typeof obj !== "object" && typeof obj !== "function") { return { default: obj }; } var cache = _getRequireWildcardCache(); if (cache && cache.has(obj)) { return cache.get(obj); } var newObj = {}; var hasPropertyDescriptor = Object.defineProperty && Object.getOwnPropertyDescriptor; for (var key in obj) { if (Object.prototype.hasOwnProperty.call(obj, key)) { var desc = hasPropertyDescriptor ? Object.getOwnPropertyDescriptor(obj, key) : null; if (desc && (desc.get || desc.set)) { Object.defineProperty(newObj, key, desc); } else { newObj[key] = obj[key]; } } } newObj.default = obj; if (cache) { cache.set(obj, newObj); } return newObj; }
+function _interopRequireWildcard(obj, nodeInterop) { if (!nodeInterop && obj && obj.__esModule) { return obj; } if (obj === null || typeof obj !== "object" && typeof obj !== "function") { return { default: obj }; } var cache = _getRequireWildcardCache(nodeInterop); if (cache && cache.has(obj)) { return cache.get(obj); } var newObj = {}; var hasPropertyDescriptor = Object.defineProperty && Object.getOwnPropertyDescriptor; for (var key in obj) { if (key !== "default" && Object.prototype.hasOwnProperty.call(obj, key)) { var desc = hasPropertyDescriptor ? Object.getOwnPropertyDescriptor(obj, key) : null; if (desc && (desc.get || desc.set)) { Object.defineProperty(newObj, key, desc); } else { newObj[key] = obj[key]; } } } newObj.default = obj; if (cache) { cache.set(obj, newObj); } return newObj; }
 },{"./messages_pb":13,"./payloads_pb":14,"./sigchain_pb":15,"./transaction_pb":16}],13:[function(require,module,exports){
 "use strict";
 
@@ -9513,21 +9515,21 @@ goog.object.extend(exports, proto.transaction);
 Object.defineProperty(exports, "__esModule", {
   value: true
 });
-exports.getWsAddr = getWsAddr;
-exports.getWssAddr = getWssAddr;
+exports.deleteName = deleteName;
+exports.getBalance = getBalance;
 exports.getLatestBlock = getLatestBlock;
+exports.getNonce = getNonce;
 exports.getRegistrant = getRegistrant;
 exports.getSubscribers = getSubscribers;
 exports.getSubscribersCount = getSubscribersCount;
 exports.getSubscription = getSubscription;
-exports.getBalance = getBalance;
-exports.getNonce = getNonce;
-exports.sendTransaction = sendTransaction;
-exports.transferTo = transferTo;
+exports.getWsAddr = getWsAddr;
+exports.getWssAddr = getWssAddr;
 exports.registerName = registerName;
-exports.transferName = transferName;
-exports.deleteName = deleteName;
+exports.sendTransaction = sendTransaction;
 exports.subscribe = subscribe;
+exports.transferName = transferName;
+exports.transferTo = transferTo;
 exports.unsubscribe = unsubscribe;
 
 var _axios = _interopRequireDefault(require("axios"));
@@ -9542,9 +9544,9 @@ var transaction = _interopRequireWildcard(require("../wallet/transaction"));
 
 var util = _interopRequireWildcard(require("./util"));
 
-function _getRequireWildcardCache() { if (typeof WeakMap !== "function") return null; var cache = new WeakMap(); _getRequireWildcardCache = function () { return cache; }; return cache; }
+function _getRequireWildcardCache(nodeInterop) { if (typeof WeakMap !== "function") return null; var cacheBabelInterop = new WeakMap(); var cacheNodeInterop = new WeakMap(); return (_getRequireWildcardCache = function (nodeInterop) { return nodeInterop ? cacheNodeInterop : cacheBabelInterop; })(nodeInterop); }
 
-function _interopRequireWildcard(obj) { if (obj && obj.__esModule) { return obj; } if (obj === null || typeof obj !== "object" && typeof obj !== "function") { return { default: obj }; } var cache = _getRequireWildcardCache(); if (cache && cache.has(obj)) { return cache.get(obj); } var newObj = {}; var hasPropertyDescriptor = Object.defineProperty && Object.getOwnPropertyDescriptor; for (var key in obj) { if (Object.prototype.hasOwnProperty.call(obj, key)) { var desc = hasPropertyDescriptor ? Object.getOwnPropertyDescriptor(obj, key) : null; if (desc && (desc.get || desc.set)) { Object.defineProperty(newObj, key, desc); } else { newObj[key] = obj[key]; } } } newObj.default = obj; if (cache) { cache.set(obj, newObj); } return newObj; }
+function _interopRequireWildcard(obj, nodeInterop) { if (!nodeInterop && obj && obj.__esModule) { return obj; } if (obj === null || typeof obj !== "object" && typeof obj !== "function") { return { default: obj }; } var cache = _getRequireWildcardCache(nodeInterop); if (cache && cache.has(obj)) { return cache.get(obj); } var newObj = {}; var hasPropertyDescriptor = Object.defineProperty && Object.getOwnPropertyDescriptor; for (var key in obj) { if (key !== "default" && Object.prototype.hasOwnProperty.call(obj, key)) { var desc = hasPropertyDescriptor ? Object.getOwnPropertyDescriptor(obj, key) : null; if (desc && (desc.get || desc.set)) { Object.defineProperty(newObj, key, desc); } else { newObj[key] = obj[key]; } } } newObj.default = obj; if (cache) { cache.set(obj, newObj); } return newObj; }
 
 function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
 
@@ -9788,15 +9790,15 @@ async function unsubscribe(topic, identifier, options = {}) {
 Object.defineProperty(exports, "__esModule", {
   value: true
 });
-exports.encodeUint8 = encodeUint8;
+exports.encodeBool = encodeBool;
+exports.encodeBytes = encodeBytes;
+exports.encodeString = encodeString;
+exports.encodeUint = encodeUint;
 exports.encodeUint16 = encodeUint16;
 exports.encodeUint32 = encodeUint32;
 exports.encodeUint64 = encodeUint64;
-exports.encodeUint = encodeUint;
-exports.encodeBytes = encodeBytes;
-exports.encodeString = encodeString;
-exports.encodeBool = encodeBool;
-exports.maxUint = exports.maxUintBits = void 0;
+exports.encodeUint8 = encodeUint8;
+exports.maxUintBits = exports.maxUint = void 0;
 
 var _errors = _interopRequireDefault(require("./errors"));
 
@@ -9868,17 +9870,17 @@ function encodeBool(value) {
 Object.defineProperty(exports, "__esModule", {
   value: true
 });
-exports.hexToBytes = hexToBytes;
+exports.assignDefined = assignDefined;
 exports.bytesToHex = bytesToHex;
-exports.setPRNG = setPRNG;
+exports.hexToBytes = hexToBytes;
+exports.mergeTypedArrays = mergeTypedArrays;
+exports.randomBytes = void 0;
 exports.randomBytesHex = randomBytesHex;
 exports.randomInt32 = randomInt32;
 exports.randomUint64 = randomUint64;
-exports.mergeTypedArrays = mergeTypedArrays;
-exports.assignDefined = assignDefined;
-exports.utf8ToBytes = utf8ToBytes;
+exports.setPRNG = setPRNG;
 exports.toLowerKeys = toLowerKeys;
-exports.randomBytes = void 0;
+exports.utf8ToBytes = utf8ToBytes;
 
 var _tweetnacl = _interopRequireDefault(require("tweetnacl"));
 
@@ -9987,12 +9989,6 @@ var _exportNames = {
   MultiClient: true,
   Wallet: true
 };
-Object.defineProperty(exports, "ready", {
-  enumerable: true,
-  get: function () {
-    return _libsodiumWrappers.ready;
-  }
-});
 Object.defineProperty(exports, "Client", {
   enumerable: true,
   get: function () {
@@ -10011,7 +10007,14 @@ Object.defineProperty(exports, "Wallet", {
     return _wallet.default;
   }
 });
-exports.setPRNG = exports.default = void 0;
+exports.default = void 0;
+Object.defineProperty(exports, "ready", {
+  enumerable: true,
+  get: function () {
+    return _libsodiumWrappers.ready;
+  }
+});
+exports.setPRNG = void 0;
 
 var _libsodiumWrappers = require("libsodium-wrappers");
 
@@ -10020,6 +10023,7 @@ var nkn = _interopRequireWildcard(require("./common"));
 Object.keys(nkn).forEach(function (key) {
   if (key === "default" || key === "__esModule") return;
   if (Object.prototype.hasOwnProperty.call(_exportNames, key)) return;
+  if (key in exports && exports[key] === nkn[key]) return;
   Object.defineProperty(exports, key, {
     enumerable: true,
     get: function () {
@@ -10036,9 +10040,9 @@ var _wallet = _interopRequireDefault(require("./wallet"));
 
 function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
 
-function _getRequireWildcardCache() { if (typeof WeakMap !== "function") return null; var cache = new WeakMap(); _getRequireWildcardCache = function () { return cache; }; return cache; }
+function _getRequireWildcardCache(nodeInterop) { if (typeof WeakMap !== "function") return null; var cacheBabelInterop = new WeakMap(); var cacheNodeInterop = new WeakMap(); return (_getRequireWildcardCache = function (nodeInterop) { return nodeInterop ? cacheNodeInterop : cacheBabelInterop; })(nodeInterop); }
 
-function _interopRequireWildcard(obj) { if (obj && obj.__esModule) { return obj; } if (obj === null || typeof obj !== "object" && typeof obj !== "function") { return { default: obj }; } var cache = _getRequireWildcardCache(); if (cache && cache.has(obj)) { return cache.get(obj); } var newObj = {}; var hasPropertyDescriptor = Object.defineProperty && Object.getOwnPropertyDescriptor; for (var key in obj) { if (Object.prototype.hasOwnProperty.call(obj, key)) { var desc = hasPropertyDescriptor ? Object.getOwnPropertyDescriptor(obj, key) : null; if (desc && (desc.get || desc.set)) { Object.defineProperty(newObj, key, desc); } else { newObj[key] = obj[key]; } } } newObj.default = obj; if (cache) { cache.set(obj, newObj); } return newObj; }
+function _interopRequireWildcard(obj, nodeInterop) { if (!nodeInterop && obj && obj.__esModule) { return obj; } if (obj === null || typeof obj !== "object" && typeof obj !== "function") { return { default: obj }; } var cache = _getRequireWildcardCache(nodeInterop); if (cache && cache.has(obj)) { return cache.get(obj); } var newObj = {}; var hasPropertyDescriptor = Object.defineProperty && Object.getOwnPropertyDescriptor; for (var key in obj) { if (key !== "default" && Object.prototype.hasOwnProperty.call(obj, key)) { var desc = hasPropertyDescriptor ? Object.getOwnPropertyDescriptor(obj, key) : null; if (desc && (desc.get || desc.set)) { Object.defineProperty(newObj, key, desc); } else { newObj[key] = obj[key]; } } } newObj.default = obj; if (cache) { cache.set(obj, newObj); } return newObj; }
 
 var setPRNG = nkn.util.setPRNG;
 exports.setPRNG = setPRNG;
@@ -10055,7 +10059,7 @@ exports.default = _default;
 Object.defineProperty(exports, "__esModule", {
   value: true
 });
-exports.sessionIDSize = exports.multiclientIdentifierRe = exports.defaultSessionAllowAddr = exports.acceptSessionBufSize = exports.defaultOptions = void 0;
+exports.sessionIDSize = exports.multiclientIdentifierRe = exports.defaultSessionAllowAddr = exports.defaultOptions = exports.acceptSessionBufSize = void 0;
 const defaultOptions = {
   numSubClients: 4,
   originalClient: false,
@@ -10117,9 +10121,9 @@ var util = _interopRequireWildcard(require("./util"));
 
 function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
 
-function _getRequireWildcardCache() { if (typeof WeakMap !== "function") return null; var cache = new WeakMap(); _getRequireWildcardCache = function () { return cache; }; return cache; }
+function _getRequireWildcardCache(nodeInterop) { if (typeof WeakMap !== "function") return null; var cacheBabelInterop = new WeakMap(); var cacheNodeInterop = new WeakMap(); return (_getRequireWildcardCache = function (nodeInterop) { return nodeInterop ? cacheNodeInterop : cacheBabelInterop; })(nodeInterop); }
 
-function _interopRequireWildcard(obj) { if (obj && obj.__esModule) { return obj; } if (obj === null || typeof obj !== "object" && typeof obj !== "function") { return { default: obj }; } var cache = _getRequireWildcardCache(); if (cache && cache.has(obj)) { return cache.get(obj); } var newObj = {}; var hasPropertyDescriptor = Object.defineProperty && Object.getOwnPropertyDescriptor; for (var key in obj) { if (Object.prototype.hasOwnProperty.call(obj, key)) { var desc = hasPropertyDescriptor ? Object.getOwnPropertyDescriptor(obj, key) : null; if (desc && (desc.get || desc.set)) { Object.defineProperty(newObj, key, desc); } else { newObj[key] = obj[key]; } } } newObj.default = obj; if (cache) { cache.set(obj, newObj); } return newObj; }
+function _interopRequireWildcard(obj, nodeInterop) { if (!nodeInterop && obj && obj.__esModule) { return obj; } if (obj === null || typeof obj !== "object" && typeof obj !== "function") { return { default: obj }; } var cache = _getRequireWildcardCache(nodeInterop); if (cache && cache.has(obj)) { return cache.get(obj); } var newObj = {}; var hasPropertyDescriptor = Object.defineProperty && Object.getOwnPropertyDescriptor; for (var key in obj) { if (key !== "default" && Object.prototype.hasOwnProperty.call(obj, key)) { var desc = hasPropertyDescriptor ? Object.getOwnPropertyDescriptor(obj, key) : null; if (desc && (desc.get || desc.set)) { Object.defineProperty(newObj, key, desc); } else { newObj[key] = obj[key]; } } } newObj.default = obj; if (cache) { cache.set(obj, newObj); } return newObj; }
 
 function _defineProperty(obj, key, value) { if (key in obj) { Object.defineProperty(obj, key, { value: value, enumerable: true, configurable: true, writable: true }); } else { obj[key] = value; } return obj; }
 
@@ -10870,17 +10874,17 @@ exports.default = MultiClient;
 Object.defineProperty(exports, "__esModule", {
   value: true
 });
-exports.addIdentifierPrefix = addIdentifierPrefix;
 exports.addIdentifier = addIdentifier;
-exports.removeIdentifier = removeIdentifier;
+exports.addIdentifierPrefix = addIdentifierPrefix;
 exports.addIdentifierPrefixAll = addIdentifierPrefixAll;
+exports.removeIdentifier = removeIdentifier;
 exports.sessionKey = sessionKey;
 
 var consts = _interopRequireWildcard(require("./consts"));
 
-function _getRequireWildcardCache() { if (typeof WeakMap !== "function") return null; var cache = new WeakMap(); _getRequireWildcardCache = function () { return cache; }; return cache; }
+function _getRequireWildcardCache(nodeInterop) { if (typeof WeakMap !== "function") return null; var cacheBabelInterop = new WeakMap(); var cacheNodeInterop = new WeakMap(); return (_getRequireWildcardCache = function (nodeInterop) { return nodeInterop ? cacheNodeInterop : cacheBabelInterop; })(nodeInterop); }
 
-function _interopRequireWildcard(obj) { if (obj && obj.__esModule) { return obj; } if (obj === null || typeof obj !== "object" && typeof obj !== "function") { return { default: obj }; } var cache = _getRequireWildcardCache(); if (cache && cache.has(obj)) { return cache.get(obj); } var newObj = {}; var hasPropertyDescriptor = Object.defineProperty && Object.getOwnPropertyDescriptor; for (var key in obj) { if (Object.prototype.hasOwnProperty.call(obj, key)) { var desc = hasPropertyDescriptor ? Object.getOwnPropertyDescriptor(obj, key) : null; if (desc && (desc.get || desc.set)) { Object.defineProperty(newObj, key, desc); } else { newObj[key] = obj[key]; } } } newObj.default = obj; if (cache) { cache.set(obj, newObj); } return newObj; }
+function _interopRequireWildcard(obj, nodeInterop) { if (!nodeInterop && obj && obj.__esModule) { return obj; } if (obj === null || typeof obj !== "object" && typeof obj !== "function") { return { default: obj }; } var cache = _getRequireWildcardCache(nodeInterop); if (cache && cache.has(obj)) { return cache.get(obj); } var newObj = {}; var hasPropertyDescriptor = Object.defineProperty && Object.getOwnPropertyDescriptor; for (var key in obj) { if (key !== "default" && Object.prototype.hasOwnProperty.call(obj, key)) { var desc = hasPropertyDescriptor ? Object.getOwnPropertyDescriptor(obj, key) : null; if (desc && (desc.get || desc.set)) { Object.defineProperty(newObj, key, desc); } else { newObj[key] = obj[key]; } } } newObj.default = obj; if (cache) { cache.set(obj, newObj); } return newObj; }
 
 function addIdentifierPrefix(base, prefix) {
   if (base === '') {
@@ -10941,9 +10945,9 @@ var address = _interopRequireWildcard(require("./address"));
 
 var common = _interopRequireWildcard(require("../common"));
 
-function _getRequireWildcardCache() { if (typeof WeakMap !== "function") return null; var cache = new WeakMap(); _getRequireWildcardCache = function () { return cache; }; return cache; }
+function _getRequireWildcardCache(nodeInterop) { if (typeof WeakMap !== "function") return null; var cacheBabelInterop = new WeakMap(); var cacheNodeInterop = new WeakMap(); return (_getRequireWildcardCache = function (nodeInterop) { return nodeInterop ? cacheNodeInterop : cacheBabelInterop; })(nodeInterop); }
 
-function _interopRequireWildcard(obj) { if (obj && obj.__esModule) { return obj; } if (obj === null || typeof obj !== "object" && typeof obj !== "function") { return { default: obj }; } var cache = _getRequireWildcardCache(); if (cache && cache.has(obj)) { return cache.get(obj); } var newObj = {}; var hasPropertyDescriptor = Object.defineProperty && Object.getOwnPropertyDescriptor; for (var key in obj) { if (Object.prototype.hasOwnProperty.call(obj, key)) { var desc = hasPropertyDescriptor ? Object.getOwnPropertyDescriptor(obj, key) : null; if (desc && (desc.get || desc.set)) { Object.defineProperty(newObj, key, desc); } else { newObj[key] = obj[key]; } } } newObj.default = obj; if (cache) { cache.set(obj, newObj); } return newObj; }
+function _interopRequireWildcard(obj, nodeInterop) { if (!nodeInterop && obj && obj.__esModule) { return obj; } if (obj === null || typeof obj !== "object" && typeof obj !== "function") { return { default: obj }; } var cache = _getRequireWildcardCache(nodeInterop); if (cache && cache.has(obj)) { return cache.get(obj); } var newObj = {}; var hasPropertyDescriptor = Object.defineProperty && Object.getOwnPropertyDescriptor; for (var key in obj) { if (key !== "default" && Object.prototype.hasOwnProperty.call(obj, key)) { var desc = hasPropertyDescriptor ? Object.getOwnPropertyDescriptor(obj, key) : null; if (desc && (desc.get || desc.set)) { Object.defineProperty(newObj, key, desc); } else { newObj[key] = obj[key]; } } } newObj.default = obj; if (cache) { cache.set(obj, newObj); } return newObj; }
 
 function _defineProperty(obj, key, value) { if (key in obj) { Object.defineProperty(obj, key, { value: value, enumerable: true, configurable: true, writable: true }); } else { obj[key] = value; } return obj; }
 
@@ -10993,23 +10997,23 @@ function genAccountContractString(signatureRedeem, programHash) {
 Object.defineProperty(exports, "__esModule", {
   value: true
 });
-exports.verifyAddress = verifyAddress;
-exports.publicKeyToSignatureRedeem = publicKeyToSignatureRedeem;
-exports.hexStringToProgramHash = hexStringToProgramHash;
-exports.programHashStringToAddress = programHashStringToAddress;
+exports.UINT160_LEN = exports.CHECKSUM_LEN = exports.BITCOIN_BASE58 = exports.ADDRESS_LEN = exports.ADDRESS_GEN_PREFIX_LEN = exports.ADDRESS_GEN_PREFIX = void 0;
 exports.addressStringToProgramHash = addressStringToProgramHash;
 exports.genAddressVerifyBytesFromProgramHash = genAddressVerifyBytesFromProgramHash;
 exports.genAddressVerifyCodeFromProgramHash = genAddressVerifyCodeFromProgramHash;
 exports.getAddressStringVerifyCode = getAddressStringVerifyCode;
-exports.signatureToParameter = signatureToParameter;
+exports.hexStringToProgramHash = hexStringToProgramHash;
 exports.prefixByteCountToHexString = prefixByteCountToHexString;
-exports.ADDRESS_LEN = exports.CHECKSUM_LEN = exports.UINT160_LEN = exports.ADDRESS_GEN_PREFIX_LEN = exports.ADDRESS_GEN_PREFIX = exports.BITCOIN_BASE58 = void 0;
+exports.programHashStringToAddress = programHashStringToAddress;
+exports.publicKeyToSignatureRedeem = publicKeyToSignatureRedeem;
+exports.signatureToParameter = signatureToParameter;
+exports.verifyAddress = verifyAddress;
 
 var common = _interopRequireWildcard(require("../common"));
 
-function _getRequireWildcardCache() { if (typeof WeakMap !== "function") return null; var cache = new WeakMap(); _getRequireWildcardCache = function () { return cache; }; return cache; }
+function _getRequireWildcardCache(nodeInterop) { if (typeof WeakMap !== "function") return null; var cacheBabelInterop = new WeakMap(); var cacheNodeInterop = new WeakMap(); return (_getRequireWildcardCache = function (nodeInterop) { return nodeInterop ? cacheNodeInterop : cacheBabelInterop; })(nodeInterop); }
 
-function _interopRequireWildcard(obj) { if (obj && obj.__esModule) { return obj; } if (obj === null || typeof obj !== "object" && typeof obj !== "function") { return { default: obj }; } var cache = _getRequireWildcardCache(); if (cache && cache.has(obj)) { return cache.get(obj); } var newObj = {}; var hasPropertyDescriptor = Object.defineProperty && Object.getOwnPropertyDescriptor; for (var key in obj) { if (Object.prototype.hasOwnProperty.call(obj, key)) { var desc = hasPropertyDescriptor ? Object.getOwnPropertyDescriptor(obj, key) : null; if (desc && (desc.get || desc.set)) { Object.defineProperty(newObj, key, desc); } else { newObj[key] = obj[key]; } } } newObj.default = obj; if (cache) { cache.set(obj, newObj); } return newObj; }
+function _interopRequireWildcard(obj, nodeInterop) { if (!nodeInterop && obj && obj.__esModule) { return obj; } if (obj === null || typeof obj !== "object" && typeof obj !== "function") { return { default: obj }; } var cache = _getRequireWildcardCache(nodeInterop); if (cache && cache.has(obj)) { return cache.get(obj); } var newObj = {}; var hasPropertyDescriptor = Object.defineProperty && Object.getOwnPropertyDescriptor; for (var key in obj) { if (key !== "default" && Object.prototype.hasOwnProperty.call(obj, key)) { var desc = hasPropertyDescriptor ? Object.getOwnPropertyDescriptor(obj, key) : null; if (desc && (desc.get || desc.set)) { Object.defineProperty(newObj, key, desc); } else { newObj[key] = obj[key]; } } } newObj.default = obj; if (cache) { cache.set(obj, newObj); } return newObj; }
 
 const BITCOIN_BASE58 = '123456789ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz';
 exports.BITCOIN_BASE58 = BITCOIN_BASE58;
@@ -11156,26 +11160,26 @@ function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { de
 Object.defineProperty(exports, "__esModule", {
   value: true
 });
-exports.newTransferPayload = newTransferPayload;
-exports.newRegisterNamePayload = newRegisterNamePayload;
-exports.newTransferNamePayload = newTransferNamePayload;
+exports.nameRegistrationFee = void 0;
 exports.newDeleteNamePayload = newDeleteNamePayload;
-exports.newSubscribePayload = newSubscribePayload;
-exports.newUnsubscribePayload = newUnsubscribePayload;
 exports.newNanoPayPayload = newNanoPayPayload;
-exports.serializePayload = serializePayload;
+exports.newRegisterNamePayload = newRegisterNamePayload;
+exports.newSubscribePayload = newSubscribePayload;
 exports.newTransaction = newTransaction;
+exports.newTransferNamePayload = newTransferNamePayload;
+exports.newTransferPayload = newTransferPayload;
+exports.newUnsubscribePayload = newUnsubscribePayload;
+exports.serializePayload = serializePayload;
 exports.serializeUnsignedTx = serializeUnsignedTx;
 exports.signTx = signTx;
-exports.nameRegistrationFee = void 0;
 
 var address = _interopRequireWildcard(require("./address"));
 
 var common = _interopRequireWildcard(require("../common"));
 
-function _getRequireWildcardCache() { if (typeof WeakMap !== "function") return null; var cache = new WeakMap(); _getRequireWildcardCache = function () { return cache; }; return cache; }
+function _getRequireWildcardCache(nodeInterop) { if (typeof WeakMap !== "function") return null; var cacheBabelInterop = new WeakMap(); var cacheNodeInterop = new WeakMap(); return (_getRequireWildcardCache = function (nodeInterop) { return nodeInterop ? cacheNodeInterop : cacheBabelInterop; })(nodeInterop); }
 
-function _interopRequireWildcard(obj) { if (obj && obj.__esModule) { return obj; } if (obj === null || typeof obj !== "object" && typeof obj !== "function") { return { default: obj }; } var cache = _getRequireWildcardCache(); if (cache && cache.has(obj)) { return cache.get(obj); } var newObj = {}; var hasPropertyDescriptor = Object.defineProperty && Object.getOwnPropertyDescriptor; for (var key in obj) { if (Object.prototype.hasOwnProperty.call(obj, key)) { var desc = hasPropertyDescriptor ? Object.getOwnPropertyDescriptor(obj, key) : null; if (desc && (desc.get || desc.set)) { Object.defineProperty(newObj, key, desc); } else { newObj[key] = obj[key]; } } } newObj.default = obj; if (cache) { cache.set(obj, newObj); } return newObj; }
+function _interopRequireWildcard(obj, nodeInterop) { if (!nodeInterop && obj && obj.__esModule) { return obj; } if (obj === null || typeof obj !== "object" && typeof obj !== "function") { return { default: obj }; } var cache = _getRequireWildcardCache(nodeInterop); if (cache && cache.has(obj)) { return cache.get(obj); } var newObj = {}; var hasPropertyDescriptor = Object.defineProperty && Object.getOwnPropertyDescriptor; for (var key in obj) { if (key !== "default" && Object.prototype.hasOwnProperty.call(obj, key)) { var desc = hasPropertyDescriptor ? Object.getOwnPropertyDescriptor(obj, key) : null; if (desc && (desc.get || desc.set)) { Object.defineProperty(newObj, key, desc); } else { newObj[key] = obj[key]; } } } newObj.default = obj; if (cache) { cache.set(obj, newObj); } return newObj; }
 
 const nameRegistrationFee = '10';
 exports.nameRegistrationFee = nameRegistrationFee;
@@ -11321,9 +11325,9 @@ var consts = _interopRequireWildcard(require("./consts"));
 
 var transaction = _interopRequireWildcard(require("./transaction"));
 
-function _getRequireWildcardCache() { if (typeof WeakMap !== "function") return null; var cache = new WeakMap(); _getRequireWildcardCache = function () { return cache; }; return cache; }
+function _getRequireWildcardCache(nodeInterop) { if (typeof WeakMap !== "function") return null; var cacheBabelInterop = new WeakMap(); var cacheNodeInterop = new WeakMap(); return (_getRequireWildcardCache = function (nodeInterop) { return nodeInterop ? cacheNodeInterop : cacheBabelInterop; })(nodeInterop); }
 
-function _interopRequireWildcard(obj) { if (obj && obj.__esModule) { return obj; } if (obj === null || typeof obj !== "object" && typeof obj !== "function") { return { default: obj }; } var cache = _getRequireWildcardCache(); if (cache && cache.has(obj)) { return cache.get(obj); } var newObj = {}; var hasPropertyDescriptor = Object.defineProperty && Object.getOwnPropertyDescriptor; for (var key in obj) { if (Object.prototype.hasOwnProperty.call(obj, key)) { var desc = hasPropertyDescriptor ? Object.getOwnPropertyDescriptor(obj, key) : null; if (desc && (desc.get || desc.set)) { Object.defineProperty(newObj, key, desc); } else { newObj[key] = obj[key]; } } } newObj.default = obj; if (cache) { cache.set(obj, newObj); } return newObj; }
+function _interopRequireWildcard(obj, nodeInterop) { if (!nodeInterop && obj && obj.__esModule) { return obj; } if (obj === null || typeof obj !== "object" && typeof obj !== "function") { return { default: obj }; } var cache = _getRequireWildcardCache(nodeInterop); if (cache && cache.has(obj)) { return cache.get(obj); } var newObj = {}; var hasPropertyDescriptor = Object.defineProperty && Object.getOwnPropertyDescriptor; for (var key in obj) { if (key !== "default" && Object.prototype.hasOwnProperty.call(obj, key)) { var desc = hasPropertyDescriptor ? Object.getOwnPropertyDescriptor(obj, key) : null; if (desc && (desc.get || desc.set)) { Object.defineProperty(newObj, key, desc); } else { newObj[key] = obj[key]; } } } newObj.default = obj; if (cache) { cache.set(obj, newObj); } return newObj; }
 
 function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
 
@@ -11962,9 +11966,9 @@ var crypto = _interopRequireWildcard(require("../common/crypto"));
 
 var util = _interopRequireWildcard(require("../common/util"));
 
-function _getRequireWildcardCache() { if (typeof WeakMap !== "function") return null; var cache = new WeakMap(); _getRequireWildcardCache = function () { return cache; }; return cache; }
+function _getRequireWildcardCache(nodeInterop) { if (typeof WeakMap !== "function") return null; var cacheBabelInterop = new WeakMap(); var cacheNodeInterop = new WeakMap(); return (_getRequireWildcardCache = function (nodeInterop) { return nodeInterop ? cacheNodeInterop : cacheBabelInterop; })(nodeInterop); }
 
-function _interopRequireWildcard(obj) { if (obj && obj.__esModule) { return obj; } if (obj === null || typeof obj !== "object" && typeof obj !== "function") { return { default: obj }; } var cache = _getRequireWildcardCache(); if (cache && cache.has(obj)) { return cache.get(obj); } var newObj = {}; var hasPropertyDescriptor = Object.defineProperty && Object.getOwnPropertyDescriptor; for (var key in obj) { if (Object.prototype.hasOwnProperty.call(obj, key)) { var desc = hasPropertyDescriptor ? Object.getOwnPropertyDescriptor(obj, key) : null; if (desc && (desc.get || desc.set)) { Object.defineProperty(newObj, key, desc); } else { newObj[key] = obj[key]; } } } newObj.default = obj; if (cache) { cache.set(obj, newObj); } return newObj; }
+function _interopRequireWildcard(obj, nodeInterop) { if (!nodeInterop && obj && obj.__esModule) { return obj; } if (obj === null || typeof obj !== "object" && typeof obj !== "function") { return { default: obj }; } var cache = _getRequireWildcardCache(nodeInterop); if (cache && cache.has(obj)) { return cache.get(obj); } var newObj = {}; var hasPropertyDescriptor = Object.defineProperty && Object.getOwnPropertyDescriptor; for (var key in obj) { if (key !== "default" && Object.prototype.hasOwnProperty.call(obj, key)) { var desc = hasPropertyDescriptor ? Object.getOwnPropertyDescriptor(obj, key) : null; if (desc && (desc.get || desc.set)) { Object.defineProperty(newObj, key, desc); } else { newObj[key] = obj[key]; } } } newObj.default = obj; if (cache) { cache.set(obj, newObj); } return newObj; }
 
 module.exports = function (self) {
   let key;
