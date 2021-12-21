@@ -654,6 +654,9 @@ type CreateTransactionOptions = {
 
 /**
  * Transaction options type.
+ * @property {(number|string)} [fee=0] - Transaction fee.
+ * @property {string} [attrs=''] - Transaction attributes, cannot exceed 100 bytes.
+ * @property {boolean} [buildOnly=false] - Whether to only build transaction but not send it.
  * @property {number} [nonce] - Transaction nonce, will get from RPC node if not provided.
  */
 type TransactionOptions = CreateTransactionOptions & { nonce: number };
