@@ -55,13 +55,13 @@ declare namespace nkn {
       expiresAt: number
     }>
 
-    listen(addrs: (RegExp | Array<RegExp> | string | Array<string> | null | void))
+    listen(addrs: (RegExp | Array<RegExp> | string | Array<string> | null | void)): void
 
-    onConnect(f: ConnectHandler)
+    onConnect(f: ConnectHandler): void
 
-    onMessage(func: MessageHandler)
+    onMessage(func: MessageHandler): void
 
-    onSession(func: SessionHandler)
+    onSession(func: SessionHandler): void
 
     publish(topic: string, data: MessageData, options?: PublishOptions): Promise<null>
 
@@ -128,9 +128,9 @@ declare namespace nkn {
       expiresAt: number
     }>
 
-    onConnect(func: ConnectHandler)
+    onConnect(func: ConnectHandler): void
 
-    onMessage(func: MessageHandler)
+    onMessage(func: MessageHandler): void
 
     publish(topic: string, data: MessageData, options?: PublishOptions): Promise<null>
 
@@ -285,7 +285,7 @@ declare namespace nkn {
 
     verifyPassword(password: string, options?: {
       async: boolean
-    })
+    }): boolean | Promise<boolean>
   }
 
   export class Amount extends Decimal {
@@ -296,11 +296,9 @@ declare namespace nkn {
     publicKey: string
     privateKey: Uint8Array
     curvePrivateKey: Uint8Array
-    sharedKeyCache: Map
     useWorker: boolean
     worker: Worker | null
     workerMsgID: number
-    workerMsgCache: Map
 
     constructor(seed: string, options?: {
       worker?: boolean | (() => Worker | Promise<Worker>)
@@ -322,7 +320,7 @@ declare namespace nkn {
     sign(message: string): string
   }
 
-  export type ConnectHandler = ({addr: string}) => void
+  export type ConnectHandler = (params: {addr: string}) => void
 
   export type CreateTransactionOptions = {
     fee: number | string | Amount | null | void
@@ -413,18 +411,20 @@ declare namespace nkn {
 
   type Transaction = Object // TODO
 
+  export type ScryptParams = {
+    salt: string,
+    N: number,
+    r: number,
+    p: number,
+  };
+
   type WalletJson = {
     Version: number
     MasterKey: string
     IV: string
     SeedEncrypted: string
     Address: string
-    Scrypt?: {
-      Salt: string
-      N: number
-      R: number
-      P: number
-    }
+    Scrypt?: ScryptParams
   }
 
   export namespace aes {
@@ -530,7 +530,7 @@ declare namespace nkn {
 
     export function setPRNG(fn: (x: Uint8Array, n: number) => void): void
 
-    export function randomBytesHex(len: num): string
+    export function randomBytesHex(len: number): string
 
     export function randomInt32(): number
 
@@ -538,7 +538,7 @@ declare namespace nkn {
 
     export function mergeTypedArrays(a: TypedArray, b: TypedArray): TypedArray
 
-    export function assignDefined(target: Object, ...sources: Object[])
+    export function assignDefined(target: Object, ...sources: Object[]): void
 
     export function utf8ToBytes(s: string): Uint8Array
 
