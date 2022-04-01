@@ -143,7 +143,10 @@ export async function transferTo(toAddress, amount, options = {}) {
   if(!address.verifyAddress(toAddress)) {
     throw new errors.InvalidAddressError('invalid recipient address')
   }
-  let nonce = options.nonce || await this.getNonce();
+  let nonce = options.nonce;
+  if (nonce === null || nonce === undefined) {
+    nonce = await this.getNonce();
+  }
   let signatureRedeem = address.publicKeyToSignatureRedeem(this.getPublicKey());
   let programHash = address.hexStringToProgramHash(signatureRedeem);
   let pld = transaction.newTransferPayload(
@@ -156,35 +159,50 @@ export async function transferTo(toAddress, amount, options = {}) {
 }
 
 export async function registerName(name, options = {}) {
-  let nonce = options.nonce || await this.getNonce();
+  let nonce = options.nonce;
+  if (nonce === null || nonce === undefined) {
+    nonce = await this.getNonce();
+  }
   let pld = transaction.newRegisterNamePayload(this.getPublicKey(), name);
   let txn = await this.createTransaction(pld, nonce, options);
   return options.buildOnly ? txn : await this.sendTransaction(txn);
 }
 
 export async function transferName(name, recipient, options = {}) {
-  let nonce = options.nonce || await this.getNonce();
+  let nonce = options.nonce;
+  if (nonce === null || nonce === undefined) {
+    nonce = await this.getNonce();
+  }
   let pld = transaction.newTransferNamePayload(name, this.getPublicKey(), recipient);
   let txn = await this.createTransaction(pld, nonce, options);
   return options.buildOnly ? txn : await this.sendTransaction(txn);
 }
 
 export async function deleteName(name, options = {}) {
-  let nonce = options.nonce || await this.getNonce();
+  let nonce = options.nonce;
+  if (nonce === null || nonce === undefined) {
+    nonce = await this.getNonce();
+  }
   let pld = transaction.newDeleteNamePayload(this.getPublicKey(), name);
   let txn = await this.createTransaction(pld, nonce, options);
   return options.buildOnly ? txn : await this.sendTransaction(txn);
 }
 
 export async function subscribe(topic, duration, identifier, meta, options = {}) {
-  let nonce = options.nonce || await this.getNonce();
+  let nonce = options.nonce;
+  if (nonce === null || nonce === undefined) {
+    nonce = await this.getNonce();
+  }
   let pld = transaction.newSubscribePayload(this.getPublicKey(), identifier, topic, duration, meta);
   let txn = await this.createTransaction(pld, nonce, options);
   return options.buildOnly ? txn : await this.sendTransaction(txn);
 }
 
 export async function unsubscribe(topic, identifier, options = {}) {
-  let nonce = options.nonce || await this.getNonce();
+  let nonce = options.nonce;
+  if (nonce === null || nonce === undefined) {
+    nonce = await this.getNonce();
+  }
   let pld = transaction.newUnsubscribePayload(this.getPublicKey(), identifier, topic);
   let txn = await this.createTransaction(pld, nonce, options);
   return options.buildOnly ? txn : await this.sendTransaction(txn);
