@@ -11,6 +11,18 @@ const useMultiClient = true;
 
   console.log('Secret seed:', alice.getSeed());
 
+  alice.onConnectFailed(() => {
+    console.error('Alice connect failed');
+  });
+
+  if (useMultiClient) {
+    for (let clientID of Object.keys(alice.clients)) {
+      alice.clients[clientID].onConnectFailed(() => {
+        console.error('Alice client', clientID, 'connect failed');
+      });
+    }
+  }
+
   await Promise.all([
     new Promise((resolve, reject) => alice.onConnect(resolve)),
     new Promise((resolve, reject) => bob.onConnect(resolve)),

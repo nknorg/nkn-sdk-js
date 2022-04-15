@@ -54,6 +54,10 @@ class Client {
    */
 
   /**
+   * Whether client fails to connect to node.
+   */
+
+  /**
    * Whether client is closed.
    */
   constructor(options = {}) {
@@ -81,6 +85,8 @@ class Client {
 
     _defineProperty(this, "isReady", void 0);
 
+    _defineProperty(this, "isFailed", void 0);
+
     _defineProperty(this, "isClosed", void 0);
 
     _defineProperty(this, "wallet", void 0);
@@ -104,6 +110,7 @@ class Client {
     this.addr = addr;
     this.eventListeners = {
       connect: [],
+      connectFailed: [],
       message: []
     };
     this.sigChainBlockHash = null;
@@ -113,6 +120,7 @@ class Client {
     this.ws = null;
     this.node = null;
     this.isReady = false;
+    this.isFailed = false;
     this.isClosed = false;
     this.wallet = wallet;
 
@@ -158,6 +166,8 @@ class Client {
 
     if (this.shouldReconnect) {
       this._reconnect();
+    } else if (!this.isClosed) {
+      this._connectFailed();
     }
   }
 
@@ -171,9 +181,27 @@ class Client {
     }
   }
 
+  _connectFailed() {
+    if (!this.isFailed) {
+      console.log('Client connect failed');
+      this.isFailed = true;
+
+      if (this.eventListeners.connectFailed.length > 0) {
+        this.eventListeners.connectFailed.forEach(async f => {
+          try {
+            await f();
+          } catch (e) {
+            console.log('Connect failed handler error:', e);
+          }
+        });
+      }
+    }
+  }
   /**
    * @deprecated please use onConnect, onMessage, etc.
    */
+
+
   on(evt, func) {
     if (!this.eventListeners[evt]) {
       this.eventListeners[evt] = [];
@@ -190,6 +218,16 @@ class Client {
    */
   onConnect(func) {
     this.eventListeners.connect.push(func);
+  }
+
+  /**
+   * Add event listener function that will be called when client fails to
+   * connect to node. Multiple listeners will be called sequentially in the
+   * order of added. Note that listeners added after client fails to connect to
+   * node (i.e. `client.isFailed === true`) will not be called.
+  */
+  onConnectFailed(func) {
+    this.eventListeners.connectFailed.push(func);
   }
 
   /**
@@ -586,6 +624,8 @@ class Client {
 
       if (this.shouldReconnect) {
         this._reconnect();
+      } else if (!this.isClosed) {
+        this._connectFailed();
       }
 
       return;
@@ -603,6 +643,8 @@ class Client {
 
       if (this.shouldReconnect) {
         this._reconnect();
+      } else if (!this.isClosed) {
+        this._connectFailed();
       }
 
       return;
@@ -707,6 +749,8 @@ class Client {
         console.warn('WebSocket unexpectedly closed.');
 
         this._reconnect();
+      } else if (!this.isClosed) {
+        this._connectFailed();
       }
     };
 
@@ -10193,11 +10237,15 @@ class MultiClient {
    */
 
   /**
-   * Whether client is ready (connected to a node).
+   * Whether multiclient is ready (at least one underylying client is ready).
    */
 
   /**
-   * Whether client is closed.
+   * Whether multiclient fails to connect to node (all underlying clients failed).
+   */
+
+  /**
+   * Whether multiclient is closed.
    */
   constructor(options = {}) {
     _defineProperty(this, "options", void 0);
@@ -10221,6 +10269,8 @@ class MultiClient {
     _defineProperty(this, "sessions", void 0);
 
     _defineProperty(this, "isReady", void 0);
+
+    _defineProperty(this, "isFailed", void 0);
 
     _defineProperty(this, "isClosed", void 0);
 
@@ -10265,6 +10315,7 @@ class MultiClient {
     this.addr = (baseIdentifier ? baseIdentifier + '.' : '') + this.key.publicKey;
     this.eventListeners = {
       connect: [],
+      connectFailed: [],
       message: [],
       session: []
     };
@@ -10272,6 +10323,7 @@ class MultiClient {
     this.acceptAddrs = [];
     this.sessions = new Map();
     this.isReady = false;
+    this.isFailed = false;
     this.isClosed = false;
 
     for (let clientID of Object.keys(clients)) {
@@ -10363,6 +10415,43 @@ class MultiClient {
         return false;
       });
     }
+
+    let connectPromises = Object.keys(this.clients).map(clientID => new _promise.default((resolve, reject) => {
+      this.clients[clientID].onConnect(resolve);
+    }));
+
+    _promise.default.any(connectPromises).then(r => {
+      this.isReady = true;
+
+      if (this.eventListeners.connect.length > 0) {
+        this.eventListeners.connect.forEach(async f => {
+          try {
+            await f(r);
+          } catch (e) {
+            console.log('Connect handler error:', e);
+          }
+        });
+      }
+    });
+
+    let connectFailedPromises = Object.keys(this.clients).map(clientID => new _promise.default((resolve, reject) => {
+      this.clients[clientID].onConnectFailed(resolve);
+    }));
+
+    _promise.default.all(connectFailedPromises).then(() => {
+      console.log('All clients connect failed');
+      this.isFailed = true;
+
+      if (this.eventListeners.connectFailed.length > 0) {
+        this.eventListeners.connectFailed.forEach(async f => {
+          try {
+            await f();
+          } catch (e) {
+            console.log('Connect failed handler error:', e);
+          }
+        });
+      }
+    });
   }
   /**
    * Get the secret seed of the client.
@@ -10540,23 +10629,11 @@ class MultiClient {
 
 
   on(evt, func) {
-    switch (evt) {
-      case 'connect':
-        return this.onConnect(func);
-
-      case 'message':
-        return this.onMessage(func);
-
-      case 'session':
-        return this.onSession(func);
-
-      default:
-        if (!this.eventListeners[evt]) {
-          this.eventListeners[evt] = [];
-        }
-
-        this.eventListeners[evt].push(func);
+    if (!this.eventListeners[evt]) {
+      this.eventListeners[evt] = [];
     }
+
+    this.eventListeners[evt].push(func);
   }
 
   /**
@@ -10565,20 +10642,19 @@ class MultiClient {
    * in the order of added. Note that listeners added after client is connected
    * to node (i.e. `multiclient.isReady === true`) will not be called.
    */
-  onConnect(f) {
-    let promises = Object.keys(this.clients).map(clientID => new _promise.default((resolve, reject) => {
-      this.clients[clientID].onConnect(resolve);
-    }));
+  onConnect(func) {
+    this.eventListeners.connect.push(func);
+  }
+  /**
+   * Add event listener function that will be called when all sub clients fail
+   * to connect to node. Multiple listeners will be called sequentially in the
+   * order of added. Note that listeners added after client fails to connect to
+   * node (i.e. `multiclient.isFailed === true`) will not be called.
+  */
 
-    _promise.default.any(promises).then(async r => {
-      this.isReady = true;
 
-      try {
-        await f(r);
-      } catch (e) {
-        console.log('Connect handler error:', e);
-      }
-    });
+  onConnectFailed(func) {
+    this.eventListeners.connectFailed.push(func);
   }
   /**
    * Add event listener function that will be called when client receives a

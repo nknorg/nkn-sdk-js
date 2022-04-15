@@ -59,6 +59,8 @@ declare namespace nkn {
 
     onConnect(f: ConnectHandler): void
 
+    onConnectFailed(f: ConnectFailedHandler): void
+
     onMessage(func: MessageHandler): void
 
     onSession(func: SessionHandler): void
@@ -129,6 +131,8 @@ declare namespace nkn {
     }>
 
     onConnect(func: ConnectHandler): void
+
+    onConnectFailed(f: ConnectFailedHandler): void
 
     onMessage(func: MessageHandler): void
 
@@ -321,6 +325,8 @@ declare namespace nkn {
   }
 
   export type ConnectHandler = (params: {addr: string}) => void
+
+  export type ConnectFailedHandler = () => void
 
   export type CreateTransactionOptions = {
     fee: number | string | Amount | null | void
@@ -554,6 +560,7 @@ declare interface nkn {
   Wallet: nkn.Wallet
   Amount: nkn.Amount
   ConnectHandler: nkn.ConnectHandler
+  ConnectFailedHandler: nkn.ConnectFailedHandler
   CreateTransactionOptions: nkn.CreateTransactionOptions
   Destination: nkn.Destination
   DialOptions: nkn.DialOptions
