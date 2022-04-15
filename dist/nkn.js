@@ -183,7 +183,6 @@ class Client {
 
   _connectFailed() {
     if (!this.isFailed) {
-      console.log('Client connect failed');
       this.isFailed = true;
 
       if (this.eventListeners.connectFailed.length > 0) {
@@ -194,6 +193,8 @@ class Client {
             console.log('Connect failed handler error:', e);
           }
         });
+      } else {
+        console.log('Client connect failed');
       }
     }
   }
@@ -10439,7 +10440,6 @@ class MultiClient {
     }));
 
     _promise.default.all(connectFailedPromises).then(() => {
-      console.log('All clients connect failed');
       this.isFailed = true;
 
       if (this.eventListeners.connectFailed.length > 0) {
@@ -10450,6 +10450,8 @@ class MultiClient {
             console.log('Connect failed handler error:', e);
           }
         });
+      } else {
+        console.log('All clients connect failed');
       }
     });
   }
