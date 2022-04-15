@@ -165,7 +165,6 @@ export default class Client {
 
   _connectFailed() {
     if (!this.isFailed) {
-      console.log('Client connect failed');
       this.isFailed = true;
       if (this.eventListeners.connectFailed.length > 0) {
         this.eventListeners.connectFailed.forEach(async f => {
@@ -175,6 +174,8 @@ export default class Client {
             console.log('Connect failed handler error:', e);
           }
         });
+      } else {
+        console.log('Client connect failed');
       }
     }
   }

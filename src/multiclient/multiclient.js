@@ -243,7 +243,6 @@ export default class MultiClient {
       this.clients[clientID].onConnectFailed(resolve);
     }));
     Promise.all(connectFailedPromises).then(() => {
-      console.log('All clients connect failed');
       this.isFailed = true;
       if (this.eventListeners.connectFailed.length > 0) {
         this.eventListeners.connectFailed.forEach(async f => {
@@ -253,6 +252,8 @@ export default class MultiClient {
             console.log('Connect failed handler error:', e);
           }
         });
+      } else {
+        console.log('All clients connect failed');
       }
     });
   }
