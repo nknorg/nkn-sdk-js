@@ -49,6 +49,7 @@ export default class Client {
   addr: string;
   eventListeners: {
     connect: Array<ConnectHandler>,
+    connectFailed: Array<ConnectFailedHandler>,
     message: Array<MessageHandler>,
   };
   sigChainBlockHash: string | null;
@@ -61,6 +62,10 @@ export default class Client {
    * Whether client is ready (connected to a node).
    */
   isReady: boolean;
+  /**
+   * Whether client fails to connect to node.
+   */
+  isFailed: boolean;
   /**
    * Whether client is closed.
    */
@@ -95,6 +100,7 @@ export default class Client {
     this.addr = addr;
     this.eventListeners = {
       connect: [],
+      connectFailed: [],
       message: [],
     };
     this.sigChainBlockHash = null;
@@ -104,6 +110,7 @@ export default class Client {
     this.ws = null;
     this.node = null;
     this.isReady = false;
+    this.isFailed = false;
     this.isClosed = false;
     this.wallet = wallet;
 
@@ -142,6 +149,8 @@ export default class Client {
     console.log('RPC call failed,', error);
     if (this.shouldReconnect) {
       this._reconnect();
+    } else if (!this.isClosed) {
+      this._connectFailed();
     }
   };
 
@@ -153,6 +162,22 @@ export default class Client {
       this.reconnectInterval = this.options.reconnectIntervalMax;
     }
   };
+
+  _connectFailed() {
+    if (!this.isFailed) {
+      console.log('Client connect failed');
+      this.isFailed = true;
+      if (this.eventListeners.connectFailed.length > 0) {
+        this.eventListeners.connectFailed.forEach(async f => {
+          try {
+            await f();
+          } catch (e) {
+            console.log('Connect failed handler error:', e);
+          }
+        });
+      }
+    }
+  }
 
   /**
    * @deprecated please use onConnect, onMessage, etc.
@@ -172,6 +197,16 @@ export default class Client {
    */
   onConnect(func: ConnectHandler) {
     this.eventListeners.connect.push(func);
+  };
+
+  /**
+   * Add event listener function that will be called when client fails to
+   * connect to node. Multiple listeners will be called sequentially in the
+   * order of added. Note that listeners added after client fails to connect to
+   * node (i.e. `client.isFailed === true`) will not be called.
+  */
+  onConnectFailed(func: ConnectFailedHandler) {
+    this.eventListeners.connectFailed.push(func);
   };
 
   /**
@@ -509,6 +544,8 @@ export default class Client {
       console.log('No address in node info', nodeInfo);
       if (this.shouldReconnect) {
         this._reconnect();
+      } else if (!this.isClosed) {
+        this._connectFailed();
       }
       return;
     }
@@ -522,6 +559,8 @@ export default class Client {
       console.log('Create WebSocket failed,', e);
       if (this.shouldReconnect) {
         this._reconnect();
+      } else if (!this.isClosed) {
+        this._connectFailed();
       }
       return;
     }
@@ -613,6 +652,8 @@ export default class Client {
       if (this.shouldReconnect) {
         console.warn('WebSocket unexpectedly closed.');
         this._reconnect();
+      } else if (!this.isClosed) {
+        this._connectFailed();
       }
     };
 
@@ -1006,6 +1047,11 @@ export type Message = {
  * Connect handler function type.
  */
 export type ConnectHandler = ({ addr: string }) => void;
+
+/**
+ * Connect Failed handler function type.
+ */
+export type ConnectFailedHandler = () => void;
 
 /**
  * Message handler function type.

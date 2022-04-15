@@ -13,7 +13,7 @@ import * as consts from './consts';
 import * as message from '../client/message';
 import * as util from './util';
 
-import type { ConnectHandler, MessageHandler, Destination, MessageData, ReplyData, SendOptions, PublishOptions } from '../client';
+import type { ConnectHandler, ConnectFailedHandler, MessageHandler, Destination, MessageData, ReplyData, SendOptions, PublishOptions } from '../client';
 import type { CreateTransactionOptions, TransactionOptions, TxnOrHash } from '../wallet';
 
 /**
@@ -62,6 +62,7 @@ export default class MultiClient {
   addr: string;
   eventListeners: {
     connect: Array<ConnectHandler>,
+    connectFailed: Array<ConnectFailedHandler>,
     message: Array<MessageHandler>,
     session: Array<SessionHandler>,
   };
@@ -77,11 +78,15 @@ export default class MultiClient {
   acceptAddrs: Array<RegExp>;
   sessions: Map<string, ncp.Session>;
   /**
-   * Whether client is ready (connected to a node).
+   * Whether multiclient is ready (at least one underylying client is ready).
    */
   isReady: boolean;
   /**
-   * Whether client is closed.
+   * Whether multiclient fails to connect to node (all underlying clients failed).
+   */
+  isFailed: boolean;
+  /**
+   * Whether multiclient is closed.
    */
   isClosed: boolean;
 
@@ -134,6 +139,7 @@ export default class MultiClient {
     this.addr = (baseIdentifier ? baseIdentifier + '.' : '') + this.key.publicKey;
     this.eventListeners = {
       connect: [],
+      connectFailed: [],
       message: [],
       session: [],
     };
@@ -141,6 +147,7 @@ export default class MultiClient {
     this.acceptAddrs = [];
     this.sessions = new Map();
     this.isReady = false;
+    this.isFailed = false;
     this.isClosed = false;
 
     for (let clientID: string of Object.keys(clients)) {
@@ -215,6 +222,39 @@ export default class MultiClient {
         return false;
       });
     }
+
+    let connectPromises = Object.keys(this.clients).map(clientID => new Promise((resolve, reject) => {
+      this.clients[clientID].onConnect(resolve);
+    }));
+    Promise.any(connectPromises).then(r => {
+      this.isReady = true;
+      if (this.eventListeners.connect.length > 0) {
+        this.eventListeners.connect.forEach(async f => {
+          try {
+            await f(r);
+          } catch (e) {
+            console.log('Connect handler error:', e);
+          }
+        });
+      }
+    });
+
+    let connectFailedPromises = Object.keys(this.clients).map(clientID => new Promise((resolve, reject) => {
+      this.clients[clientID].onConnectFailed(resolve);
+    }));
+    Promise.all(connectFailedPromises).then(() => {
+      console.log('All clients connect failed');
+      this.isFailed = true;
+      if (this.eventListeners.connectFailed.length > 0) {
+        this.eventListeners.connectFailed.forEach(async f => {
+          try {
+            await f();
+          } catch (e) {
+            console.log('Connect failed handler error:', e);
+          }
+        });
+      }
+    });
   }
 
   /**
@@ -363,19 +403,10 @@ export default class MultiClient {
    * @deprecated please use onConnect, onMessage, onSession, etc.
    */
   on(evt: string, func: (...args: Array<any>) => any) {
-    switch (evt) {
-      case 'connect':
-        return this.onConnect(func);
-      case 'message':
-        return this.onMessage(func);
-      case 'session':
-        return this.onSession(func);
-      default:
-        if (!this.eventListeners[evt]) {
-          this.eventListeners[evt] = [];
-        }
-        this.eventListeners[evt].push(func);
+    if (!this.eventListeners[evt]) {
+      this.eventListeners[evt] = [];
     }
+    this.eventListeners[evt].push(func);
   };
 
   /**
@@ -384,18 +415,18 @@ export default class MultiClient {
    * in the order of added. Note that listeners added after client is connected
    * to node (i.e. `multiclient.isReady === true`) will not be called.
    */
-  onConnect(f: ConnectHandler) {
-    let promises = Object.keys(this.clients).map(clientID => new Promise((resolve, reject) => {
-      this.clients[clientID].onConnect(resolve);
-    }));
-    Promise.any(promises).then(async r => {
-      this.isReady = true;
-      try {
-        await f(r);
-      } catch (e) {
-        console.log('Connect handler error:', e);
-      }
-    });
+  onConnect(func: ConnectHandler) {
+    this.eventListeners.connect.push(func);
+  }
+
+  /**
+   * Add event listener function that will be called when all sub clients fail
+   * to connect to node. Multiple listeners will be called sequentially in the
+   * order of added. Note that listeners added after client fails to connect to
+   * node (i.e. `multiclient.isFailed === true`) will not be called.
+  */
+  onConnectFailed(func: ConnectFailedHandler) {
+    this.eventListeners.connectFailed.push(func);
   }
 
   /**
