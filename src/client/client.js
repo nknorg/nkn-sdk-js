@@ -50,6 +50,7 @@ export default class Client {
   eventListeners: {
     connect: Array<ConnectHandler>,
     connectFailed: Array<ConnectFailedHandler>,
+    wsError: Array<WsErrorHandler>,
     message: Array<MessageHandler>,
   };
   sigChainBlockHash: string | null;
@@ -101,6 +102,7 @@ export default class Client {
     this.eventListeners = {
       connect: [],
       connectFailed: [],
+      wsError: [],
       message: [],
     };
     this.sigChainBlockHash = null;
@@ -208,6 +210,15 @@ export default class Client {
   */
   onConnectFailed(func: ConnectFailedHandler) {
     this.eventListeners.connectFailed.push(func);
+  };
+
+  /**
+   * Add event listener function that will be called when client websocket
+   * connection throws an error. Multiple listeners will be called sequentially
+   * in the order of added.
+  */
+  onWsError(func: WsErrorHandler) {
+    this.eventListeners.wsError.push(func);
   };
 
   /**
@@ -658,8 +669,18 @@ export default class Client {
       }
     };
 
-    ws.onerror = (err) => {
-      console.log(err.message);
+    ws.onerror = (event) => {
+      if (this.eventListeners.wsError.length > 0) {
+        this.eventListeners.wsError.forEach(async f => {
+          try {
+            await f(event);
+          } catch (e) {
+            console.log('WsError handler error:', e);
+          }
+        });
+      } else {
+        console.log(event.message);
+      }
     }
   }
 
@@ -1058,6 +1079,11 @@ export type ConnectFailedHandler = () => void;
  * Message handler function type.
  */
 export type MessageHandler = (Message) => ReplyData | false | void | Promise<ReplyData | false | void>;
+
+/**
+ * Websocket error handler function type.
+ */
+export type WsErrorHandler = (Event) => void;
 
 /**
  * Send message options type.

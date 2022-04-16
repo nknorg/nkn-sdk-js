@@ -111,6 +111,7 @@ class Client {
     this.eventListeners = {
       connect: [],
       connectFailed: [],
+      wsError: [],
       message: []
     };
     this.sigChainBlockHash = null;
@@ -229,6 +230,15 @@ class Client {
   */
   onConnectFailed(func) {
     this.eventListeners.connectFailed.push(func);
+  }
+
+  /**
+   * Add event listener function that will be called when client websocket
+   * connection throws an error. Multiple listeners will be called sequentially
+   * in the order of added.
+  */
+  onWsError(func) {
+    this.eventListeners.wsError.push(func);
   }
 
   /**
@@ -755,8 +765,18 @@ class Client {
       }
     };
 
-    ws.onerror = err => {
-      console.log(err.message);
+    ws.onerror = event => {
+      if (this.eventListeners.wsError.length > 0) {
+        this.eventListeners.wsError.forEach(async f => {
+          try {
+            await f(event);
+          } catch (e) {
+            console.log('WsError handler error:', e);
+          }
+        });
+      } else {
+        console.log(event.message);
+      }
     };
   }
 
@@ -10317,6 +10337,7 @@ class MultiClient {
     this.eventListeners = {
       connect: [],
       connectFailed: [],
+      wsError: [],
       message: [],
       session: []
     };
@@ -10453,6 +10474,22 @@ class MultiClient {
       } else {
         console.log('All clients connect failed');
       }
+    });
+
+    Object.keys(this.clients).map(clientID => {
+      this.clients[clientID].onWsError(event => {
+        if (this.eventListeners.wsError.length > 0) {
+          this.eventListeners.wsError.forEach(async f => {
+            try {
+              await f(event);
+            } catch (e) {
+              console.log('WsError handler error:', e);
+            }
+          });
+        } else {
+          console.log(event.message);
+        }
+      });
     });
   }
   /**
@@ -10659,6 +10696,17 @@ class MultiClient {
     this.eventListeners.connectFailed.push(func);
   }
   /**
+   * Add event listener function that will be called when any client websocket
+   * connection throws an error. Multiple listeners will be called sequentially
+   * in the order of added.
+  */
+
+
+  onWsError(func) {
+    this.eventListeners.wsError.push(func);
+  }
+
+  /**
    * Add event listener function that will be called when client receives a
    * message. Multiple listeners will be called sequentially in the order of
    * added. Can be an async function, in which case each call will wait for
@@ -10670,8 +10718,6 @@ class MultiClient {
    * msg received will be sent back. Receiving reply or ACK will not trigger
    * the event listener.
    */
-
-
   onMessage(func) {
     this.eventListeners.message.push(func);
   }
