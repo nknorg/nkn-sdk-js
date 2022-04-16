@@ -13,7 +13,7 @@ import * as consts from './consts';
 import * as message from '../client/message';
 import * as util from './util';
 
-import type { ConnectHandler, ConnectFailedHandler, MessageHandler, Destination, MessageData, ReplyData, SendOptions, PublishOptions } from '../client';
+import type { ConnectHandler, ConnectFailedHandler, MessageHandler, WsErrorHandler, Destination, MessageData, ReplyData, SendOptions, PublishOptions } from '../client';
 import type { CreateTransactionOptions, TransactionOptions, TxnOrHash } from '../wallet';
 
 /**
@@ -63,6 +63,7 @@ export default class MultiClient {
   eventListeners: {
     connect: Array<ConnectHandler>,
     connectFailed: Array<ConnectFailedHandler>,
+    wsError: Array<WsErrorHandler>,
     message: Array<MessageHandler>,
     session: Array<SessionHandler>,
   };
@@ -140,6 +141,7 @@ export default class MultiClient {
     this.eventListeners = {
       connect: [],
       connectFailed: [],
+      wsError: [],
       message: [],
       session: [],
     };
@@ -255,6 +257,22 @@ export default class MultiClient {
       } else {
         console.log('All clients connect failed');
       }
+    });
+
+    Object.keys(this.clients).map(clientID => {
+      this.clients[clientID].onWsError((event) => {
+        if (this.eventListeners.wsError.length > 0) {
+          this.eventListeners.wsError.forEach(async f => {
+            try {
+              await f(event);
+            } catch (e) {
+              console.log('WsError handler error:', e);
+            }
+          });
+        } else {
+          console.log(event.message);
+        }
+      });
     });
   }
 
@@ -429,6 +447,15 @@ export default class MultiClient {
   onConnectFailed(func: ConnectFailedHandler) {
     this.eventListeners.connectFailed.push(func);
   }
+
+  /**
+   * Add event listener function that will be called when any client websocket
+   * connection throws an error. Multiple listeners will be called sequentially
+   * in the order of added.
+  */
+  onWsError(func: WsErrorHandler) {
+    this.eventListeners.wsError.push(func);
+  };
 
   /**
    * Add event listener function that will be called when client receives a
