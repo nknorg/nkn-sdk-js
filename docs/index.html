@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
   <meta charset='utf-8'>
-  <title>nkn-sdk 1.2.4 | Documentation</title>
+  <title>nkn-sdk 1.2.5 | Documentation</title>
   <meta name='description' content='NKN client and wallet SDK'>
   <meta name='viewport' content='width=device-width,initial-scale=1'>
   <link href='assets/bass.css' rel='stylesheet'>
@@ -15,7 +15,7 @@
       <div id='split-left' class='overflow-auto fs0 height-viewport-100'>
         <div class='py1 px2'>
           <h3 class='mb0 no-anchor'>nkn-sdk</h3>
-          <div class='mb1'><code>1.2.4</code></div>
+          <div class='mb1'><code>1.2.5</code></div>
           <input
             placeholder='Filter'
             id='filter-input'
@@ -123,6 +123,12 @@
                       </a></li>
                       
                       <li><a
+                        href='#clientisfailed'
+                        class='regular pre-open'>
+                        #isFailed
+                      </a></li>
+                      
+                      <li><a
                         href='#clientisready'
                         class='regular pre-open'>
                         #isReady
@@ -141,9 +147,21 @@
                       </a></li>
                       
                       <li><a
+                        href='#clientonconnectfailed'
+                        class='regular pre-open'>
+                        #onConnectFailed
+                      </a></li>
+                      
+                      <li><a
                         href='#clientonmessage'
                         class='regular pre-open'>
                         #onMessage
+                      </a></li>
+                      
+                      <li><a
+                        href='#clientonwserror'
+                        class='regular pre-open'>
+                        #onWsError
                       </a></li>
                       
                       <li><a
@@ -319,6 +337,12 @@
                       </a></li>
                       
                       <li><a
+                        href='#multiclientisfailed'
+                        class='regular pre-open'>
+                        #isFailed
+                      </a></li>
+                      
+                      <li><a
                         href='#multiclientisready'
                         class='regular pre-open'>
                         #isReady
@@ -343,6 +367,12 @@
                       </a></li>
                       
                       <li><a
+                        href='#multiclientonconnectfailed'
+                        class='regular pre-open'>
+                        #onConnectFailed
+                      </a></li>
+                      
+                      <li><a
                         href='#multiclientonmessage'
                         class='regular pre-open'>
                         #onMessage
@@ -352,6 +382,12 @@
                         href='#multiclientonsession'
                         class='regular pre-open'>
                         #onSession
+                      </a></li>
+                      
+                      <li><a
+                        href='#multiclientonwserror'
+                        class='regular pre-open'>
+                        #onWsError
                       </a></li>
                       
                       <li><a
@@ -653,6 +689,16 @@
               
                 
                 <li><a
+                  href='#connectfailedhandler'
+                  class="">
+                  ConnectFailedHandler
+                  
+                </a>
+                
+                </li>
+              
+                
+                <li><a
                   href='#connecthandler'
                   class="">
                   ConnectHandler
@@ -776,6 +822,16 @@
                   href='#txnorhash'
                   class="">
                   TxnOrHash
+                  
+                </a>
+                
+                </li>
+              
+                
+                <li><a
+                  href='#wserrorhandler'
+                  class="">
+                  WsErrorHandler
                   
                 </a>
                 
@@ -1849,6 +1905,58 @@ rpcServerAddr if failed.</p>
       </div>
     </div>
   
+    <div class='border-bottom' id='clientisfailed'>
+      <div class="clearfix small pointer toggle-sibling">
+        <div class="py1 contain">
+            <a class='icon pin-right py1 dark-link caret-right'>▸</a>
+            <span class='code strong strong truncate'>isFailed</span>
+        </div>
+      </div>
+      <div class="clearfix display-none toggle-target">
+        <section class='p2 mb2 clearfix bg-white minishadow'>
+
+  
+
+  <p>Whether client fails to connect to node.</p>
+
+    <div class='pre p1 fill-light mt0'>isFailed</div>
+  
+    <p>
+      Type:
+      <a href="https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/Boolean">boolean</a>
+    </p>
+  
+  
+
+  
+  
+  
+  
+  
+  
+
+  
+
+  
+
+  
+
+  
+
+  
+
+  
+
+  
+
+  
+
+  
+</section>
+
+      </div>
+    </div>
+  
     <div class='border-bottom' id='clientisready'>
       <div class="clearfix small pointer toggle-sibling">
         <div class="py1 contain">
@@ -2032,6 +2140,69 @@ Note that listeners added after client is connected to node (i.e.
       </div>
     </div>
   
+    <div class='border-bottom' id='clientonconnectfailed'>
+      <div class="clearfix small pointer toggle-sibling">
+        <div class="py1 contain">
+            <a class='icon pin-right py1 dark-link caret-right'>▸</a>
+            <span class='code strong strong truncate'>onConnectFailed(func)</span>
+        </div>
+      </div>
+      <div class="clearfix display-none toggle-target">
+        <section class='p2 mb2 clearfix bg-white minishadow'>
+
+  
+
+  <p>Add event listener function that will be called when client fails to
+connect to node. Multiple listeners will be called sequentially in the
+order of added. Note that listeners added after client fails to connect to
+node (i.e. <code>client.isFailed === true</code>) will not be called.</p>
+
+    <div class='pre p1 fill-light mt0'>onConnectFailed(func: <a href="#connectfailedhandler">ConnectFailedHandler</a>)</div>
+  
+  
+
+  
+  
+  
+  
+  
+  
+
+  
+    <div class='py1 quiet mt1 prose-big'>Parameters</div>
+    <div class='prose'>
+      
+        <div class='space-bottom0'>
+          <div>
+            <span class='code bold'>func</span> <code class='quiet'>(<a href="#connectfailedhandler">ConnectFailedHandler</a>)</code>
+	    
+          </div>
+          
+        </div>
+      
+    </div>
+  
+
+  
+
+  
+
+  
+
+  
+
+  
+
+  
+
+  
+
+  
+</section>
+
+      </div>
+    </div>
+  
     <div class='border-bottom' id='clientonmessage'>
       <div class="clearfix small pointer toggle-sibling">
         <div class="py1 contain">
@@ -2073,6 +2244,68 @@ the event listener.</p>
         <div class='space-bottom0'>
           <div>
             <span class='code bold'>func</span> <code class='quiet'>(<a href="#messagehandler">MessageHandler</a>)</code>
+	    
+          </div>
+          
+        </div>
+      
+    </div>
+  
+
+  
+
+  
+
+  
+
+  
+
+  
+
+  
+
+  
+
+  
+</section>
+
+      </div>
+    </div>
+  
+    <div class='border-bottom' id='clientonwserror'>
+      <div class="clearfix small pointer toggle-sibling">
+        <div class="py1 contain">
+            <a class='icon pin-right py1 dark-link caret-right'>▸</a>
+            <span class='code strong strong truncate'>onWsError(func)</span>
+        </div>
+      </div>
+      <div class="clearfix display-none toggle-target">
+        <section class='p2 mb2 clearfix bg-white minishadow'>
+
+  
+
+  <p>Add event listener function that will be called when client websocket
+connection throws an error. Multiple listeners will be called sequentially
+in the order of added.</p>
+
+    <div class='pre p1 fill-light mt0'>onWsError(func: <a href="#wserrorhandler">WsErrorHandler</a>)</div>
+  
+  
+
+  
+  
+  
+  
+  
+  
+
+  
+    <div class='py1 quiet mt1 prose-big'>Parameters</div>
+    <div class='prose'>
+      
+        <div class='space-bottom0'>
+          <div>
+            <span class='code bold'>func</span> <code class='quiet'>(<a href="#wserrorhandler">WsErrorHandler</a>)</code>
 	    
           </div>
           
@@ -4029,9 +4262,61 @@ multiclient's rpcServerAddr if failed.</p>
 
   
 
-  <p>Whether client is closed.</p>
+  <p>Whether multiclient is closed.</p>
 
     <div class='pre p1 fill-light mt0'>isClosed</div>
+  
+    <p>
+      Type:
+      <a href="https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/Boolean">boolean</a>
+    </p>
+  
+  
+
+  
+  
+  
+  
+  
+  
+
+  
+
+  
+
+  
+
+  
+
+  
+
+  
+
+  
+
+  
+
+  
+</section>
+
+      </div>
+    </div>
+  
+    <div class='border-bottom' id='multiclientisfailed'>
+      <div class="clearfix small pointer toggle-sibling">
+        <div class="py1 contain">
+            <a class='icon pin-right py1 dark-link caret-right'>▸</a>
+            <span class='code strong strong truncate'>isFailed</span>
+        </div>
+      </div>
+      <div class="clearfix display-none toggle-target">
+        <section class='p2 mb2 clearfix bg-white minishadow'>
+
+  
+
+  <p>Whether multiclient fails to connect to node (all underlying clients failed).</p>
+
+    <div class='pre p1 fill-light mt0'>isFailed</div>
   
     <p>
       Type:
@@ -4081,7 +4366,7 @@ multiclient's rpcServerAddr if failed.</p>
 
   
 
-  <p>Whether client is ready (connected to a node).</p>
+  <p>Whether multiclient is ready (at least one underylying client is ready).</p>
 
     <div class='pre p1 fill-light mt0'>isReady</div>
   
@@ -4257,7 +4542,7 @@ accepted. Each function call will overwrite previous listening addresses.</p>
       <div class="clearfix small pointer toggle-sibling">
         <div class="py1 contain">
             <a class='icon pin-right py1 dark-link caret-right'>▸</a>
-            <span class='code strong strong truncate'>onConnect(f)</span>
+            <span class='code strong strong truncate'>onConnect(func)</span>
         </div>
       </div>
       <div class="clearfix display-none toggle-target">
@@ -4270,7 +4555,7 @@ client is connected to node. Multiple listeners will be called sequentially
 in the order of added. Note that listeners added after client is connected
 to node (i.e. <code>multiclient.isReady === true</code>) will not be called.</p>
 
-    <div class='pre p1 fill-light mt0'>onConnect(f: <a href="#connecthandler">ConnectHandler</a>)</div>
+    <div class='pre p1 fill-light mt0'>onConnect(func: <a href="#connecthandler">ConnectHandler</a>)</div>
   
   
 
@@ -4287,7 +4572,70 @@ to node (i.e. <code>multiclient.isReady === true</code>) will not be called.</p>
       
         <div class='space-bottom0'>
           <div>
-            <span class='code bold'>f</span> <code class='quiet'>(<a href="#connecthandler">ConnectHandler</a>)</code>
+            <span class='code bold'>func</span> <code class='quiet'>(<a href="#connecthandler">ConnectHandler</a>)</code>
+	    
+          </div>
+          
+        </div>
+      
+    </div>
+  
+
+  
+
+  
+
+  
+
+  
+
+  
+
+  
+
+  
+
+  
+</section>
+
+      </div>
+    </div>
+  
+    <div class='border-bottom' id='multiclientonconnectfailed'>
+      <div class="clearfix small pointer toggle-sibling">
+        <div class="py1 contain">
+            <a class='icon pin-right py1 dark-link caret-right'>▸</a>
+            <span class='code strong strong truncate'>onConnectFailed(func)</span>
+        </div>
+      </div>
+      <div class="clearfix display-none toggle-target">
+        <section class='p2 mb2 clearfix bg-white minishadow'>
+
+  
+
+  <p>Add event listener function that will be called when all sub clients fail
+to connect to node. Multiple listeners will be called sequentially in the
+order of added. Note that listeners added after client fails to connect to
+node (i.e. <code>multiclient.isFailed === true</code>) will not be called.</p>
+
+    <div class='pre p1 fill-light mt0'>onConnectFailed(func: <a href="#connectfailedhandler">ConnectFailedHandler</a>)</div>
+  
+  
+
+  
+  
+  
+  
+  
+  
+
+  
+    <div class='py1 quiet mt1 prose-big'>Parameters</div>
+    <div class='prose'>
+      
+        <div class='space-bottom0'>
+          <div>
+            <span class='code bold'>func</span> <code class='quiet'>(<a href="#connectfailedhandler">ConnectFailedHandler</a>)</code>
 	    
           </div>
           
@@ -4418,6 +4766,68 @@ session.</p>
         <div class='space-bottom0'>
           <div>
             <span class='code bold'>func</span> <code class='quiet'>(<a href="#sessionhandler">SessionHandler</a>)</code>
+	    
+          </div>
+          
+        </div>
+      
+    </div>
+  
+
+  
+
+  
+
+  
+
+  
+
+  
+
+  
+
+  
+
+  
+</section>
+
+      </div>
+    </div>
+  
+    <div class='border-bottom' id='multiclientonwserror'>
+      <div class="clearfix small pointer toggle-sibling">
+        <div class="py1 contain">
+            <a class='icon pin-right py1 dark-link caret-right'>▸</a>
+            <span class='code strong strong truncate'>onWsError(func)</span>
+        </div>
+      </div>
+      <div class="clearfix display-none toggle-target">
+        <section class='p2 mb2 clearfix bg-white minishadow'>
+
+  
+
+  <p>Add event listener function that will be called when any client websocket
+connection throws an error. Multiple listeners will be called sequentially
+in the order of added.</p>
+
+    <div class='pre p1 fill-light mt0'>onWsError(func: <a href="#wserrorhandler">WsErrorHandler</a>)</div>
+  
+  
+
+  
+  
+  
+  
+  
+  
+
+  
+    <div class='py1 quiet mt1 prose-big'>Parameters</div>
+    <div class='prose'>
+      
+        <div class='space-bottom0'>
+          <div>
+            <span class='code bold'>func</span> <code class='quiet'>(<a href="#wserrorhandler">WsErrorHandler</a>)</code>
 	    
           </div>
           
@@ -8064,6 +8474,59 @@ and identifier will no longer receive messages from this topic.</p>
   
   <div class='clearfix'>
     
+    <h3 class='fl m0' id='connectfailedhandler'>
+      ConnectFailedHandler
+    </h3>
+    
+    
+  </div>
+  
+
+  <p>Connect Failed handler function type.</p>
+
+    <div class='pre p1 fill-light mt0'>ConnectFailedHandler</div>
+  
+    <p>
+      Type:
+      function (): void
+    </p>
+  
+  
+
+  
+  
+  
+  
+  
+  
+
+  
+
+  
+
+  
+
+  
+
+  
+
+  
+
+  
+
+  
+
+  
+</section>
+
+          
+        
+          
+          <section class='p2 mb2 clearfix bg-white minishadow'>
+
+  
+  <div class='clearfix'>
+    
     <h3 class='fl m0' id='connecthandler'>
       ConnectHandler
     </h3>
@@ -8935,6 +9398,59 @@ of 'identifier.publicKey', or a name registered using wallet.</p>
     <p>
       Type:
       (<a href="https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/String">string</a> | common.pb.transaction.Transaction)
+    </p>
+  
+  
+
+  
+  
+  
+  
+  
+  
+
+  
+
+  
+
+  
+
+  
+
+  
+
+  
+
+  
+
+  
+
+  
+</section>
+
+          
+        
+          
+          <section class='p2 mb2 clearfix bg-white minishadow'>
+
+  
+  <div class='clearfix'>
+    
+    <h3 class='fl m0' id='wserrorhandler'>
+      WsErrorHandler
+    </h3>
+    
+    
+  </div>
+  
+
+  <p>Websocket error handler function type.</p>
+
+    <div class='pre p1 fill-light mt0'>WsErrorHandler</div>
+  
+    <p>
+      Type:
+      function (<a href="https://developer.mozilla.org/docs/Web/API/Event">Event</a>): void
     </p>
   
   
