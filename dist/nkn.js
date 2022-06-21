@@ -9583,6 +9583,7 @@ Object.defineProperty(exports, "__esModule", {
 exports.deleteName = deleteName;
 exports.getBalance = getBalance;
 exports.getLatestBlock = getLatestBlock;
+exports.getNodeState = getNodeState;
 exports.getNonce = getNonce;
 exports.getRegistrant = getRegistrant;
 exports.getSubscribers = getSubscribers;
@@ -9591,6 +9592,7 @@ exports.getSubscription = getSubscription;
 exports.getWsAddr = getWsAddr;
 exports.getWssAddr = getWssAddr;
 exports.registerName = registerName;
+exports.rpcCall = rpcCall;
 exports.sendTransaction = sendTransaction;
 exports.subscribe = subscribe;
 exports.transferName = transferName;
@@ -9652,6 +9654,9 @@ const methods = {
   },
   sendRawTransaction: {
     method: 'sendrawtransaction'
+  },
+  getNodeState: {
+    method: 'getnodestate'
   }
 };
 var rpc = {};
@@ -9877,6 +9882,10 @@ async function unsubscribe(topic, identifier, options = {}) {
   let pld = transaction.newUnsubscribePayload(this.getPublicKey(), identifier, topic);
   let txn = await this.createTransaction(pld, nonce, options);
   return options.buildOnly ? txn : await this.sendTransaction(txn);
+}
+
+async function getNodeState(options = {}) {
+  return rpc.getNodeState(options.rpcServerAddr);
 }
 },{"../wallet/address":26,"../wallet/transaction":29,"./amount":6,"./errors":8,"./util":19,"axios":56}],18:[function(require,module,exports){
 (function (Buffer){
