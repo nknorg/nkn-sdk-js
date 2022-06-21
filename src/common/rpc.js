@@ -21,6 +21,7 @@ const methods = {
   getRegistrant: { method: 'getregistrant' },
   getLatestBlockHash: { method: 'getlatestblockhash' },
   sendRawTransaction: { method: 'sendrawtransaction' },
+  getNodeState: { method: 'getnodestate' },
 }
 
 var rpc = {};
@@ -33,7 +34,7 @@ for (let method in methods) {
   }
 }
 
-async function rpcCall(addr, method, params = {}) {
+export async function rpcCall(addr, method, params = {}) {
   const source = axios.CancelToken.source();
   let response = null;
 
@@ -206,4 +207,8 @@ export async function unsubscribe(topic, identifier, options = {}) {
   let pld = transaction.newUnsubscribePayload(this.getPublicKey(), identifier, topic);
   let txn = await this.createTransaction(pld, nonce, options);
   return options.buildOnly ? txn : await this.sendTransaction(txn);
+}
+
+export async function getNodeState(options = {}) {
+  return rpc.getNodeState(options.rpcServerAddr);
 }
