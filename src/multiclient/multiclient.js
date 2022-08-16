@@ -355,7 +355,7 @@ export default class MultiClient {
    * better reliability and lower latency.
    * @returns A promise that will be resolved when reply or ACK from destination is received, or reject if send fail or message timeout. If dest is an array with more than one element, or `options.noReply=true`, the promise will resolve with null as soon as send success.
    */
-  async sendWithClient(clientID: string, dest: Destination, data: Uint8Array, options: SendOptions = {}): Promise<ReplyData> {
+  async sendWithClient(clientID: string, dest: Destination, data: MessageData, options: SendOptions = {}): Promise<ReplyData> {
     let client = this.clients[clientID];
     if (!client) {
       throw new common.errors.InvalidArgumentError('no such clientID');

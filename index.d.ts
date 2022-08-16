@@ -75,7 +75,7 @@ declare namespace nkn {
 
     sendTransaction(txn: Transaction): Promise<string>
 
-    sendWithClient(clientID: string, dest: Destination, data: Uint8Array, options?: SendOptions): Promise<ReplyData>
+    sendWithClient(clientID: string, dest: Destination, data: MessageData, options?: SendOptions): Promise<ReplyData>
 
     subscribe(topic: string, duration: number, identifier?: string, meta?: string, options?: TransactionOptions): Promise<TxnOrHash>
 
