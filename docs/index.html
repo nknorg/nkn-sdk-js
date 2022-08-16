@@ -5241,7 +5241,7 @@ multiclient's rpcServerAddr if failed.</p>
 client with given clientID. Typically <code>send</code> should be used instead for
 better reliability and lower latency.</p>
 
-    <div class='pre p1 fill-light mt0'>sendWithClient(clientID: <a href="https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/String">string</a>, dest: <a href="#destination">Destination</a>, data: <a href="https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/Uint8Array">Uint8Array</a>, options: <a href="#sendoptions">SendOptions</a>): <a href="https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/Promise">Promise</a>&#x3C;<a href="#replydata">ReplyData</a>></div>
+    <div class='pre p1 fill-light mt0'>sendWithClient(clientID: <a href="https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/String">string</a>, dest: <a href="#destination">Destination</a>, data: <a href="#messagedata">MessageData</a>, options: <a href="#sendoptions">SendOptions</a>): <a href="https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/Promise">Promise</a>&#x3C;<a href="#replydata">ReplyData</a>></div>
   
   
 
@@ -5274,7 +5274,7 @@ better reliability and lower latency.</p>
       
         <div class='space-bottom0'>
           <div>
-            <span class='code bold'>data</span> <code class='quiet'>(<a href="https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/Uint8Array">Uint8Array</a>)</code>
+            <span class='code bold'>data</span> <code class='quiet'>(<a href="#messagedata">MessageData</a>)</code>
 	    
           </div>
           
