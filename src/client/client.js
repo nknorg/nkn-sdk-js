@@ -9,7 +9,14 @@ import * as consts from './consts';
 import * as message from './message';
 
 import type { CreateTransactionOptions, TransactionOptions, TxnOrHash } from '../wallet';
+import * as crypto from '../common/crypto'
+import { waitForChallengeTimeout } from './consts'
 
+const Action = {
+  setClient: 'setClient',
+  updateSigChainBlockHash: 'updateSigChainBlockHash',
+  authChallenge: 'authChallenge'
+}
 /**
  * NKN client that sends data to and receives data from other NKN clients.
  * Typically you might want to use [MultiClient](#multiclient) for better
@@ -87,11 +94,11 @@ export default class Client {
   } = {}) {
     options = common.util.assignDefined({}, consts.defaultOptions, options);
 
-    let key = new common.Key(options.seed, { worker: options.worker });
+    let key = new common.Key(options.seed, {worker: options.worker});
     let identifier = options.identifier || '';
     let pubkey = key.publicKey;
     let addr = (identifier ? identifier + '.' : '') + pubkey;
-    let wallet = new Wallet(Object.assign({}, options, { seed: key.seed, worker: false, version: 1 }));
+    let wallet = new Wallet(Object.assign({}, options, {seed: key.seed, worker: false, version: 1}));
 
     delete options.seed;
 
@@ -157,7 +164,7 @@ export default class Client {
   };
 
   _reconnect() {
-    console.log('Reconnecting in ' + this.reconnectInterval/1000 + 's...');
+    console.log('Reconnecting in ' + this.reconnectInterval / 1000 + 's...');
     setTimeout(() => this._connect(), this.reconnectInterval);
     this.reconnectInterval *= 2;
     if (this.reconnectInterval > this.options.reconnectIntervalMax) {
@@ -207,7 +214,7 @@ export default class Client {
    * connect to node. Multiple listeners will be called sequentially in the
    * order of added. Note that listeners added after client fails to connect to
    * node (i.e. `client.isFailed === true`) will not be called.
-  */
+   */
   onConnectFailed(func: ConnectFailedHandler) {
     this.eventListeners.connectFailed.push(func);
   };
@@ -216,7 +223,7 @@ export default class Client {
    * Add event listener function that will be called when client websocket
    * connection throws an error. Multiple listeners will be called sequentially
    * in the order of added.
-  */
+   */
   onWsError(func: WsErrorHandler) {
     this.eventListeners.wsError.push(func);
   };
@@ -396,9 +403,9 @@ export default class Client {
    * @returns A promise that will be resolved with null when send success.
    */
   async publish(topic: string, data: MessageData, options: PublishOptions = {}): Promise<null> {
-    options = common.util.assignDefined({}, consts.defaultPublishOptions, options, { noReply: true });
+    options = common.util.assignDefined({}, consts.defaultPublishOptions, options, {noReply: true});
     let offset = options.offset;
-    let res = await this.getSubscribers(topic, { offset, limit: options.limit, txPool: options.txPool });
+    let res = await this.getSubscribers(topic, {offset, limit: options.limit, txPool: options.txPool});
     if (!(res.subscribers instanceof Array)) {
       throw new common.errors.InvalidResponseError('subscribers should be an array');
     }
@@ -409,7 +416,7 @@ export default class Client {
     let subscribersInTxPool = res.subscribersInTxPool;
     while (res.subscribers && res.subscribers.length >= options.limit) {
       offset += options.limit;
-      res = await this.getSubscribers(topic, { offset, limit: options.limit });
+      res = await this.getSubscribers(topic, {offset, limit: options.limit});
       if (!(res.subscribers instanceof Array)) {
         throw new common.errors.InvalidResponseError('subscribers should be an array');
       }
@@ -578,7 +585,8 @@ export default class Client {
     }
 
     if (this.ws) {
-      this.ws.onclose = () => {};
+      this.ws.onclose = () => {
+      };
       try {
         this.ws.close();
       } catch (e) {
@@ -601,11 +609,29 @@ export default class Client {
       this.wallet.options.rpcServerAddr = '';
     }
 
-    ws.onopen = () => {
-      ws.send(JSON.stringify({
-        Action: 'setClient',
+    let challengeDone: Function;
+    let challengeHandler: Promise<SaltAndSignature> = new Promise<SaltAndSignature>(async (resolve, reject) => {
+      challengeDone = resolve;
+      setTimeout(() => {
+        reject(new Error('Challenge timeout'));
+      }, waitForChallengeTimeout);
+    });
+
+    ws.onopen = async () => {
+      let data = {
+        Action: Action.setClient,
         Addr: this.addr,
-      }));
+      };
+      try {
+        let req = await challengeHandler;
+        if (!!req) {
+          data.ClientSalt = common.util.bytesToHex(req.ClientSalt);
+          data.Signature = common.util.bytesToHex(req.Signature);
+        }
+      } catch (e) {
+        console.log(e);
+      }
+      ws.send(JSON.stringify(data));
       this.shouldReconnect = true;
       this.reconnectInterval = this.options.reconnectIntervalMin;
     };
@@ -614,7 +640,7 @@ export default class Client {
       if (event.data instanceof ArrayBuffer) {
         try {
           let handled = await this._handleMsg(event.data);
-          if(!handled) {
+          if (!handled) {
             console.warn('Unhandled msg.');
           }
         } catch (e) {
@@ -628,7 +654,7 @@ export default class Client {
         console.log(msg);
         if (msg.Error === common.errors.rpcRespErrCodes.wrongNode) {
           this._newWsAddr(msg.Result);
-        } else if (msg.Action === 'setClient') {
+        } else if (msg.Action === Action.setClient) {
           try {
             this.ws && this.ws.close();
           } catch (e) {
@@ -637,7 +663,7 @@ export default class Client {
         return;
       }
       switch (msg.Action) {
-        case 'setClient':
+        case Action.setClient:
           this.sigChainBlockHash = msg.Result.sigChainBlockHash;
           if (!this.isReady) {
             this.isReady = true;
@@ -652,8 +678,20 @@ export default class Client {
             }
           }
           break;
-        case 'updateSigChainBlockHash':
+        case Action.updateSigChainBlockHash:
           this.sigChainBlockHash = msg.Result;
+          break;
+        case Action.authChallenge:
+          let challenge = msg.Challenge;
+          let byteChallenge = common.util.hexToBytes(challenge);
+          let clientSalt = common.util.randomBytes(32);
+          byteChallenge = common.util.mergeTypedArrays(byteChallenge, clientSalt);
+          let hash = common.hash.sha256Hex(common.util.bytesToHex(byteChallenge));
+          let signature = await crypto.sign(this.key.privateKey, hash);
+          challengeDone({
+            ClientSalt: clientSalt,
+            Signature: common.util.hexToBytes(signature),
+          });
           break;
         default:
           console.warn('Unknown msg type:', msg.Action);
@@ -713,7 +751,7 @@ export default class Client {
     let encryptedKey = msg.getEncryptedKey();
     let decryptedPayload;
     if (encryptedKey && encryptedKey.length > 0) {
-      if (nonce.length != common.crypto.nonceLength * 2 ) {
+      if (nonce.length != common.crypto.nonceLength * 2) {
         throw new common.errors.DecryptionError('invalid nonce length');
       }
       let sharedKey = await this.key.decrypt(encryptedKey, nonce.slice(0, common.crypto.nonceLength), srcPubkey);
@@ -1063,6 +1101,11 @@ export type Message = {
   isEncrypted: boolean,
   messageId: Uint8Array,
   noReply: boolean,
+};
+
+export type SaltAndSignature = {
+  ClientSalt: Uint8Array,
+  Signature: Uint8Array,
 };
 
 /**

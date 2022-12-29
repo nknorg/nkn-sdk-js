@@ -16,6 +16,8 @@ var consts = _interopRequireWildcard(require("./consts"));
 
 var message = _interopRequireWildcard(require("./message"));
 
+var crypto = _interopRequireWildcard(require("../common/crypto"));
+
 function _getRequireWildcardCache(nodeInterop) { if (typeof WeakMap !== "function") return null; var cacheBabelInterop = new WeakMap(); var cacheNodeInterop = new WeakMap(); return (_getRequireWildcardCache = function (nodeInterop) { return nodeInterop ? cacheNodeInterop : cacheBabelInterop; })(nodeInterop); }
 
 function _interopRequireWildcard(obj, nodeInterop) { if (!nodeInterop && obj && obj.__esModule) { return obj; } if (obj === null || typeof obj !== "object" && typeof obj !== "function") { return { default: obj }; } var cache = _getRequireWildcardCache(nodeInterop); if (cache && cache.has(obj)) { return cache.get(obj); } var newObj = {}; var hasPropertyDescriptor = Object.defineProperty && Object.getOwnPropertyDescriptor; for (var key in obj) { if (key !== "default" && Object.prototype.hasOwnProperty.call(obj, key)) { var desc = hasPropertyDescriptor ? Object.getOwnPropertyDescriptor(obj, key) : null; if (desc && (desc.get || desc.set)) { Object.defineProperty(newObj, key, desc); } else { newObj[key] = obj[key]; } } } newObj.default = obj; if (cache) { cache.set(obj, newObj); } return newObj; }
@@ -24,6 +26,11 @@ function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { de
 
 function _defineProperty(obj, key, value) { if (key in obj) { Object.defineProperty(obj, key, { value: value, enumerable: true, configurable: true, writable: true }); } else { obj[key] = value; } return obj; }
 
+const Action = {
+  setClient: 'setClient',
+  updateSigChainBlockHash: 'updateSigChainBlockHash',
+  authChallenge: 'authChallenge'
+};
 /**
  * NKN client that sends data to and receives data from other NKN clients.
  * Typically you might want to use [MultiClient](#multiclient) for better
@@ -40,6 +47,7 @@ function _defineProperty(obj, key, value) { if (key in obj) { Object.definePrope
  * @param {boolean} [options.tls=undefined] - Force to use wss instead of ws protocol. If not defined, wss will only be used in https location.
  * @param {boolean|function} [options.worker=false] - Whether to use web workers (if available) to compute signatures. Can also be a function that returns web worker. Typically you only need to set it to a function if you import nkn-sdk as a module and are NOT using browserify or webpack worker-loader to bundle js file. The worker file is located at `lib/worker/webpack.worker.js`.
  */
+
 class Client {
   /**
    * Address identifier.
@@ -227,7 +235,7 @@ class Client {
    * connect to node. Multiple listeners will be called sequentially in the
    * order of added. Note that listeners added after client fails to connect to
    * node (i.e. `client.isFailed === true`) will not be called.
-  */
+   */
   onConnectFailed(func) {
     this.eventListeners.connectFailed.push(func);
   }
@@ -236,7 +244,7 @@ class Client {
    * Add event listener function that will be called when client websocket
    * connection throws an error. Multiple listeners will be called sequentially
    * in the order of added.
-  */
+   */
   onWsError(func) {
     this.eventListeners.wsError.push(func);
   }
@@ -686,11 +694,32 @@ class Client {
       this.wallet.options.rpcServerAddr = '';
     }
 
-    ws.onopen = () => {
-      ws.send(JSON.stringify({
-        Action: 'setClient',
+    let challengeDone;
+    let challengeHandler = new Promise(async (resolve, reject) => {
+      challengeDone = resolve;
+      setTimeout(() => {
+        reject(new Error('Challenge timeout'));
+      }, consts.waitForChallengeTimeout);
+    });
+
+    ws.onopen = async () => {
+      let data = {
+        Action: Action.setClient,
         Addr: this.addr
-      }));
+      };
+
+      try {
+        let req = await challengeHandler;
+
+        if (!!req) {
+          data.ClientSalt = common.util.bytesToHex(req.ClientSalt);
+          data.Signature = common.util.bytesToHex(req.Signature);
+        }
+      } catch (e) {
+        console.log(e);
+      }
+
+      ws.send(JSON.stringify(data));
       this.shouldReconnect = true;
       this.reconnectInterval = this.options.reconnectIntervalMin;
     };
@@ -717,7 +746,7 @@ class Client {
 
         if (msg.Error === common.errors.rpcRespErrCodes.wrongNode) {
           this._newWsAddr(msg.Result);
-        } else if (msg.Action === 'setClient') {
+        } else if (msg.Action === Action.setClient) {
           try {
             this.ws && this.ws.close();
           } catch (e) {}
@@ -727,7 +756,7 @@ class Client {
       }
 
       switch (msg.Action) {
-        case 'setClient':
+        case Action.setClient:
           this.sigChainBlockHash = msg.Result.sigChainBlockHash;
 
           if (!this.isReady) {
@@ -746,8 +775,21 @@ class Client {
 
           break;
 
-        case 'updateSigChainBlockHash':
+        case Action.updateSigChainBlockHash:
           this.sigChainBlockHash = msg.Result;
+          break;
+
+        case Action.authChallenge:
+          let challenge = msg.Challenge;
+          let byteChallenge = common.util.hexToBytes(challenge);
+          let clientSalt = common.util.randomBytes(32);
+          byteChallenge = common.util.mergeTypedArrays(byteChallenge, clientSalt);
+          let hash = common.hash.sha256Hex(common.util.bytesToHex(byteChallenge));
+          let signature = await crypto.sign(this.key.privateKey, hash);
+          challengeDone({
+            ClientSalt: clientSalt,
+            Signature: common.util.hexToBytes(signature)
+          });
           break;
 
         default:
@@ -1146,13 +1188,13 @@ class ResponseManager {
   }
 
 }
-},{"../common":10,"../wallet":28,"./consts":2,"./message":4,"isomorphic-ws":309}],2:[function(require,module,exports){
+},{"../common":10,"../common/crypto":7,"../wallet":28,"./consts":2,"./message":4,"isomorphic-ws":309}],2:[function(require,module,exports){
 'use strict';
 
 Object.defineProperty(exports, "__esModule", {
   value: true
 });
-exports.defaultPublishOptions = exports.defaultOptions = exports.checkTimeoutInterval = void 0;
+exports.waitForChallengeTimeout = exports.defaultPublishOptions = exports.defaultOptions = exports.checkTimeoutInterval = void 0;
 const defaultOptions = {
   reconnectIntervalMin: 1000,
   reconnectIntervalMax: 64000,
@@ -1171,6 +1213,8 @@ const defaultPublishOptions = {
 exports.defaultPublishOptions = defaultPublishOptions;
 const checkTimeoutInterval = 250;
 exports.checkTimeoutInterval = checkTimeoutInterval;
+const waitForChallengeTimeout = 5000;
+exports.waitForChallengeTimeout = waitForChallengeTimeout;
 },{}],3:[function(require,module,exports){
 'use strict';
 
@@ -9983,6 +10027,7 @@ exports.randomBytesHex = randomBytesHex;
 exports.randomInt32 = randomInt32;
 exports.randomUint64 = randomUint64;
 exports.setPRNG = setPRNG;
+exports.sleep = sleep;
 exports.toLowerKeys = toLowerKeys;
 exports.utf8ToBytes = utf8ToBytes;
 
@@ -10078,6 +10123,10 @@ function toLowerKeys(obj) {
   return Object.keys(obj).reduce((merged, key) => Object.assign(merged, {
     [key.toLowerCase()]: typeof obj[key] === 'object' ? toLowerKeys(obj[key]) : obj[key]
   }), {});
+}
+
+function sleep(duration) {
+  return new Promise(resolve => setTimeout(resolve, duration));
 }
 }).call(this,require("buffer").Buffer)
 },{"./serialize":18,"buffer":119,"tweetnacl":383}],20:[function(require,module,exports){

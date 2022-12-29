@@ -17,3 +17,5 @@ export const defaultPublishOptions = {
 }
 
 export const checkTimeoutInterval = 250;
+
+export const waitForChallengeTimeout = 5000;

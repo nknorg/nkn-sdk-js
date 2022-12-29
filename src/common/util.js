@@ -81,3 +81,7 @@ export function utf8ToBytes(s) {
 export function toLowerKeys(obj) {
   return Object.keys(obj).reduce((merged, key) => Object.assign(merged, {[key.toLowerCase()]: (typeof obj[key] === 'object' ? toLowerKeys(obj[key]) : obj[key])}), {});
 }
+
+export function sleep(duration) {
+  return new Promise(resolve => setTimeout(resolve, duration));
+}
