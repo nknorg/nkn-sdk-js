@@ -618,7 +618,7 @@ export default class Client {
     });
 
     ws.onopen = async () => {
-      let data = {
+      let data: any = {
         Action: Action.setClient,
         Addr: this.addr,
       };
