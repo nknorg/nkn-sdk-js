@@ -12715,13 +12715,13 @@ Object.defineProperty(exports, "__esModule", {
 });
 exports.default = void 0;
 
-var _channel = _interopRequireDefault(require("./channel"));
-
 var _heap = _interopRequireDefault(require("heap"));
 
-var _packet_pb = require("./pb/packet_pb");
+var _channel = _interopRequireDefault(require("./channel"));
 
 var errors = _interopRequireWildcard(require("./errors"));
+
+var _packet_pb = require("./pb/packet_pb");
 
 var util = _interopRequireWildcard(require("./util"));
 
@@ -12734,7 +12734,7 @@ function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { de
 function _defineProperty(obj, key, value) { if (key in obj) { Object.defineProperty(obj, key, { value: value, enumerable: true, configurable: true, writable: true }); } else { obj[key] = value; } return obj; }
 
 class Connection {
-  constructor(session, localClientID, remoteClientID) {
+  constructor(session, localClientID, remoteClientID, initialWindowSize) {
     _defineProperty(this, "session", void 0);
 
     _defineProperty(this, "localClientID", void 0);
@@ -12756,7 +12756,7 @@ class Connection {
     this.session = session;
     this.localClientID = localClientID;
     this.remoteClientID = remoteClientID;
-    this.windowSize = session.config.initialConnectionWindowSize;
+    this.windowSize = initialWindowSize;
     this.retransmissionTimeout = session.config.initialRetransmissionTimeout;
     this.sendWindowUpdate = new _channel.default(1);
     this.timeSentSeq = new Map();
@@ -12782,11 +12782,7 @@ class Connection {
     }
 
     if (!this.resentSeq.has(sequenceID)) {
-      this.windowSize++;
-
-      if (this.windowSize > this.session.config.maxConnectionWindowSize) {
-        this.windowSize = this.session.config.maxConnectionWindowSize;
-      }
+      this.setWindowSize(this.windowSize + 1);
     }
 
     if (isSentByMe) {
@@ -12868,6 +12864,8 @@ class Connection {
         }
 
         console.log(e);
+        this.setWindowSize(this.windowSize / 2);
+        this.session.updateConnWindowSize();
 
         switch (await _channel.default.select([this.session.resendChan.push(seq), this.session.context.done.shift()])) {
           case this.session.resendChan:
@@ -12969,6 +12967,7 @@ class Connection {
       }
 
       let threshold = Date.now() - this.retransmissionTimeout;
+      let newResend = false;
 
       for (let [seq, t] of this.timeSentSeq) {
         if (this.resentSeq.has(seq)) {
@@ -12976,23 +12975,11 @@ class Connection {
         }
 
         if (t < threshold) {
-          await this.session.resendChan.push(seq);
-          this.resentSeq.set(seq, null);
-          this.windowSize /= 2;
-
-          if (this.windowSize < this.session.config.minConnectionWindowSize) {
-            this.windowSize = this.session.config.minConnectionWindowSize;
-          }
-
           switch (await _channel.default.select([this.session.resendChan.push(seq), this.session.context.done.shift()])) {
             case this.session.resendChan:
               this.resentSeq.set(seq, null);
-              this.windowSize /= 2;
-
-              if (this.windowSize < this.session.config.minConnectionWindowSize) {
-                this.windowSize = this.session.config.minConnectionWindowSize;
-              }
-
+              this.setWindowSize(this.windowSize / 2);
+              newResend = true;
               break;
 
             case this.session.context.done:
@@ -13000,7 +12987,19 @@ class Connection {
           }
         }
       }
+
+      if (newResend) {
+        this.session.updateConnWindowSize();
+      }
     }
+  }
+
+  setWindowSize(n) {
+    if (n < this.session.config.MinConnectionWindowSize) {
+      n = this.session.config.MinConnectionWindowSize;
+    }
+
+    this.windowSize = n;
   }
 
 }
@@ -13017,8 +13016,6 @@ const defaultConfig = {
   nonStream: false,
   sessionWindowSize: 4 << 20,
   mtu: 1024,
-  initialConnectionWindowSize: 16,
-  maxConnectionWindowSize: 256,
   minConnectionWindowSize: 1,
   maxAckSeqListSize: 32,
   flushInterval: 10,
@@ -13161,7 +13158,7 @@ exports.default = Context;
 Object.defineProperty(exports, "__esModule", {
   value: true
 });
-exports.WriteDeadlineExceededError = exports.SessionNotEstablishedError = exports.SessionEstablishedError = exports.SessionClosedError = exports.RecvWindowFullError = exports.ReadDeadlineExceededError = exports.NotHandshakeError = exports.InvalidPacketError = exports.DialTimeoutError = exports.DataSizeTooLargeError = exports.BufferSizeTooSmallError = void 0;
+exports.WriteDeadlineExceededError = exports.SessionNotEstablishedError = exports.SessionEstablishedError = exports.SessionClosedError = exports.RecvWindowFullError = exports.ReadDeadlineExceededError = exports.NotHandshakeError = exports.InvalidPacketError = exports.DialTimeoutError = exports.DataSizeTooLargeError = exports.ConnNotFoundError = exports.BufferSizeTooSmallError = void 0;
 
 class SessionClosedError extends Error {
   constructor(message = 'session closed', ...params) {
@@ -13327,6 +13324,21 @@ class DialTimeoutError extends Error {
 }
 
 exports.DialTimeoutError = DialTimeoutError;
+
+class ConnNotFoundError extends Error {
+  constructor(message = 'Connection not found', ...params) {
+    super(message, ...params);
+
+    if (Error.captureStackTrace) {
+      Error.captureStackTrace(this, ConnNotFoundError);
+    }
+
+    this.name = 'ConnNotFoundError';
+  }
+
+}
+
+exports.ConnNotFoundError = ConnNotFoundError;
 },{}],38:[function(require,module,exports){
 'use strict';
 
@@ -13935,19 +13947,19 @@ Object.defineProperty(exports, "__esModule", {
 });
 exports.default = void 0;
 
-var _channel = _interopRequireDefault(require("./channel"));
-
 var _promise = _interopRequireDefault(require("core-js-pure/features/promise"));
+
+var _channel = _interopRequireDefault(require("./channel"));
 
 var _connection = _interopRequireDefault(require("./connection"));
 
-var context = _interopRequireWildcard(require("./context"));
-
-var _packet_pb = require("./pb/packet_pb");
-
 var consts = _interopRequireWildcard(require("./consts"));
 
+var context = _interopRequireWildcard(require("./context"));
+
 var errors = _interopRequireWildcard(require("./errors"));
+
+var _packet_pb = require("./pb/packet_pb");
 
 var util = _interopRequireWildcard(require("./util"));
 
@@ -14037,6 +14049,8 @@ class Session {
 
     _defineProperty(this, "_writableStream", void 0);
 
+    _defineProperty(this, "sendWindowPacketCount", void 0);
+
     this.config = Object.assign({}, consts.defaultConfig, config);
     this.localAddr = localAddr;
     this.remoteAddr = remoteAddr;
@@ -14063,6 +14077,7 @@ class Session {
     this._readableStream = null;
     this.WritableStream = null;
     this._writableStream = null;
+    this.sendWindowPacketCount = this.sendWindowSize / this.sendMtu;
   }
 
   isStream() {
@@ -14189,6 +14204,8 @@ class Session {
           }
         }
       }
+
+      this.updateConnWindowSize();
     }
 
     if (isEstablished && packet.getBytesRead() > this.remoteBytesRead) {
@@ -14221,6 +14238,8 @@ class Session {
 
       if (conn) {
         conn.sendAck(packet.getSequenceId());
+      } else {
+        throw new errors.ConnNotFoundError('Connection ' + util.connKey(localClientID, remoteClientID) + ' not found.');
       }
     }
   }
@@ -14395,6 +14414,8 @@ class Session {
       this.sendMtu = packet.getMtu();
     }
 
+    this.sendWindowPacketCount = this.sendWindowSize / this.sendMtu;
+
     if (packet.getClientIdsList().length === 0) {
       throw new errors.InvalidPacketError('ClientIDs is empty');
     }
@@ -14405,17 +14426,18 @@ class Session {
       n = packet.getClientIdsList().length;
     }
 
+    let initialWindowSize = this.sendWindowPacketCount / n;
     let connections = new Map();
 
     for (let i = 0; i < n; i++) {
-      let conn = new _connection.default(this, this.localClientIDs[i], packet.getClientIdsList()[i]);
+      let conn = new _connection.default(this, this.localClientIDs[i], packet.getClientIdsList()[i], initialWindowSize);
       connections.set(util.connKey(conn.localClientID, conn.remoteClientID), conn);
     }
 
     this.connections = connections;
     this.remoteClientIDs = packet.getClientIdsList();
     this.sendChan = new _channel.default();
-    this.resendChan = new _channel.default(this.config.maxConnectionWindowSize * n);
+    this.resendChan = new _channel.default(this.sendWindowPacketCount + n);
     this.sendWindowUpdate = new _channel.default(1);
     this.recvDataUpdate = new _channel.default(1);
     this.sendBuffer = new Uint8Array(0);
@@ -14788,6 +14810,23 @@ class Session {
     }
 
     return this._writableStream;
+  }
+
+  updateConnWindowSize() {
+    let totalSize = 0.0;
+
+    for (let conn of this.connections.values()) {
+      totalSize += conn.windowSize;
+    }
+
+    if (totalSize <= 0) {
+      return;
+    }
+
+    for (let conn of this.connections.values()) {
+      let n = this.sendWindowPacketCount * (conn.windowSize / totalSize);
+      conn.setWindowSize(n);
+    }
   }
 
 }

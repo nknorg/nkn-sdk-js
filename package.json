@@ -1,6 +1,6 @@
 {
   "name": "nkn-sdk",
-  "version": "1.2.6",
+  "version": "1.2.7",
   "description": "NKN client and wallet SDK",
   "main": "lib/index.js",
   "exports": {
@@ -38,7 +38,7 @@
     "streaming"
   ],
   "dependencies": {
-    "@nkn/ncp": "^1.0.9",
+    "@nkn/ncp": "^1.1.1",
     "axios": "^0.21.1",
     "base-x": "^3.0.7",
     "buffer": "^5.4.3",
