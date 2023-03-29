@@ -174,3 +174,13 @@ export class RpcError extends Error {
     this.name = 'RpcError';
   }
 }
+
+export class ChallengeTimeoutError extends Error {
+  constructor(message = 'challenge timeout', ...params) {
+    super(message, ...params);
+    if (Error.captureStackTrace) {
+      Error.captureStackTrace(this, ChallengeTimeoutError);
+    }
+    this.name = 'ChallengeTimeoutError';
+  }
+}

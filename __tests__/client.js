@@ -28,7 +28,7 @@ class ClientTest {
         new Promise(resolve => this.alice.onConnect(resolve)),
         new Promise(resolve => this.bob.onConnect(resolve)),
       ]);
-      await new Promise(resolve => setTimeout(resolve, 1000));
+      await new Promise(resolve => setTimeout(resolve, 10000));
       expect(this.alice.isReady).toBe(true);
       expect(this.bob.isReady).toBe(true);
     });

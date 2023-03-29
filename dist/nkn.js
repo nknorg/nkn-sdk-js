@@ -701,10 +701,10 @@ class Client {
     }
 
     let challengeDone;
-    let challengeHandler = new Promise(async (resolve, reject) => {
+    let challengeHandler = new Promise((resolve, reject) => {
       challengeDone = resolve;
       setTimeout(() => {
-        reject(new Error('Challenge timeout'));
+        reject(new common.errors.ChallengeTimeoutError());
       }, consts.waitForChallengeTimeout);
     });
 
@@ -722,7 +722,9 @@ class Client {
           data.Signature = common.util.bytesToHex(req.Signature);
         }
       } catch (e) {
-        console.log(e);
+        if (!e instanceof common.errors.ChallengeTimeoutError) {
+          console.log(e);
+        }
       }
 
       ws.send(JSON.stringify(data));
@@ -1682,7 +1684,7 @@ async function sign(privateKey, message) {
 Object.defineProperty(exports, "__esModule", {
   value: true
 });
-exports.rpcRespErrCodes = exports.WrongPasswordError = exports.UnknownError = exports.ServerError = exports.RpcTimeoutError = exports.RpcError = exports.NotEnoughBalanceError = exports.InvalidWalletVersionError = exports.InvalidWalletFormatError = exports.InvalidResponseError = exports.InvalidDestinationError = exports.InvalidArgumentError = exports.InvalidAddressError = exports.DecryptionError = exports.DataSizeTooLargeError = exports.ClientNotReadyError = exports.AddrNotAllowedError = void 0;
+exports.rpcRespErrCodes = exports.WrongPasswordError = exports.UnknownError = exports.ServerError = exports.RpcTimeoutError = exports.RpcError = exports.NotEnoughBalanceError = exports.InvalidWalletVersionError = exports.InvalidWalletFormatError = exports.InvalidResponseError = exports.InvalidDestinationError = exports.InvalidArgumentError = exports.InvalidAddressError = exports.DecryptionError = exports.DataSizeTooLargeError = exports.ClientNotReadyError = exports.ChallengeTimeoutError = exports.AddrNotAllowedError = void 0;
 const rpcRespErrCodes = {
   success: 0,
   wrongNode: 48001,
@@ -1941,6 +1943,21 @@ class RpcError extends Error {
 }
 
 exports.RpcError = RpcError;
+
+class ChallengeTimeoutError extends Error {
+  constructor(message = 'challenge timeout', ...params) {
+    super(message, ...params);
+
+    if (Error.captureStackTrace) {
+      Error.captureStackTrace(this, ChallengeTimeoutError);
+    }
+
+    this.name = 'ChallengeTimeoutError';
+  }
+
+}
+
+exports.ChallengeTimeoutError = ChallengeTimeoutError;
 },{}],9:[function(require,module,exports){
 'use strict';
 
