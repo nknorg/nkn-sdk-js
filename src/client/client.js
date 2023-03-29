@@ -614,10 +614,10 @@ export default class Client {
     }
 
     let challengeDone: Function;
-    let challengeHandler: Promise<SaltAndSignature> = new Promise<SaltAndSignature>(async (resolve, reject) => {
+    let challengeHandler: Promise<SaltAndSignature> = new Promise<SaltAndSignature>((resolve, reject) => {
       challengeDone = resolve;
       setTimeout(() => {
-        reject(new Error('Challenge timeout'));
+        reject(new common.errors.ChallengeTimeoutError());
       }, waitForChallengeTimeout);
     });
 
@@ -633,7 +633,9 @@ export default class Client {
           data.Signature = common.util.bytesToHex(req.Signature);
         }
       } catch (e) {
-        console.log(e);
+        if (!e instanceof common.errors.ChallengeTimeoutError) {
+          console.log(e);
+        }
       }
       ws.send(JSON.stringify(data));
       this.shouldReconnect = true;
