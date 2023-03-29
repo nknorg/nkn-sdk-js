@@ -687,11 +687,17 @@ class Client {
 
     this.ws = ws;
     this.node = nodeInfo;
+    this.wallet.options.rpcServerAddr = '';
 
     if (nodeInfo.rpcAddr) {
-      this.wallet.options.rpcServerAddr = (tls ? 'https' : 'http') + '://' + nodeInfo.rpcAddr;
-    } else {
-      this.wallet.options.rpcServerAddr = '';
+      let addr = (tls ? 'https' : 'http') + '://' + nodeInfo.rpcAddr;
+      common.rpc.getNodeState.call(this, {
+        rpcServerAddr: addr
+      }).then(nodeState => {
+        if (nodeState.syncState === 'PERSIST_FINISHED') {
+          this.wallet.options.rpcServerAddr = addr;
+        }
+      });
     }
 
     let challengeDone;
