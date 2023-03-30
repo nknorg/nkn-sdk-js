@@ -256,7 +256,7 @@ export default class Client {
       throw new common.errors.InvalidDestinationError('destination is empty');
     }
     let addr = dest.split('.');
-    if (addr[addr.length - 1].length < common.key.publicKeyLength * 2) {
+    if (addr[addr.length - 1].length < common.crypto.publicKeyLength * 2) {
       let res = await this.getRegistrant(addr[addr.length - 1]);
       if (res.registrant && res.registrant.length > 0) {
         addr[addr.length - 1] = res.registrant;
