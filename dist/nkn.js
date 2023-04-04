@@ -704,7 +704,8 @@ class Client {
     let challengeHandler = new Promise((resolve, reject) => {
       challengeDone = resolve;
       setTimeout(() => {
-        reject(new common.errors.ChallengeTimeoutError());
+        // Some nodejs version might terminate the whole process if we call reject here
+        resolve(new common.errors.ChallengeTimeoutError());
       }, consts.waitForChallengeTimeout);
     });
 
@@ -713,18 +714,11 @@ class Client {
         Action: Action.setClient,
         Addr: this.addr
       };
+      let req = await challengeHandler;
 
-      try {
-        let req = await challengeHandler;
-
-        if (!!req) {
-          data.ClientSalt = common.util.bytesToHex(req.ClientSalt);
-          data.Signature = common.util.bytesToHex(req.Signature);
-        }
-      } catch (e) {
-        if (!e instanceof common.errors.ChallengeTimeoutError) {
-          console.log(e);
-        }
+      if (!!req && !(req instanceof common.errors.ChallengeTimeoutError)) {
+        data.ClientSalt = common.util.bytesToHex(req.ClientSalt);
+        data.Signature = common.util.bytesToHex(req.Signature);
       }
 
       ws.send(JSON.stringify(data));
