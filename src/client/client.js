@@ -617,7 +617,8 @@ export default class Client {
     let challengeHandler: Promise<SaltAndSignature> = new Promise<SaltAndSignature>((resolve, reject) => {
       challengeDone = resolve;
       setTimeout(() => {
-        reject(new common.errors.ChallengeTimeoutError());
+        // Some nodejs version might terminate the whole process if we call reject here
+        resolve(new common.errors.ChallengeTimeoutError());
       }, waitForChallengeTimeout);
     });
 
@@ -626,16 +627,10 @@ export default class Client {
         Action: Action.setClient,
         Addr: this.addr,
       };
-      try {
-        let req = await challengeHandler;
-        if (!!req) {
-          data.ClientSalt = common.util.bytesToHex(req.ClientSalt);
-          data.Signature = common.util.bytesToHex(req.Signature);
-        }
-      } catch (e) {
-        if (!e instanceof common.errors.ChallengeTimeoutError) {
-          console.log(e);
-        }
+      let req = await challengeHandler;
+      if (!!req && !(req instanceof common.errors.ChallengeTimeoutError)) {
+        data.ClientSalt = common.util.bytesToHex(req.ClientSalt);
+        data.Signature = common.util.bytesToHex(req.Signature);
       }
       ws.send(JSON.stringify(data));
       this.shouldReconnect = true;
