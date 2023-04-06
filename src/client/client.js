@@ -606,11 +606,13 @@ export default class Client {
     this.wallet.options.rpcServerAddr = '';
     if (nodeInfo.rpcAddr) {
       let addr = (tls ? 'https' : 'http') + '://' + nodeInfo.rpcAddr;
-      common.rpc.getNodeState.call(this, {rpcServerAddr:addr}).then(nodeState => {
+      common.rpc.getNodeState({ rpcServerAddr:addr }).then(nodeState => {
         if (nodeState.syncState === 'PERSIST_FINISHED') {
           this.wallet.options.rpcServerAddr = addr;
         }
-      })
+      }).catch((e) => {
+        console.log(e);
+      });
     }
 
     let challengeDone: Function;
