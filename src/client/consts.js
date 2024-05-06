@@ -8,6 +8,8 @@ export const defaultOptions = {
   encrypt: true,
   rpcServerAddr: 'https://mainnet-rpc-node-0001.nkn.org/mainnet/api/wallet',
   worker: false,
+  stunServerAddr: 'stun:stun.l.google.com:19302',
+  webrtc: false,
 }
 
 export const defaultPublishOptions = {
