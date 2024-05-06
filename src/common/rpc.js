@@ -22,6 +22,7 @@ const methods = {
   getLatestBlockHash: { method: 'getlatestblockhash' },
   sendRawTransaction: { method: 'sendrawtransaction' },
   getNodeState: { method: 'getnodestate' },
+  getPeerAddr: { method: 'getpeeraddr' },
 }
 
 var rpc = {};
@@ -211,4 +212,8 @@ export async function unsubscribe(topic, identifier, options = {}) {
 
 export async function getNodeState(options = {}) {
   return rpc.getNodeState(options.rpcServerAddr);
+}
+
+export async function getPeerAddr(address, options = {}) {
+  return rpc.getPeerAddr(options.rpcServerAddr, { address, offer: options.offer });
 }

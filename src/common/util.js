@@ -85,3 +85,7 @@ export function toLowerKeys(obj) {
 export function sleep(duration) {
   return new Promise(resolve => setTimeout(resolve, duration));
 }
+
+export function isBrowser() {
+  return ![typeof window, typeof document].includes('undefined');
+}

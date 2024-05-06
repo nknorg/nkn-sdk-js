@@ -7,6 +7,7 @@ import Wallet from '../wallet';
 import * as common from '../common';
 import * as consts from './consts';
 import * as message from './message';
+import Peer from './webrtc';
 
 import type { CreateTransactionOptions, TransactionOptions, TxnOrHash } from '../wallet';
 import * as crypto from '../common/crypto'
@@ -44,6 +45,8 @@ export default class Client {
     rpcServerAddr: string,
     tls?: boolean,
     worker: boolean | () => Worker | Promise<Worker>,
+    stunServerAddr?: string,
+    webrtc?: boolean,
   };
   key: common.Key;
   /**
@@ -80,6 +83,12 @@ export default class Client {
   isClosed: boolean;
   wallet: Wallet;
 
+  /**
+   * Webrtc peer end
+   * @type {Peer}
+   */
+  peer: Peer;
+
   constructor(options: {
     seed?: string,
     identifier?: string,
@@ -91,6 +100,8 @@ export default class Client {
     rpcServerAddr?: string,
     tls?: boolean,
     worker?: boolean | () => Worker | Promise<Worker>,
+    stunServerAddr?: string,
+    webrtc?: boolean,
   } = {}) {
     options = common.util.assignDefined({}, consts.defaultOptions, options);
 
@@ -123,6 +134,10 @@ export default class Client {
     this.isClosed = false;
     this.wallet = wallet;
 
+    if (options.webrtc) {
+      this.peer = new Peer(options.stunServerAddr);
+    }
+
     this._connect();
   }
 
@@ -147,7 +162,12 @@ export default class Client {
     let res, error;
     for (let i = 0; i < 3; i++) {
       try {
-        res = await getAddr(this.addr, this.options);
+        if (this.options.webrtc) {
+          this.options.offer = await this.peer.offer(this.addr);
+          res = await common.rpc.getPeerAddr(this.addr, this.options);
+        }else{
+          res = await getAddr(this.addr, this.options);
+        }
       } catch (e) {
         error = e;
         continue;
@@ -558,7 +578,7 @@ export default class Client {
     return false;
   }
 
-  _newWsAddr(nodeInfo: { addr: string, rpcAddr: string }) {
+  async _newWsAddr(nodeInfo: { addr: string, rpcAddr: string, sdp?: string }) {
     if (!nodeInfo.addr) {
       console.log('No address in node info', nodeInfo);
       if (this.shouldReconnect) {
@@ -572,10 +592,15 @@ export default class Client {
     let tls = this._shouldUseTls();
     let ws;
     try {
-      ws = new WebSocket((tls ? 'wss' : 'ws') + '://' + nodeInfo.addr);
-      ws.binaryType = 'arraybuffer';
+      if (this.options.webrtc) {
+        ws = this.peer;
+        this.peer.setRemoteDescription(nodeInfo.sdp);
+      } else {
+        ws = new WebSocket((tls ? 'wss' : 'ws') + '://' + nodeInfo.addr);
+        ws.binaryType = 'arraybuffer';
+      }
     } catch (e) {
-      console.log('Create WebSocket failed,', e);
+      console.log('Create WebSocket or WebRTC failed,', e);
       if (this.shouldReconnect) {
         this._reconnect();
       } else if (!this.isClosed) {
