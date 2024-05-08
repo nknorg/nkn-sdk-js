@@ -995,11 +995,33 @@ reliability and lower latency.</p>
 
               
                 <tr>
+  <td class='break-word'><span class='code bold'>options.webrtc</span> <code class='quiet'><a href="https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/Boolean">boolean</a></code>
+  
+    (default <code>undefined</code>)
+  </td>
+  <td class='break-word'><span>Force to use/not use web rtc if defined. By default, webrtc is used only in https location when tls is undefined.
+</span></td>
+</tr>
+
+
+              
+                <tr>
   <td class='break-word'><span class='code bold'>options.tls</span> <code class='quiet'><a href="https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/Boolean">boolean</a></code>
   
     (default <code>undefined</code>)
   </td>
-  <td class='break-word'><span>Force to use wss instead of ws protocol. If not defined, wss will only be used in https location.
+  <td class='break-word'><span>Force to use ws or wss if defined. This option is only used when webrtc is not used. Default is true in https location, otherwise false.
+</span></td>
+</tr>
+
+
+              
+                <tr>
+  <td class='break-word'><span class='code bold'>options.stunServerAddr</span> <code class='quiet'><a href="https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/String">string</a></code>
+  
+    (default <code>&#39;stun:stun.l.google.com:19302&#39;</code>)
+  </td>
+  <td class='break-word'><span>Stun server address for webrtc.
 </span></td>
 </tr>
 
