@@ -33,15 +33,11 @@
                 let Client = useMultiClient ? nkn.MultiClient : nkn.Client;
                 let alice = new Client({
                     identifier: "alice",
-                    rpcServerAddr: "http://localhost:30003",
-                    seed: "fc9d0b927f450fe5f90a9f6bd6912eee528457a835d5a6343c0c941233e255cc",
                     webrtc: true,
                 });
                 let bob = new Client({
                     identifier: "bob",
-                    rpcServerAddr: "http://localhost:30003",
-                    seed: "9bc79176de3616c73c41a46fca93f781b3d19ed7581448f9fadaa892ba0e2fc5",
-                    webrtc: false,
+                    webrtc: true,
                 });
 
                 alice.onConnectFailed(() => {

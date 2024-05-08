@@ -35,7 +35,9 @@ const Action = {
  * @param {number} [options.msgHoldingSeconds=0] - Maximal message holding time in second. Message might be cached and held by node up to this duration if destination client is not online. Zero disables cache.
  * @param {boolean} [options.encrypt=true] - Whether to end to end encrypt message.
  * @param {string} [options.rpcServerAddr='https://mainnet-rpc-node-0001.nkn.org/mainnet/api/wallet'] - RPC server address used to join the network.
- * @param {boolean} [options.tls=undefined] - Force to use wss instead of ws protocol. If not defined, wss will only be used in https location.
+ * @param {boolean} [options.webrtc=undefined] - Force to use/not use web rtc if defined. By default, webrtc is used only in https location when tls is undefined.
+ * @param {boolean} [options.tls=undefined] - Force to use ws or wss if defined. This option is only used when webrtc is not used. Default is true in https location, otherwise false.
+ * @param {string} [options.stunServerAddr='stun:stun.l.google.com:19302'] - Stun server address for webrtc.
  * @param {boolean|function} [options.worker=false] - Whether to use web workers (if available) to compute signatures. Can also be a function that returns web worker. Typically you only need to set it to a function if you import nkn-sdk as a module and are NOT using browserify or webpack worker-loader to bundle js file. The worker file is located at `lib/worker/webpack.worker.js`.
  */
 export default class Client {
@@ -48,9 +50,9 @@ export default class Client {
     encrypt: boolean,
     rpcServerAddr: string,
     tls?: boolean,
-    worker: boolean | (() => Worker | Promise<Worker>),
-    stunServerAddr?: string,
     webrtc?: boolean,
+    stunServerAddr?: string,
+    worker: boolean | (() => Worker | Promise<Worker>),
   };
   key: common.Key;
   /**
@@ -141,6 +143,10 @@ export default class Client {
     this.isFailed = false;
     this.isClosed = false;
     this.wallet = wallet;
+
+    if (options.webrtc === undefined && options.tls === undefined) {
+      options.webrtc = this._shouldUseTls();
+    }
 
     if (options.webrtc) {
       this.peer = new Peer(options.stunServerAddr);
@@ -756,8 +762,8 @@ export default class Client {
     this.ws = ws;
     this.node = nodeInfo;
     this.wallet.options.rpcServerAddr = "";
-    if (nodeInfo.rpcAddr) {
-      let addr = (tls ? "https" : "http") + "://" + nodeInfo.rpcAddr;
+    if (!tls && nodeInfo.rpcAddr) {
+      let addr = "http://" + nodeInfo.rpcAddr;
       common.rpc
         .getNodeState({ rpcServerAddr: addr })
         .then((nodeState) => {
