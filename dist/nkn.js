@@ -48,7 +48,7 @@ const Action = {
  * @param {string} [options.rpcServerAddr='https://mainnet-rpc-node-0001.nkn.org/mainnet/api/wallet'] - RPC server address used to join the network.
  * @param {boolean} [options.webrtc=undefined] - Force to use/not use web rtc if defined. By default, webrtc is used only in https location when tls is undefined.
  * @param {boolean} [options.tls=undefined] - Force to use ws or wss if defined. This option is only used when webrtc is not used. Default is true in https location, otherwise false.
- * @param {string} [options.stunServerAddr='stun:stun.l.google.com:19302'] - Stun server address for webrtc.
+ * @param {string} [options.stunServerAddr=["stun:stun.l.google.com:19302","stun:stun.cloudflare.com:3478","stun:stunserver.stunprotocol.org:3478"]] - Stun server address for webrtc.
  * @param {boolean|function} [options.worker=false] - Whether to use web workers (if available) to compute signatures. Can also be a function that returns web worker. Typically you only need to set it to a function if you import nkn-sdk as a module and are NOT using browserify or webpack worker-loader to bundle js file. The worker file is located at `lib/worker/webpack.worker.js`.
  */
 
@@ -1246,8 +1246,8 @@ const defaultOptions = {
   msgHoldingSeconds: 0,
   encrypt: true,
   rpcServerAddr: "https://mainnet-rpc-node-0001.nkn.org/mainnet/api/wallet",
-  worker: false,
-  stunServerAddr: "stun:stun.l.google.com:19302"
+  stunServerAddr: ["stun:stun.l.google.com:19302", "stun:stun.cloudflare.com:3478", "stun:stunserver.stunprotocol.org:3478"],
+  worker: false
 };
 exports.defaultOptions = defaultOptions;
 const defaultPublishOptions = {
