@@ -28,7 +28,7 @@
                 document.getElementById("output").innerHTML += msg + "<br>";
             };
 
-            const useMultiClient = false;
+            const useMultiClient = true;
             async function startClients() {
                 let Client = useMultiClient ? nkn.MultiClient : nkn.Client;
                 let alice = new Client({
