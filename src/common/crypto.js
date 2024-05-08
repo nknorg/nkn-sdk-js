@@ -1,10 +1,10 @@
-'use strict';
+"use strict";
 
-import ed2curve from 'ed2curve';
-import sodium from 'libsodium-wrappers';
-import nacl from 'tweetnacl';
+import ed2curve from "ed2curve";
+import sodium from "libsodium-wrappers";
+import nacl from "tweetnacl";
 
-import * as util from './util';
+import * as util from "./util";
 
 export const keyLength = 32;
 export const nonceLength = 24;
@@ -24,7 +24,8 @@ export function keyPair(seed) {
       privateKey: key.privateKey,
       curvePrivateKey: ed25519SkToCurve25519(key.privateKey),
     };
-  } catch (e) { // libsodium not ready yet
+  } catch (e) {
+    // libsodium not ready yet
     let key = nacl.sign.keyPair.fromSeed(seedBytes);
     return {
       seed: seed,
@@ -38,7 +39,8 @@ export function keyPair(seed) {
 export function ed25519SkToCurve25519(sk) {
   try {
     return sodium.crypto_sign_ed25519_sk_to_curve25519(sk);
-  } catch (e) { // libsodium not ready yet
+  } catch (e) {
+    // libsodium not ready yet
     return ed2curve.convertSecretKey(sk);
   }
 }
@@ -57,7 +59,9 @@ export async function ed25519PkToCurve25519(pk) {
 }
 
 export async function computeSharedKey(myCurvePrivateKey, otherPubkey) {
-  let otherCurvePubkey = await ed25519PkToCurve25519(Buffer.from(otherPubkey, 'hex'));
+  let otherCurvePubkey = await ed25519PkToCurve25519(
+    Buffer.from(otherPubkey, "hex"),
+  );
   let sharedKey;
   try {
     sharedKey = sodium.crypto_box_beforenm(otherCurvePubkey, myCurvePrivateKey);
@@ -101,10 +105,10 @@ export async function sign(privateKey, message) {
       await sodium.ready;
       isReady = true;
     }
-    sig = sodium.crypto_sign_detached(Buffer.from(message, 'hex'), privateKey);
+    sig = sodium.crypto_sign_detached(Buffer.from(message, "hex"), privateKey);
   } catch (e) {
     console.warn(e);
-    sig = nacl.sign.detached(Buffer.from(message, 'hex'), privateKey);
+    sig = nacl.sign.detached(Buffer.from(message, "hex"), privateKey);
   }
   return util.bytesToHex(sig);
 }

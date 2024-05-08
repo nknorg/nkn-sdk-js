@@ -1,13 +1,13 @@
 // @flow
-'use strict';
+"use strict";
 
-import scrypt from 'scrypt-js';
+import scrypt from "scrypt-js";
 
-import Account from './account';
-import * as address from './address';
-import * as common from '../common';
-import * as consts from './consts';
-import * as transaction from './transaction';
+import Account from "./account";
+import * as address from "./address";
+import * as common from "../common";
+import * as consts from "./consts";
+import * as transaction from "./transaction";
 
 /**
  * NKN client that sends data to and receives data from other NKN clients.
@@ -23,7 +23,7 @@ export default class Wallet {
   options: {
     rpcServerAddr: string,
     scrypt?: ScryptParams,
-    worker: boolean | () => Worker | Promise<Worker>,
+    worker: boolean | (() => Worker | Promise<Worker>),
   };
   account: Account;
   iv: string;
@@ -44,25 +44,33 @@ export default class Wallet {
   static minCompatibleVersion: number = 1;
   static maxCompatibleVersion: number = 2;
 
-  constructor(options: {
-    seed?: string,
-    password?: string,
-    rpcServerAddr?: string,
-    iv?: string,
-    masterKey?: string,
-    scrypt?: ScryptParams,
-    worker?: boolean | () => Worker | Promise<Worker>,
-    passwordKey?: { [string]: string },
-    version?: number,
-  } = {}) {
+  constructor(
+    options: {
+      seed?: string,
+      password?: string,
+      rpcServerAddr?: string,
+      iv?: string,
+      masterKey?: string,
+      scrypt?: ScryptParams,
+      worker?: boolean | (() => Worker | Promise<Worker>),
+      passwordKey?: { [string]: string },
+      version?: number,
+    } = {},
+  ) {
     options = common.util.assignDefined({}, consts.defaultOptions, options);
 
     this.version = options.version || Wallet.version;
 
     switch (this.version) {
       case 2:
-        this.scryptParams = common.util.assignDefined({}, consts.scryptParams, options.scrypt);
-        this.scryptParams.salt = this.scryptParams.salt || common.util.randomBytesHex(this.scryptParams.saltLen);
+        this.scryptParams = common.util.assignDefined(
+          {},
+          consts.scryptParams,
+          options.scrypt,
+        );
+        this.scryptParams.salt =
+          this.scryptParams.salt ||
+          common.util.randomBytesHex(this.scryptParams.saltLen);
         break;
     }
 
@@ -71,7 +79,12 @@ export default class Wallet {
     this.address = this.account.address;
     this.programHash = this.account.programHash;
 
-    if (options.iv || options.masterKey || options.password || options.passwordKey) {
+    if (
+      options.iv ||
+      options.masterKey ||
+      options.password ||
+      options.passwordKey
+    ) {
       this._completeWallet(Object.assign({}, options, { async: false }));
     }
 
@@ -86,13 +99,13 @@ export default class Wallet {
     version: number,
     password: string,
     scrypt?: ScryptParams,
-    async: bool,
+    async: boolean,
   }) {
     // convert all keys to lowercase to be case insensitive
     options = common.util.toLowerKeys(options);
 
     if (!options.version) {
-      throw new common.errors.InvalidArgumentError('missing version field');
+      throw new common.errors.InvalidArgumentError("missing version field");
     }
 
     let passwordKey;
@@ -105,40 +118,61 @@ export default class Wallet {
         }
       case 2:
         if (!options.scrypt) {
-          throw new common.errors.InvalidArgumentError('missing scrypt field');
+          throw new common.errors.InvalidArgumentError("missing scrypt field");
         }
-        if (!options.scrypt.salt || !options.scrypt.n || !options.scrypt.r || !options.scrypt.p) {
-          throw new common.errors.InvalidArgumentError('incomplete scrypt parameters');
+        if (
+          !options.scrypt.salt ||
+          !options.scrypt.n ||
+          !options.scrypt.r ||
+          !options.scrypt.p
+        ) {
+          throw new common.errors.InvalidArgumentError(
+            "incomplete scrypt parameters",
+          );
         }
         if (options.async) {
-          return scrypt.scrypt(
-            common.util.utf8ToBytes(options.password),
-            common.util.hexToBytes(options.scrypt.salt),
-            options.scrypt.n,
-            options.scrypt.r,
-            options.scrypt.p,
-            32,
-          ).then(common.util.bytesToHex);
+          return scrypt
+            .scrypt(
+              common.util.utf8ToBytes(options.password),
+              common.util.hexToBytes(options.scrypt.salt),
+              options.scrypt.n,
+              options.scrypt.r,
+              options.scrypt.p,
+              32,
+            )
+            .then(common.util.bytesToHex);
         } else {
-          return common.util.bytesToHex(scrypt.syncScrypt(
-            common.util.utf8ToBytes(options.password),
-            common.util.hexToBytes(options.scrypt.salt),
-            options.scrypt.n,
-            options.scrypt.r,
-            options.scrypt.p,
-            32,
-          ));
+          return common.util.bytesToHex(
+            scrypt.syncScrypt(
+              common.util.utf8ToBytes(options.password),
+              common.util.hexToBytes(options.scrypt.salt),
+              options.scrypt.n,
+              options.scrypt.r,
+              options.scrypt.p,
+              32,
+            ),
+          );
         }
       default:
-        throw new common.errors.InvalidWalletFormatError('unsupported wallet verison '+ options.version);
+        throw new common.errors.InvalidWalletFormatError(
+          "unsupported wallet verison " + options.version,
+        );
     }
   }
 
   static _decryptWallet(walletObj: any, options: any): Wallet {
     options.iv = walletObj.iv;
-    options.masterKey = common.aes.decrypt(walletObj.masterkey, options.passwordKey, options.iv);
-    options.seed = common.aes.decrypt(walletObj.seedencrypted, options.masterKey, options.iv);
-    options.passwordKey = {[walletObj.version]: options.passwordKey};
+    options.masterKey = common.aes.decrypt(
+      walletObj.masterkey,
+      options.passwordKey,
+      options.iv,
+    );
+    options.seed = common.aes.decrypt(
+      walletObj.seedencrypted,
+      options.masterKey,
+      options.iv,
+    );
+    options.passwordKey = { [walletObj.version]: options.passwordKey };
 
     switch (walletObj.version) {
       case 2:
@@ -158,13 +192,15 @@ export default class Wallet {
     return new Wallet(options);
   }
 
-  _completeWallet(options: {
-    iv?: string,
-    masterKey?: string,
-    password?: string,
-    passwordKey?: { [string]: string },
-    async: bool,
-  } = {}) {
+  _completeWallet(
+    options: {
+      iv?: string,
+      masterKey?: string,
+      password?: string,
+      passwordKey?: { [string]: string },
+      async: boolean,
+    } = {},
+  ) {
     if (this.seedEncrypted) {
       if (options.async) {
         return Promise.resolve();
@@ -178,24 +214,28 @@ export default class Wallet {
       let masterKey = options.masterKey || common.util.randomBytesHex(32);
       this.iv = iv;
       this.masterKey = common.aes.encrypt(masterKey, passwordKey, iv);
-      this.seedEncrypted = common.aes.encrypt(this.account.getSeed(), masterKey, iv);
-    }
+      this.seedEncrypted = common.aes.encrypt(
+        this.account.getSeed(),
+        masterKey,
+        iv,
+      );
+    };
 
     let passwordKey;
-    if (options.passwordKey && options.passwordKey['' + this.version]) {
-      passwordKey = options.passwordKey['' + this.version];
+    if (options.passwordKey && options.passwordKey["" + this.version]) {
+      passwordKey = options.passwordKey["" + this.version];
     } else {
       if (options.async) {
         return Wallet._computePasswordKey({
           version: this.version,
-          password: options.password || '',
+          password: options.password || "",
           scrypt: this.scryptParams,
           async: true,
         }).then(completeWallet);
       } else {
         passwordKey = Wallet._computePasswordKey({
           version: this.version,
-          password: options.password || '',
+          password: options.password || "",
           scrypt: this.scryptParams,
           async: false,
         });
@@ -219,13 +259,16 @@ export default class Wallet {
    * @param {string} [options.rpcServerAddr='https://mainnet-rpc-node-0001.nkn.org/mainnet/api/wallet'] - RPC server address.
    * @param {bool} [options.async=false] - If true, return value will be a promise that resolves with the wallet object, and more importantly, the underlying scrypt computation will not block eventloop.
    */
-  static fromJSON(walletJson: string | WalletJson, options: {
-    password: string,
-    rpcServerAddr?: string,
-    async?: bool,
-  } = {}): Wallet | Promise<Wallet> {
+  static fromJSON(
+    walletJson: string | WalletJson,
+    options: {
+      password: string,
+      rpcServerAddr?: string,
+      async?: boolean,
+    } = {},
+  ): Wallet | Promise<Wallet> {
     let walletObj: { [string]: any };
-    if (typeof walletJson === 'string') {
+    if (typeof walletJson === "string") {
       walletObj = JSON.parse(walletJson);
     } else {
       walletObj = walletJson;
@@ -234,33 +277,64 @@ export default class Wallet {
     // convert all keys to lowercase to be case insensitive
     walletObj = common.util.toLowerKeys(walletObj);
 
-    if (typeof walletObj.version !== 'number' || walletObj.version < Wallet.minCompatibleVersion || walletObj.version > Wallet.maxCompatibleVersion) {
-      throw new common.errors.InvalidWalletVersionError('invalid wallet version ' + walletObj.version + ', should be between ' + Wallet.minCompatibleVersion + ' and ' + Wallet.maxCompatibleVersion);
+    if (
+      typeof walletObj.version !== "number" ||
+      walletObj.version < Wallet.minCompatibleVersion ||
+      walletObj.version > Wallet.maxCompatibleVersion
+    ) {
+      throw new common.errors.InvalidWalletVersionError(
+        "invalid wallet version " +
+          walletObj.version +
+          ", should be between " +
+          Wallet.minCompatibleVersion +
+          " and " +
+          Wallet.maxCompatibleVersion,
+      );
     }
 
     if (!walletObj.masterkey) {
-      throw new common.errors.InvalidWalletFormatError('missing masterKey field');
+      throw new common.errors.InvalidWalletFormatError(
+        "missing masterKey field",
+      );
     }
 
     if (!walletObj.iv) {
-      throw new common.errors.InvalidWalletFormatError('missing iv field');
+      throw new common.errors.InvalidWalletFormatError("missing iv field");
     }
 
     if (!walletObj.seedencrypted) {
-      throw new common.errors.InvalidWalletFormatError('missing seedEncrypted field');
+      throw new common.errors.InvalidWalletFormatError(
+        "missing seedEncrypted field",
+      );
     }
 
     if (!walletObj.address) {
-      throw new common.errors.InvalidWalletFormatError('missing address field');
+      throw new common.errors.InvalidWalletFormatError("missing address field");
     }
 
     if (options.async) {
-      return Wallet._computePasswordKey(Object.assign({}, walletObj, { password: options.password, async: true })).then((passwordKey) => {
-        return Wallet._decryptWallet(walletObj, Object.assign({}, options, { passwordKey }));
-      })
+      return Wallet._computePasswordKey(
+        Object.assign({}, walletObj, {
+          password: options.password,
+          async: true,
+        }),
+      ).then((passwordKey) => {
+        return Wallet._decryptWallet(
+          walletObj,
+          Object.assign({}, options, { passwordKey }),
+        );
+      });
     } else {
-      let passwordKey = Wallet._computePasswordKey(Object.assign({}, walletObj, { password: options.password, async: false }));
-      return Wallet._decryptWallet(walletObj, Object.assign({}, options, { passwordKey }));
+      let passwordKey = Wallet._computePasswordKey(
+        Object.assign({}, walletObj, {
+          password: options.password,
+          async: false,
+        }),
+      );
+      return Wallet._decryptWallet(
+        walletObj,
+        Object.assign({}, options, { passwordKey }),
+      );
     }
   }
 
@@ -323,7 +397,10 @@ export default class Wallet {
    * @param {Object} options - Verify password options.
    * @param {bool} [options.async=false] - If true, return value will be a promise, and more importantly, the underlying scrypt computation will not block eventloop.
    */
-  verifyPassword(password: string, options: { async: bool } = {}): boolean | Promise<boolean> {
+  verifyPassword(
+    password: string,
+    options: { async: boolean } = {},
+  ): boolean | Promise<boolean> {
     let opts = {
       version: this.version,
       password,
@@ -349,7 +426,9 @@ export default class Wallet {
    * @param {Object} [options={}] - Get nonce options.
    * @param {string} [options.rpcServerAddr='https://mainnet-rpc-node-0001.nkn.org/mainnet/api/wallet'] - RPC server address to query nonce.
    */
-  static getLatestBlock(options: { rpcServerAddr: string } = {}): Promise<{ height: number, hash: string }> {
+  static getLatestBlock(
+    options: { rpcServerAddr: string } = {},
+  ): Promise<{ height: number, hash: string }> {
     options = common.util.assignDefined({}, consts.defaultOptions, options);
     return common.rpc.getLatestBlock(options);
   }
@@ -366,7 +445,10 @@ export default class Wallet {
    * Get the registrant's public key and expiration block height of a name. If
    * name is not registered, `registrant` will be '' and `expiresAt` will be 0.
    */
-  static getRegistrant(name: string, options: { rpcServerAddr: string } = {}): Promise<{ registrant: string, expiresAt: number }> {
+  static getRegistrant(
+    name: string,
+    options: { rpcServerAddr: string } = {},
+  ): Promise<{ registrant: string, expiresAt: number }> {
     options = common.util.assignDefined({}, consts.defaultOptions, options);
     return common.rpc.getRegistrant(name, options);
   }
@@ -375,7 +457,9 @@ export default class Wallet {
    * Same as [Wallet.getRegistrant](#walletgetregistrant), but using this
    * wallet's rpcServerAddr as rpcServerAddr.
    */
-  getRegistrant(name: string): Promise<{ registrant: string, expiresAt: number }> {
+  getRegistrant(
+    name: string,
+  ): Promise<{ registrant: string, expiresAt: number }> {
     return Wallet.getRegistrant(name, this.options);
   }
 
@@ -422,13 +506,19 @@ export default class Wallet {
     subscribers: Array<string> | { [string]: string },
     subscribersInTxPool?: Array<string> | { [string]: string },
   }> {
-    return Wallet.getSubscribers(topic, Object.assign({}, this.options, options));
+    return Wallet.getSubscribers(
+      topic,
+      Object.assign({}, this.options, options),
+    );
   }
 
   /**
    * Get subscribers count of a topic (not including txPool).
    */
-  static getSubscribersCount(topic: string, options: { rpcServerAddr: string } = {}): Promise<number> {
+  static getSubscribersCount(
+    topic: string,
+    options: { rpcServerAddr: string } = {},
+  ): Promise<number> {
     options = common.util.assignDefined({}, consts.defaultOptions, options);
     return common.rpc.getSubscribersCount(topic, options);
   }
@@ -469,7 +559,10 @@ export default class Wallet {
    * @param {Object} [options={}] - Get nonce options.
    * @param {string} [options.rpcServerAddr='https://mainnet-rpc-node-0001.nkn.org/mainnet/api/wallet'] - RPC server address to query nonce.
    */
-  static getBalance(address: string, options: { rpcServerAddr: string } = {}): Promise<common.Amount> {
+  static getBalance(
+    address: string,
+    options: { rpcServerAddr: string } = {},
+  ): Promise<common.Amount> {
     options = common.util.assignDefined({}, consts.defaultOptions, options);
     return common.rpc.getBalance(address, options);
   }
@@ -489,7 +582,10 @@ export default class Wallet {
    * @param {string} [options.rpcServerAddr='https://mainnet-rpc-node-0001.nkn.org/mainnet/api/wallet'] - RPC server address to query nonce.
    * @param {boolean} [options.txPool=true] - Whether to consider transactions in txPool. If true, will return the next nonce after last nonce in txPool, otherwise will return the next nonce after last nonce in ledger.
    */
-  static getNonce(address: string, options: { rpcServerAddr: string, txPool: boolean } = {}): Promise<number> {
+  static getNonce(
+    address: string,
+    options: { rpcServerAddr: string, txPool: boolean } = {},
+  ): Promise<number> {
     options = common.util.assignDefined({}, consts.defaultOptions, options);
     return common.rpc.getNonce(address, options);
   }
@@ -499,7 +595,10 @@ export default class Wallet {
    * rpcServerAddr as rpcServerAddr. If address is not given, this wallet's
    * address will be used.
    */
-  getNonce(address: ?string, options: { txPool: boolean } = {}): Promise<number> {
+  getNonce(
+    address: ?string,
+    options: { txPool: boolean } = {},
+  ): Promise<number> {
     options = common.util.assignDefined({}, this.options, options);
     return Wallet.getNonce(address || this.address, options);
   }
@@ -509,7 +608,10 @@ export default class Wallet {
    * @param {Object} [options={}] - Send transaction options.
    * @param {string} [options.rpcServerAddr='https://mainnet-rpc-node-0001.nkn.org/mainnet/api/wallet'] - RPC server address to query nonce.
    */
-  static sendTransaction(txn: common.pb.transaction.Transaction, options: { rpcServerAddr: string } = {}): Promise<string> {
+  static sendTransaction(
+    txn: common.pb.transaction.Transaction,
+    options: { rpcServerAddr: string } = {},
+  ): Promise<string> {
     options = common.util.assignDefined({}, consts.defaultOptions, options);
     return common.rpc.sendTransaction(txn, options);
   }
@@ -525,7 +627,11 @@ export default class Wallet {
   /**
    * Transfer token from this wallet to another wallet address.
    */
-  transferTo(toAddress: string, amount: number | string | common.Amount, options: TransactionOptions = {}): Promise<TxnOrHash> {
+  transferTo(
+    toAddress: string,
+    amount: number | string | common.Amount,
+    options: TransactionOptions = {},
+  ): Promise<TxnOrHash> {
     return common.rpc.transferTo.call(this, toAddress, amount, options);
   }
 
@@ -536,7 +642,10 @@ export default class Wallet {
    * current block height + 1,576,800. Registration will fail if the name is
    * currently owned by another account.
    */
-  registerName(name: string, options: TransactionOptions = {}): Promise<TxnOrHash> {
+  registerName(
+    name: string,
+    options: TransactionOptions = {},
+  ): Promise<TxnOrHash> {
     return common.rpc.registerName.call(this, name, options);
   }
 
@@ -544,14 +653,21 @@ export default class Wallet {
    * Transfer a name owned by this wallet to another public key. Does not change
    * the expiration of the name.
    */
-  transferName(name: string, recipient: string, options: TransactionOptions = {}): Promise<TxnOrHash> {
+  transferName(
+    name: string,
+    recipient: string,
+    options: TransactionOptions = {},
+  ): Promise<TxnOrHash> {
     return common.rpc.transferName.call(this, name, recipient, options);
   }
 
   /**
    * Delete a name owned by this wallet.
    */
-  deleteName(name: string, options: TransactionOptions = {}): Promise<TxnOrHash> {
+  deleteName(
+    name: string,
+    options: TransactionOptions = {},
+  ): Promise<TxnOrHash> {
     return common.rpc.deleteName.call(this, name, options);
   }
 
@@ -565,8 +681,21 @@ export default class Wallet {
    * @param {string} identifier - Client identifier.
    * @param {string} meta - Metadata of this subscription.
    */
-  subscribe(topic: string, duration: number, identifier: ?string = '', meta: ?string = '', options: TransactionOptions = {}): Promise<TxnOrHash> {
-    return common.rpc.subscribe.call(this, topic, duration, identifier, meta, options);
+  subscribe(
+    topic: string,
+    duration: number,
+    identifier: ?string = "",
+    meta: ?string = "",
+    options: TransactionOptions = {},
+  ): Promise<TxnOrHash> {
+    return common.rpc.subscribe.call(
+      this,
+      topic,
+      duration,
+      identifier,
+      meta,
+      options,
+    );
   }
 
   /**
@@ -574,7 +703,11 @@ export default class Wallet {
    * and identifier will no longer receive messages from this topic.
    * @param {string} identifier - Client identifier.
    */
-  unsubscribe(topic: string, identifier: string = '', options: TransactionOptions = {}): Promise<TxnOrHash> {
+  unsubscribe(
+    topic: string,
+    identifier: string = "",
+    options: TransactionOptions = {},
+  ): Promise<TxnOrHash> {
     return common.rpc.unsubscribe.call(this, topic, identifier, options);
   }
 
@@ -584,9 +717,15 @@ export default class Wallet {
    * @param {number} expiration - NanoPay expiration height.
    * @param {number} id - NanoPay id, should be unique for (this.address, toAddress) pair.
    */
-  async createOrUpdateNanoPay(toAddress: string, amount: number | string | common.Amount, expiration: number, id: number, options: TransactionOptions = {}): Promise<common.pb.transaction.Transaction> {
-    if(!address.verifyAddress(toAddress)) {
-      throw new common.errors.InvalidAddressError('invalid recipient address');
+  async createOrUpdateNanoPay(
+    toAddress: string,
+    amount: number | string | common.Amount,
+    expiration: number,
+    id: number,
+    options: TransactionOptions = {},
+  ): Promise<common.pb.transaction.Transaction> {
+    if (!address.verifyAddress(toAddress)) {
+      throw new common.errors.InvalidAddressError("invalid recipient address");
     }
 
     if (!id) {
@@ -605,8 +744,18 @@ export default class Wallet {
     return await this.createTransaction(pld, 0, options);
   }
 
-  createTransaction(pld: common.pb.transaction.Payload, nonce: number, options: CreateTransactionOptions = {}): Promise<common.pb.transaction.Transaction> {
-    return transaction.newTransaction(this.account, pld, nonce, options.fee, options.attrs);
+  createTransaction(
+    pld: common.pb.transaction.Payload,
+    nonce: number,
+    options: CreateTransactionOptions = {},
+  ): Promise<common.pb.transaction.Transaction> {
+    return transaction.newTransaction(
+      this.account,
+      pld,
+      nonce,
+      options.fee,
+      options.attrs,
+    );
   }
 
   /**
@@ -664,4 +813,4 @@ type TransactionOptions = CreateTransactionOptions & { nonce: number };
 /**
  * Transaction hash if `options.buildOnly=false`, otherwise the transaction object.
  */
-type TxnOrHash = string|common.pb.transaction.Transaction;
+type TxnOrHash = string | common.pb.transaction.Transaction;

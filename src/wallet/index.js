@@ -1,3 +1,3 @@
-'use strict';
+"use strict";
 
-export { default } from './wallet';
+export { default } from "./wallet";

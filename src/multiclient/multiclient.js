@@ -1,20 +1,34 @@
 // @flow
-'use strict';
+"use strict";
 
-import * as ncp from '@nkn/ncp';
-import { Cache } from 'memory-cache';
-import Promise from 'core-js-pure/features/promise';
+import * as ncp from "@nkn/ncp";
+import { Cache } from "memory-cache";
+import Promise from "core-js-pure/features/promise";
 
-import Client from '../client';
-import Wallet from '../wallet';
-import { defaultPublishOptions } from '../client/consts';
-import * as common from '../common';
-import * as consts from './consts';
-import * as message from '../client/message';
-import * as util from './util';
+import Client from "../client";
+import Wallet from "../wallet";
+import { defaultPublishOptions } from "../client/consts";
+import * as common from "../common";
+import * as consts from "./consts";
+import * as message from "../client/message";
+import * as util from "./util";
 
-import type { ConnectHandler, ConnectFailedHandler, MessageHandler, WsErrorHandler, Destination, MessageData, ReplyData, SendOptions, PublishOptions } from '../client';
-import type { CreateTransactionOptions, TransactionOptions, TxnOrHash } from '../wallet';
+import type {
+  ConnectHandler,
+  ConnectFailedHandler,
+  MessageHandler,
+  WsErrorHandler,
+  Destination,
+  MessageData,
+  ReplyData,
+  SendOptions,
+  PublishOptions,
+} from "../client";
+import type {
+  CreateTransactionOptions,
+  TransactionOptions,
+  TxnOrHash,
+} from "../wallet";
 
 /**
  * NKN client that sends data to and receives data from other NKN clients.
@@ -45,7 +59,7 @@ export default class MultiClient {
     encrypt: boolean,
     rpcServerAddr: string,
     tls?: boolean,
-    worker: boolean | () => Worker | Promise<Worker>,
+    worker: boolean | (() => Worker | Promise<Worker>),
     numSubClients: number,
     originalClient: boolean,
     msgCacheExpiration: number,
@@ -91,45 +105,55 @@ export default class MultiClient {
    */
   isClosed: boolean;
 
-  constructor(options: {
-    seed?: string,
-    identifier?: string,
-    reconnectIntervalMin?: number,
-    reconnectIntervalMax?: number,
-    responseTimeout?: number,
-    msgHoldingSeconds?: number,
-    encrypt?: boolean,
-    rpcServerAddr?: string,
-    tls?: boolean,
-    worker?: boolean | () => Worker | Promise<Worker>,
-    numSubClients?: number,
-    originalClient?: boolean,
-    msgCacheExpiration?: number,
-    sessionConfig?: {},
-  } = {}) {
+  constructor(
+    options: {
+      seed?: string,
+      identifier?: string,
+      reconnectIntervalMin?: number,
+      reconnectIntervalMax?: number,
+      responseTimeout?: number,
+      msgHoldingSeconds?: number,
+      encrypt?: boolean,
+      rpcServerAddr?: string,
+      tls?: boolean,
+      worker?: boolean | (() => Worker | Promise<Worker>),
+      numSubClients?: number,
+      originalClient?: boolean,
+      msgCacheExpiration?: number,
+      sessionConfig?: {},
+    } = {},
+  ) {
     options = common.util.assignDefined({}, consts.defaultOptions, options);
 
-    let baseIdentifier = options.identifier || '';
+    let baseIdentifier = options.identifier || "";
     let clients: { [string]: Client } = {};
 
     if (options.originalClient) {
-      let clientID = util.addIdentifier('', '');
+      let clientID = util.addIdentifier("", "");
       clients[clientID] = new Client(options);
       if (!options.seed) {
-        options = common.util.assignDefined({}, options, { seed: clients[clientID].key.seed });
+        options = common.util.assignDefined({}, options, {
+          seed: clients[clientID].key.seed,
+        });
       }
     }
 
     for (let i = 0; i < options.numSubClients; i++) {
-      clients[util.addIdentifier('', i)] = new Client(common.util.assignDefined({}, options, {identifier: util.addIdentifier(baseIdentifier, i)}));
+      clients[util.addIdentifier("", i)] = new Client(
+        common.util.assignDefined({}, options, {
+          identifier: util.addIdentifier(baseIdentifier, i),
+        }),
+      );
       if (i === 0 && !options.seed) {
-        options = common.util.assignDefined({}, options, { seed: clients[util.addIdentifier('', i)].key.seed });
+        options = common.util.assignDefined({}, options, {
+          seed: clients[util.addIdentifier("", i)].key.seed,
+        });
       }
     }
 
     let clientIDs = Object.keys(clients).sort();
     if (clientIDs.length === 0) {
-      throw new RangeError('should have at least one client');
+      throw new RangeError("should have at least one client");
     }
 
     this.options = options;
@@ -137,7 +161,8 @@ export default class MultiClient {
     this.defaultClient = clients[clientIDs[0]];
     this.key = this.defaultClient.key;
     this.identifier = baseIdentifier;
-    this.addr = (baseIdentifier ? baseIdentifier + '.' : '') + this.key.publicKey;
+    this.addr =
+      (baseIdentifier ? baseIdentifier + "." : "") + this.key.publicKey;
     this.eventListeners = {
       connect: [],
       connectFailed: [],
@@ -153,120 +178,151 @@ export default class MultiClient {
     this.isClosed = false;
 
     for (let clientID: string of Object.keys(clients)) {
-      clients[clientID].onMessage(async ({ src, payload, payloadType, isEncrypted, messageId, noReply }) => {
-        if (this.isClosed) {
-          return false;
-        }
-
-        if (payloadType === common.pb.payloads.PayloadType.SESSION) {
-          if (!isEncrypted) {
+      clients[clientID].onMessage(
+        async ({
+          src,
+          payload,
+          payloadType,
+          isEncrypted,
+          messageId,
+          noReply,
+        }) => {
+          if (this.isClosed) {
             return false;
           }
-          try {
-            await this._handleSessionMsg(clientID, src, messageId, payload);
-          } catch (e) {
-            if (!(e instanceof ncp.errors.SessionClosedError || e instanceof common.errors.AddrNotAllowedError)) {
-              throw e;
+
+          if (payloadType === common.pb.payloads.PayloadType.SESSION) {
+            if (!isEncrypted) {
+              return false;
             }
-          }
-          return false;
-        }
-
-        let key = common.util.bytesToHex(messageId);
-        if (this.msgCache.get(key) !== null) {
-          return false;
-        }
-        this.msgCache.put(key, clientID, options.msgCacheExpiration);
-
-        src = util.removeIdentifier(src).addr;
-
-        if (this.eventListeners.message.length > 0) {
-          let responses = await Promise.all(this.eventListeners.message.map(async f => {
             try {
-              return await f({ src, payload, payloadType, isEncrypted, messageId, noReply });
+              await this._handleSessionMsg(clientID, src, messageId, payload);
             } catch (e) {
-              console.log('Message handler error:', e);
-              return null;
-            }
-          }));
-          if (!noReply) {
-            let responded = false;
-            for (let response of responses) {
-              if (response === false) {
-                return false;
-              } else if (response !== undefined && response !== null) {
-                this.send(src, response, {
-                  encrypt: isEncrypted,
-                  msgHoldingSeconds: 0,
-                  replyToId: messageId,
-                }).catch((e) => {
-                  console.log('Send response error:', e);
-                });
-                responded = true;
-                break;
+              if (
+                !(
+                  e instanceof ncp.errors.SessionClosedError ||
+                  e instanceof common.errors.AddrNotAllowedError
+                )
+              ) {
+                throw e;
               }
             }
-            if (!responded) {
-              for (let clientID: string of Object.keys(clients)) {
-                if (clients[clientID].isReady) {
-                  clients[clientID]._sendACK(
-                    util.addIdentifierPrefixAll(src, clientID),
-                    messageId,
+            return false;
+          }
+
+          let key = common.util.bytesToHex(messageId);
+          if (this.msgCache.get(key) !== null) {
+            return false;
+          }
+          this.msgCache.put(key, clientID, options.msgCacheExpiration);
+
+          src = util.removeIdentifier(src).addr;
+
+          if (this.eventListeners.message.length > 0) {
+            let responses = await Promise.all(
+              this.eventListeners.message.map(async (f) => {
+                try {
+                  return await f({
+                    src,
+                    payload,
+                    payloadType,
                     isEncrypted,
-                  ).catch((e) => {
-                    console.log('Send ack error:', e);
+                    messageId,
+                    noReply,
                   });
+                } catch (e) {
+                  console.log("Message handler error:", e);
+                  return null;
+                }
+              }),
+            );
+            if (!noReply) {
+              let responded = false;
+              for (let response of responses) {
+                if (response === false) {
+                  return false;
+                } else if (response !== undefined && response !== null) {
+                  this.send(src, response, {
+                    encrypt: isEncrypted,
+                    msgHoldingSeconds: 0,
+                    replyToId: messageId,
+                  }).catch((e) => {
+                    console.log("Send response error:", e);
+                  });
+                  responded = true;
+                  break;
+                }
+              }
+              if (!responded) {
+                for (let clientID: string of Object.keys(clients)) {
+                  if (clients[clientID].isReady) {
+                    clients[clientID]
+                      ._sendACK(
+                        util.addIdentifierPrefixAll(src, clientID),
+                        messageId,
+                        isEncrypted,
+                      )
+                      .catch((e) => {
+                        console.log("Send ack error:", e);
+                      });
+                  }
                 }
               }
             }
           }
-        }
-        return false;
-      });
+          return false;
+        },
+      );
     }
 
-    let connectPromises = Object.keys(this.clients).map(clientID => new Promise((resolve, reject) => {
-      this.clients[clientID].onConnect(resolve);
-    }));
-    Promise.any(connectPromises).then(r => {
+    let connectPromises = Object.keys(this.clients).map(
+      (clientID) =>
+        new Promise((resolve, reject) => {
+          this.clients[clientID].onConnect(resolve);
+        }),
+    );
+    Promise.any(connectPromises).then((r) => {
       this.isReady = true;
       if (this.eventListeners.connect.length > 0) {
-        this.eventListeners.connect.forEach(async f => {
+        this.eventListeners.connect.forEach(async (f) => {
           try {
             await f(r);
           } catch (e) {
-            console.log('Connect handler error:', e);
+            console.log("Connect handler error:", e);
           }
         });
       }
     });
 
-    let connectFailedPromises = Object.keys(this.clients).map(clientID => new Promise((resolve, reject) => {
-      this.clients[clientID].onConnectFailed(resolve);
-    }));
+    let connectFailedPromises = Object.keys(this.clients).map(
+      (clientID) =>
+        new Promise((resolve, reject) => {
+          this.clients[clientID].onConnectFailed(resolve);
+        }),
+    );
     Promise.all(connectFailedPromises).then(() => {
       this.isFailed = true;
       if (this.eventListeners.connectFailed.length > 0) {
-        this.eventListeners.connectFailed.forEach(async f => {
+        this.eventListeners.connectFailed.forEach(async (f) => {
           try {
             await f();
           } catch (e) {
-            console.log('Connect failed handler error:', e);
+            console.log("Connect failed handler error:", e);
           }
         });
       } else {
-        console.log('All clients connect failed');
+        console.log("All clients connect failed");
       }
     });
 
-    Object.keys(this.clients).map(clientID => {
+    Object.keys(this.clients).map((clientID) => {
       this.clients[clientID].onWsError((event) => {
         if (this.eventListeners.wsError.length > 0) {
-          this.eventListeners.wsError.forEach(async f => {
+          this.eventListeners.wsError.forEach(async (f) => {
             try {
               await f(event);
             } catch (e) {
-              console.log('WsError handler error:', e);
+              console.log("WsError handler error:", e);
             }
           });
         } else {
@@ -298,10 +354,15 @@ export default class MultiClient {
         return true;
       }
     }
-  	return false;
+    return false;
   }
 
-  async _handleSessionMsg(localClientID: string, src: string, sessionID: string, data: Uint8Array): Promise<void> {
+  async _handleSessionMsg(
+    localClientID: string,
+    src: string,
+    sessionID: string,
+    data: Uint8Array,
+  ): Promise<void> {
     let remote = util.removeIdentifier(src);
     let remoteAddr = remote.addr;
     let remoteClientID = remote.clientID;
@@ -315,7 +376,11 @@ export default class MultiClient {
       if (!this._shouldAcceptAddr(remoteAddr)) {
         throw new common.errors.AddrNotAllowedError();
       }
-      session = (this._newSession(remoteAddr, sessionID, this.options.sessionConfig): any);
+      session = (this._newSession(
+        remoteAddr,
+        sessionID,
+        this.options.sessionConfig,
+      ): any);
       this.sessions.set(sessionKey, session);
     }
 
@@ -325,28 +390,44 @@ export default class MultiClient {
       await session.accept();
 
       if (this.eventListeners.session.length > 0) {
-        await Promise.all(this.eventListeners.session.map(async f => {
-          try {
-            return await f(session);
-          } catch (e) {
-            console.log('Session handler error:', e);
-            return;
-          }
-        }));
+        await Promise.all(
+          this.eventListeners.session.map(async (f) => {
+            try {
+              return await f(session);
+            } catch (e) {
+              console.log("Session handler error:", e);
+              return;
+            }
+          }),
+        );
       }
     }
-  };
+  }
 
-  _newSession(remoteAddr: string, sessionID: string, sessionConfig: {} = {}): ncp.Session {
+  _newSession(
+    remoteAddr: string,
+    sessionID: string,
+    sessionConfig: {} = {},
+  ): ncp.Session {
     let clientIDs = this.readyClientIDs().sort();
-    return new ncp.Session(this.addr, remoteAddr, clientIDs, null, async (localClientID, remoteClientID, data) => {
-      let client = this.clients[localClientID];
-      if (!client.isReady) {
-        throw new common.errors.ClientNotReadyError();
-      }
-      let payload = message.newSessionPayload(data, sessionID);
-      await client._send(util.addIdentifierPrefix(remoteAddr, remoteClientID), payload);
-    }, sessionConfig);
+    return new ncp.Session(
+      this.addr,
+      remoteAddr,
+      clientIDs,
+      null,
+      async (localClientID, remoteClientID, data) => {
+        let client = this.clients[localClientID];
+        if (!client.isReady) {
+          throw new common.errors.ClientNotReadyError();
+        }
+        let payload = message.newSessionPayload(data, sessionID);
+        await client._send(
+          util.addIdentifierPrefix(remoteAddr, remoteClientID),
+          payload,
+        );
+      },
+      sessionConfig,
+    );
   }
 
   /**
@@ -355,16 +436,25 @@ export default class MultiClient {
    * better reliability and lower latency.
    * @returns A promise that will be resolved when reply or ACK from destination is received, or reject if send fail or message timeout. If dest is an array with more than one element, or `options.noReply=true`, the promise will resolve with null as soon as send success.
    */
-  async sendWithClient(clientID: string, dest: Destination, data: MessageData, options: SendOptions = {}): Promise<ReplyData> {
+  async sendWithClient(
+    clientID: string,
+    dest: Destination,
+    data: MessageData,
+    options: SendOptions = {},
+  ): Promise<ReplyData> {
     let client = this.clients[clientID];
     if (!client) {
-      throw new common.errors.InvalidArgumentError('no such clientID');
+      throw new common.errors.InvalidArgumentError("no such clientID");
     }
     if (!client.isReady) {
       throw new common.errors.ClientNotReadyError();
     }
-    return await client.send(util.addIdentifierPrefixAll(dest, clientID), data, options);
-  };
+    return await client.send(
+      util.addIdentifierPrefixAll(dest, clientID),
+      data,
+      options,
+    );
+  }
 
   /**
    * Get the list of clientID that are ready.
@@ -380,31 +470,49 @@ export default class MultiClient {
    * available clients.
    * @returns A promise that will be resolved when reply or ACK from destination is received, or reject if send fail or message timeout. If dest is an array with more than one element, or `options.noReply=true`, the promise will resolve with null as soon as send success.
    */
-  async send(dest: Destination, data: MessageData, options: SendOptions = {}): Promise<ReplyData> {
-    options = common.util.assignDefined({}, options, { messageId: common.util.randomBytes(message.messageIdSize) });
+  async send(
+    dest: Destination,
+    data: MessageData,
+    options: SendOptions = {},
+  ): Promise<ReplyData> {
+    options = common.util.assignDefined({}, options, {
+      messageId: common.util.randomBytes(message.messageIdSize),
+    });
     let readyClientID = this.readyClientIDs();
     if (readyClientID.length === 0) {
       throw new common.errors.ClientNotReadyError();
     }
     dest = await this.defaultClient._processDests(dest);
     try {
-      return await Promise.any(readyClientID.map((clientID) => {
-        return this.sendWithClient(clientID, dest, data, options);
-      }));
+      return await Promise.any(
+        readyClientID.map((clientID) => {
+          return this.sendWithClient(clientID, dest, data, options);
+        }),
+      );
     } catch (e) {
-      throw new Error('failed to send with any client: ' + e.errors);
+      throw new Error("failed to send with any client: " + e.errors);
     }
-  };
+  }
 
   /**
    * Send byte or string data to all subscribers of a topic using all available
    * clients.
    * @returns A promise that will be resolved with null when send success.
    */
-  async publish(topic: string, data: MessageData, options: PublishOptions = {}): Promise<null> {
-    options = common.util.assignDefined({}, defaultPublishOptions, options, { noReply: true });
+  async publish(
+    topic: string,
+    data: MessageData,
+    options: PublishOptions = {},
+  ): Promise<null> {
+    options = common.util.assignDefined({}, defaultPublishOptions, options, {
+      noReply: true,
+    });
     let offset = options.offset;
-    let res = await this.getSubscribers(topic, { offset, limit: options.limit, txPool: options.txPool });
+    let res = await this.getSubscribers(topic, {
+      offset,
+      limit: options.limit,
+      txPool: options.txPool,
+    });
     let subscribers = res.subscribers;
     let subscribersInTxPool = res.subscribersInTxPool;
     while (res.subscribers && res.subscribers.length >= options.limit) {
@@ -426,7 +534,7 @@ export default class MultiClient {
       this.eventListeners[evt] = [];
     }
     this.eventListeners[evt].push(func);
-  };
+  }
 
   /**
    * Add event listener function that will be called when at least one sub
@@ -443,7 +551,7 @@ export default class MultiClient {
    * to connect to node. Multiple listeners will be called sequentially in the
    * order of added. Note that listeners added after client fails to connect to
    * node (i.e. `multiclient.isFailed === true`) will not be called.
-  */
+   */
   onConnectFailed(func: ConnectFailedHandler) {
     this.eventListeners.connectFailed.push(func);
   }
@@ -452,10 +560,10 @@ export default class MultiClient {
    * Add event listener function that will be called when any client websocket
    * connection throws an error. Multiple listeners will be called sequentially
    * in the order of added.
-  */
+   */
   onWsError(func: WsErrorHandler) {
     this.eventListeners.wsError.push(func);
-  };
+  }
 
   /**
    * Add event listener function that will be called when client receives a
@@ -505,7 +613,7 @@ export default class MultiClient {
 
     this.msgCache.clear();
     this.isClosed = true;
-  };
+  }
 
   /**
    * Start accepting sessions from addresses, which could be one or an array of
@@ -538,11 +646,18 @@ export default class MultiClient {
   /**
    * Dial a session to a remote NKN address.
    */
-  async dial(remoteAddr: string, options: DialOptions = {}): Promise<ncp.Session> {
+  async dial(
+    remoteAddr: string,
+    options: DialOptions = {},
+  ): Promise<ncp.Session> {
     let dialTimeout = options.dialTimeout;
     options = common.util.assignDefined({}, options);
     delete options.dialTimeout;
-    let sessionConfig = common.util.assignDefined({}, this.options.sessionConfig, options);
+    let sessionConfig = common.util.assignDefined(
+      {},
+      this.options.sessionConfig,
+      options,
+    );
     let sessionID = common.util.randomBytes(consts.sessionIDSize);
     let sessionKey = util.sessionKey(remoteAddr, sessionID);
     let session = this._newSession(remoteAddr, sessionID, sessionConfig);
@@ -560,9 +675,10 @@ export default class MultiClient {
     for (let clientID of Object.keys(this.clients)) {
       if (this.clients[clientID].wallet.options.rpcServerAddr) {
         try {
-          return await Wallet.getLatestBlock(this.clients[clientID].wallet.options);
-        } catch (e) {
-        }
+          return await Wallet.getLatestBlock(
+            this.clients[clientID].wallet.options,
+          );
+        } catch (e) {}
       }
     }
     return await Wallet.getLatestBlock(this.options);
@@ -573,13 +689,17 @@ export default class MultiClient {
    * multiclient's connected node as rpcServerAddr, followed by this
    * multiclient's rpcServerAddr if failed.
    */
-  async getRegistrant(name: string): Promise<{ registrant: string, expiresAt: number }> {
+  async getRegistrant(
+    name: string,
+  ): Promise<{ registrant: string, expiresAt: number }> {
     for (let clientID of Object.keys(this.clients)) {
       if (this.clients[clientID].wallet.options.rpcServerAddr) {
         try {
-          return await Wallet.getRegistrant(name, this.clients[clientID].wallet.options);
-        } catch (e) {
-        }
+          return await Wallet.getRegistrant(
+            name,
+            this.clients[clientID].wallet.options,
+          );
+        } catch (e) {}
       }
     }
     return await Wallet.getRegistrant(name, this.options);
@@ -605,12 +725,17 @@ export default class MultiClient {
     for (let clientID of Object.keys(this.clients)) {
       if (this.clients[clientID].wallet.options.rpcServerAddr) {
         try {
-          return await Wallet.getSubscribers(topic, Object.assign({}, this.clients[clientID].wallet.options, options));
-        } catch (e) {
-        }
+          return await Wallet.getSubscribers(
+            topic,
+            Object.assign({}, this.clients[clientID].wallet.options, options),
+          );
+        } catch (e) {}
       }
     }
-    return await Wallet.getSubscribers(topic, Object.assign({}, this.options, options));
+    return await Wallet.getSubscribers(
+      topic,
+      Object.assign({}, this.options, options),
+    );
   }
 
   /**
@@ -622,9 +747,11 @@ export default class MultiClient {
     for (let clientID of Object.keys(this.clients)) {
       if (this.clients[clientID].wallet.options.rpcServerAddr) {
         try {
-          return await Wallet.getSubscribersCount(topic, this.clients[clientID].wallet.options);
-        } catch (e) {
-        }
+          return await Wallet.getSubscribersCount(
+            topic,
+            this.clients[clientID].wallet.options,
+          );
+        } catch (e) {}
       }
     }
     return await Wallet.getSubscribersCount(topic, this.options);
@@ -635,13 +762,19 @@ export default class MultiClient {
    * multiclient's connected node as rpcServerAddr, followed by this
    * multiclient's rpcServerAddr if failed.
    */
-  async getSubscription(topic: string, subscriber: string): Promise<{ meta: string, expiresAt: number }> {
+  async getSubscription(
+    topic: string,
+    subscriber: string,
+  ): Promise<{ meta: string, expiresAt: number }> {
     for (let clientID of Object.keys(this.clients)) {
       if (this.clients[clientID].wallet.options.rpcServerAddr) {
         try {
-          return await Wallet.getSubscription(topic, subscriber, this.clients[clientID].wallet.options);
-        } catch (e) {
-        }
+          return await Wallet.getSubscription(
+            topic,
+            subscriber,
+            this.clients[clientID].wallet.options,
+          );
+        } catch (e) {}
       }
     }
     return await Wallet.getSubscription(topic, subscriber, this.options);
@@ -656,12 +789,17 @@ export default class MultiClient {
     for (let clientID of Object.keys(this.clients)) {
       if (this.clients[clientID].wallet.options.rpcServerAddr) {
         try {
-          return await Wallet.getBalance(address || this.defaultClient.wallet.address, this.clients[clientID].wallet.options);
-        } catch (e) {
-        }
+          return await Wallet.getBalance(
+            address || this.defaultClient.wallet.address,
+            this.clients[clientID].wallet.options,
+          );
+        } catch (e) {}
       }
     }
-    return await Wallet.getBalance(address || this.defaultClient.wallet.address, this.options);
+    return await Wallet.getBalance(
+      address || this.defaultClient.wallet.address,
+      this.options,
+    );
   }
 
   /**
@@ -669,16 +807,24 @@ export default class MultiClient {
    * multiclient's connected node as rpcServerAddr, followed by this
    * multiclient's rpcServerAddr if failed.
    */
-  async getNonce(address: ?string, options: { txPool: boolean } = {}): Promise<number> {
+  async getNonce(
+    address: ?string,
+    options: { txPool: boolean } = {},
+  ): Promise<number> {
     for (let clientID of Object.keys(this.clients)) {
       if (this.clients[clientID].wallet.options.rpcServerAddr) {
         try {
-          return await Wallet.getNonce(address || this.defaultClient.wallet.address, Object.assign({}, this.clients[clientID].wallet.options, options));
-        } catch (e) {
-        }
+          return await Wallet.getNonce(
+            address || this.defaultClient.wallet.address,
+            Object.assign({}, this.clients[clientID].wallet.options, options),
+          );
+        } catch (e) {}
       }
     }
-    return await Wallet.getNonce(address || this.defaultClient.wallet.address, Object.assign({}, this.options, options));
+    return await Wallet.getNonce(
+      address || this.defaultClient.wallet.address,
+      Object.assign({}, this.options, options),
+    );
   }
 
   /**
@@ -686,13 +832,20 @@ export default class MultiClient {
    * multiclient's connected node as rpcServerAddr, followed by this
    * multiclient's rpcServerAddr if failed.
    */
-  async sendTransaction(txn: common.pb.transaction.Transaction): Promise<string> {
-    let clients = Object.values(this.clients).filter((client: Client) => client.wallet.options.rpcServerAddr);
+  async sendTransaction(
+    txn: common.pb.transaction.Transaction,
+  ): Promise<string> {
+    let clients = Object.values(this.clients).filter(
+      (client: Client) => client.wallet.options.rpcServerAddr,
+    );
     if (clients.length > 0) {
       try {
-        return await Promise.any(clients.map((client: Client) => Wallet.sendTransaction(txn, client.wallet.options)));
-      } catch (e) {
-      }
+        return await Promise.any(
+          clients.map((client: Client) =>
+            Wallet.sendTransaction(txn, client.wallet.options),
+          ),
+        );
+      } catch (e) {}
     }
     return await Wallet.sendTransaction(txn, this.options);
   }
@@ -702,7 +855,11 @@ export default class MultiClient {
    * multiclient's connected node as rpcServerAddr, followed by this
    * multiclient's rpcServerAddr if failed.
    */
-  transferTo(toAddress: string, amount: number | string | common.Amount, options: TransactionOptions = {}): Promise<TxnOrHash> {
+  transferTo(
+    toAddress: string,
+    amount: number | string | common.Amount,
+    options: TransactionOptions = {},
+  ): Promise<TxnOrHash> {
     return common.rpc.transferTo.call(this, toAddress, amount, options);
   }
 
@@ -711,7 +868,10 @@ export default class MultiClient {
    * multiclient's connected node as rpcServerAddr, followed by this
    * multiclient's rpcServerAddr if failed.
    */
-  registerName(name: string, options: TransactionOptions = {}): Promise<TxnOrHash> {
+  registerName(
+    name: string,
+    options: TransactionOptions = {},
+  ): Promise<TxnOrHash> {
     return common.rpc.registerName.call(this, name, options);
   }
 
@@ -720,7 +880,11 @@ export default class MultiClient {
    * multiclient's connected node as rpcServerAddr, followed by this
    * multiclient's rpcServerAddr if failed.
    */
-  transferName(name: string, recipient: string, options: TransactionOptions = {}): Promise<TxnOrHash> {
+  transferName(
+    name: string,
+    recipient: string,
+    options: TransactionOptions = {},
+  ): Promise<TxnOrHash> {
     return common.rpc.transferName.call(this, name, recipient, options);
   }
 
@@ -729,7 +893,10 @@ export default class MultiClient {
    * multiclient's connected node as rpcServerAddr, followed by this
    * multiclient's rpcServerAddr if failed.
    */
-  deleteName(name: string, options: TransactionOptions = {}): Promise<TxnOrHash> {
+  deleteName(
+    name: string,
+    options: TransactionOptions = {},
+  ): Promise<TxnOrHash> {
     return common.rpc.deleteName.call(this, name, options);
   }
 
@@ -738,8 +905,21 @@ export default class MultiClient {
    * multiclient's connected node as rpcServerAddr, followed by this
    * multiclient's rpcServerAddr if failed.
    */
-  subscribe(topic: string, duration: number, identifier: ?string = '', meta: ?string = '', options: TransactionOptions = {}): Promise<TxnOrHash> {
-    return common.rpc.subscribe.call(this, topic, duration, identifier, meta, options);
+  subscribe(
+    topic: string,
+    duration: number,
+    identifier: ?string = "",
+    meta: ?string = "",
+    options: TransactionOptions = {},
+  ): Promise<TxnOrHash> {
+    return common.rpc.subscribe.call(
+      this,
+      topic,
+      duration,
+      identifier,
+      meta,
+      options,
+    );
   }
 
   /**
@@ -747,11 +927,19 @@ export default class MultiClient {
    * multiclient's connected node as rpcServerAddr, followed by this
    * multiclient's rpcServerAddr if failed.
    */
-  unsubscribe(topic: string, identifier: string = '', options: TransactionOptions = {}): Promise<TxnOrHash> {
+  unsubscribe(
+    topic: string,
+    identifier: string = "",
+    options: TransactionOptions = {},
+  ): Promise<TxnOrHash> {
     return common.rpc.unsubscribe.call(this, topic, identifier, options);
   }
 
-  createTransaction(pld: common.pb.transaction.Payload, nonce: number, options: CreateTransactionOptions = {}): Promise<common.pb.transaction.Transaction> {
+  createTransaction(
+    pld: common.pb.transaction.Payload,
+    nonce: number,
+    options: CreateTransactionOptions = {},
+  ): Promise<common.pb.transaction.Transaction> {
     return this.defaultClient.wallet.createTransaction(pld, nonce, options);
   }
 }

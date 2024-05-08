@@ -1,16 +1,20 @@
-'use strict';
+"use strict";
 
-const nkn = require('../lib');
+const nkn = require("../lib");
 
 const numBytes = 16 << 20;
 const numSubClients = 4;
 const writeChunkSize = 1024;
 
 (async function () {
-  let alice = new nkn.MultiClient({ numSubClients, identifier: 'alice' });
-  let bob = new nkn.MultiClient({ numSubClients, identifier: 'bob', seed: alice.getSeed() });
+  let alice = new nkn.MultiClient({ numSubClients, identifier: "alice" });
+  let bob = new nkn.MultiClient({
+    numSubClients,
+    identifier: "bob",
+    seed: alice.getSeed(),
+  });
 
-  console.log('Secret seed:', alice.getSeed());
+  console.log("Secret seed:", alice.getSeed());
 
   await Promise.all([
     new Promise((resolve, reject) => alice.onConnect(resolve)),
@@ -20,15 +24,15 @@ const writeChunkSize = 1024;
   await new Promise((resolve, reject) => setTimeout(resolve, 1000));
 
   bob.onSession(async (session) => {
-    console.log(session.localAddr, 'accepted a sesison');
+    console.log(session.localAddr, "accepted a sesison");
     await read(session);
   });
 
   bob.listen();
-  console.log('bob listening at', bob.addr);
+  console.log("bob listening at", bob.addr);
 
   let session = await alice.dial(bob.addr);
-  console.log(session.localAddr, 'dialed a session');
+  console.log(session.localAddr, "dialed a session");
 
   await write(session, numBytes);
 })();
@@ -45,15 +49,32 @@ async function read(session) {
     buf = await session.read();
     for (let i = 0; i < buf.length; i++) {
       if (buf[i] !== byteAt(n + i)) {
-        throw 'wrong value at' + (n+i) + 'byte';
+        throw "wrong value at" + (n + i) + "byte";
       }
     }
-    if (Math.floor((n + buf.length) * 10 / numBytes) !== Math.floor(n * 10 / numBytes)) {
-      console.log(session.localAddr, 'received', n + buf.length, 'bytes', (n + buf.length) / (1<<20) / (Date.now() - timeStart) * 1000, 'MB/s');
+    if (
+      Math.floor(((n + buf.length) * 10) / numBytes) !==
+      Math.floor((n * 10) / numBytes)
+    ) {
+      console.log(
+        session.localAddr,
+        "received",
+        n + buf.length,
+        "bytes",
+        ((n + buf.length) / (1 << 20) / (Date.now() - timeStart)) * 1000,
+        "MB/s",
+      );
     }
   }
-  console.log(session.localAddr, 'finished receiving', numBytes, 'bytes', numBytes / (1<<20) / (Date.now() - timeStart) * 1000, 'MB/s');
-  process.exit()
+  console.log(
+    session.localAddr,
+    "finished receiving",
+    numBytes,
+    "bytes",
+    (numBytes / (1 << 20) / (Date.now() - timeStart)) * 1000,
+    "MB/s",
+  );
+  process.exit();
 }
 
 async function write(session, numBytes) {
@@ -69,11 +90,28 @@ async function write(session, numBytes) {
       buf[i] = byteAt(n + i);
     }
     await session.write(buf);
-    if (Math.floor((n + buf.length) * 10 / numBytes) !== Math.floor(n * 10 / numBytes)) {
-      console.log(session.localAddr, 'sent', n + buf.length, 'bytes', (n + buf.length) / (1<<20) / (Date.now() - timeStart) * 1000, 'MB/s');
+    if (
+      Math.floor(((n + buf.length) * 10) / numBytes) !==
+      Math.floor((n * 10) / numBytes)
+    ) {
+      console.log(
+        session.localAddr,
+        "sent",
+        n + buf.length,
+        "bytes",
+        ((n + buf.length) / (1 << 20) / (Date.now() - timeStart)) * 1000,
+        "MB/s",
+      );
     }
   }
-  console.log(session.localAddr, 'finished sending', numBytes, 'bytes', numBytes / (1<<20) / (Date.now() - timeStart) * 1000, 'MB/s');
+  console.log(
+    session.localAddr,
+    "finished sending",
+    numBytes,
+    "bytes",
+    (numBytes / (1 << 20) / (Date.now() - timeStart)) * 1000,
+    "MB/s",
+  );
 }
 
 function byteAt(n) {

@@ -1,9 +1,9 @@
-'use strict';
+"use strict";
 
-import CryptoJS from 'crypto-js';
+import CryptoJS from "crypto-js";
 
 export function cryptoHexStringParse(hexString) {
-  return CryptoJS.enc.Hex.parse(hexString)
+  return CryptoJS.enc.Hex.parse(hexString);
 }
 
 export function sha256(str) {

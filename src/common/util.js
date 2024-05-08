@@ -1,17 +1,17 @@
-'use strict';
+"use strict";
 
-import nacl from 'tweetnacl';
+import nacl from "tweetnacl";
 
-import { maxUintBits } from './serialize';
+import { maxUintBits } from "./serialize";
 
 const hexRe = /^[0-9a-f]+$/i;
 
 export function hexToBytes(hex) {
   if (hex.length % 2 === 1) {
-    throw new RangeError('invalid hex string length ' + hex.length)
+    throw new RangeError("invalid hex string length " + hex.length);
   }
   if (!hexRe.test(hex)) {
-    throw new RangeError('invalid hex string')
+    throw new RangeError("invalid hex string");
   }
   let bytes = [];
   for (let c = 0; c < hex.length; c += 2) {
@@ -23,10 +23,10 @@ export function hexToBytes(hex) {
 export function bytesToHex(bytes) {
   return Array.from(bytes, (b) => {
     if (b < 0 || b > 255) {
-      throw new RangeError('invalid byte ' + b);
+      throw new RangeError("invalid byte " + b);
     }
-    return ('0' + (b & 0xFF).toString(16)).slice(-2);
-  }).join('');
+    return ("0" + (b & 0xff).toString(16)).slice(-2);
+  }).join("");
 }
 
 export var randomBytes = nacl.randomBytes;
@@ -41,12 +41,12 @@ export function randomBytesHex(len) {
 
 export function randomInt32() {
   let b = randomBytes(4);
-  b[0] &= 127
-  return (b[0]<<24) + (b[1]<<16) + (b[2]<<8) + b[3];
+  b[0] &= 127;
+  return (b[0] << 24) + (b[1] << 16) + (b[2] << 8) + b[3];
 }
 
 export function randomUint64() {
-  let hex = randomBytesHex(maxUintBits/8);
+  let hex = randomBytesHex(maxUintBits / 8);
   return parseInt(hex, 16);
 }
 
@@ -74,18 +74,25 @@ export function utf8ToBytes(s) {
   if (!s) {
     return new Uint8Array();
   }
-  return new Uint8Array(Buffer.from(s, 'utf8'));
+  return new Uint8Array(Buffer.from(s, "utf8"));
 }
 
 // convert all keys to lowercase recursively
 export function toLowerKeys(obj) {
-  return Object.keys(obj).reduce((merged, key) => Object.assign(merged, {[key.toLowerCase()]: (typeof obj[key] === 'object' ? toLowerKeys(obj[key]) : obj[key])}), {});
+  return Object.keys(obj).reduce(
+    (merged, key) =>
+      Object.assign(merged, {
+        [key.toLowerCase()]:
+          typeof obj[key] === "object" ? toLowerKeys(obj[key]) : obj[key],
+      }),
+    {},
+  );
 }
 
 export function sleep(duration) {
-  return new Promise(resolve => setTimeout(resolve, duration));
+  return new Promise((resolve) => setTimeout(resolve, duration));
 }
 
 export function isBrowser() {
-  return ![typeof window, typeof document].includes('undefined');
+  return ![typeof window, typeof document].includes("undefined");
 }

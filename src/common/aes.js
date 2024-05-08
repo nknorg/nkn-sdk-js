@@ -1,8 +1,6 @@
-'use strict';
+"use strict";
 
-import CryptoJS from 'crypto-js';
-
-import * as hash from './hash';
+import CryptoJS from "crypto-js";
 
 export function encrypt(plaintext, password, iv) {
   return CryptoJS.AES.encrypt(
@@ -11,8 +9,8 @@ export function encrypt(plaintext, password, iv) {
     {
       iv: CryptoJS.enc.Hex.parse(iv),
       mode: CryptoJS.mode.CBC,
-      padding: CryptoJS.pad.NoPadding
-    }
+      padding: CryptoJS.pad.NoPadding,
+    },
   ).ciphertext.toString(CryptoJS.enc.Hex);
 }
 
@@ -23,7 +21,7 @@ export function decrypt(ciphertext, password, iv) {
     {
       iv: CryptoJS.enc.Hex.parse(iv),
       mode: CryptoJS.mode.CBC,
-      padding: CryptoJS.pad.NoPadding
-    }
+      padding: CryptoJS.pad.NoPadding,
+    },
   ).toString();
 }

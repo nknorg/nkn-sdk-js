@@ -1,10 +1,10 @@
-'use strict';
+"use strict";
 
-import work from 'webworkify';
+import work from "webworkify";
 
-import * as crypto from './crypto';
-import * as errors from './errors';
-import * as util from './util';
+import * as crypto from "./crypto";
+import * as errors from "./errors";
+import * as util from "./util";
 
 export default class Key {
   seed;
@@ -36,17 +36,17 @@ export default class Key {
     if (this.useWorker) {
       (async () => {
         try {
-          if (typeof options.worker === 'function') {
+          if (typeof options.worker === "function") {
             this.worker = await options.worker();
           } else {
             try {
-              this.worker = work(require('../worker/worker.js'));
+              this.worker = work(require("../worker/worker.js"));
             } catch (e) {
               try {
-                let Worker = require('../worker/webpack.worker.js');
+                let Worker = require("../worker/webpack.worker.js");
                 this.worker = new Worker();
               } catch (e) {
-                throw 'neither browserify nor webpack worker-loader is detected'
+                throw "neither browserify nor webpack worker-loader is detected";
               }
             }
           }
@@ -61,12 +61,12 @@ export default class Key {
               this.workerMsgCache.delete(e.data.id);
             }
           };
-          await this._sendToWorker({ action: 'setSeed', seed: this.seed });
+          await this._sendToWorker({ action: "setSeed", seed: this.seed });
         } catch (e) {
-          console.warn('Launch web worker failed:', e);
+          console.warn("Launch web worker failed:", e);
           this.useWorker = false;
         }
-      })()
+      })();
     }
   }
 
@@ -74,7 +74,7 @@ export default class Key {
     if (!useWorker) {
       return false;
     }
-    if (typeof window === 'undefined') {
+    if (typeof window === "undefined") {
       return false;
     }
     if (!window.Worker) {
@@ -95,9 +95,15 @@ export default class Key {
   async computeSharedKey(otherPubkey) {
     if (this.useWorker) {
       try {
-        return await this._sendToWorker({ action: 'computeSharedKey', otherPubkey });
+        return await this._sendToWorker({
+          action: "computeSharedKey",
+          otherPubkey,
+        });
       } catch (e) {
-        console.warn('worker computeSharedKey failed, fallback to main thread:', e);
+        console.warn(
+          "worker computeSharedKey failed, fallback to main thread:",
+          e,
+        );
       }
     }
     return await crypto.computeSharedKey(this.curvePrivateKey, otherPubkey);
@@ -114,7 +120,7 @@ export default class Key {
 
   async encrypt(message, destPubkey, options = {}) {
     let sharedKey = await this.getOrComputeSharedKey(destPubkey);
-    sharedKey = Buffer.from(sharedKey, 'hex');
+    sharedKey = Buffer.from(sharedKey, "hex");
     let nonce = options.nonce || util.randomBytes(crypto.nonceLength);
     return {
       message: await crypto.encryptSymmetric(message, nonce, sharedKey),
@@ -124,16 +130,16 @@ export default class Key {
 
   async decrypt(message, nonce, srcPubkey, options = {}) {
     let sharedKey = await this.getOrComputeSharedKey(srcPubkey);
-    sharedKey = Buffer.from(sharedKey, 'hex');
+    sharedKey = Buffer.from(sharedKey, "hex");
     return await crypto.decryptSymmetric(message, nonce, sharedKey);
   }
 
   async sign(message) {
     if (this.useWorker) {
       try {
-        return await this._sendToWorker({ action: 'sign', message });
+        return await this._sendToWorker({ action: "sign", message });
       } catch (e) {
-        console.warn('worker sign failed, fallback to main thread:', e);
+        console.warn("worker sign failed, fallback to main thread:", e);
       }
     }
     return await crypto.sign(this.privateKey, message);
