@@ -43,7 +43,7 @@
     "base-x": "^3.0.7",
     "buffer": "^5.4.3",
     "core-js-pure": "^3.6.4",
-    "crypto-js": "^3.1.9-1",
+    "crypto-js": "^4.2.0",
     "decimal.js": "^10.2.0",
     "ed2curve": "^0.3.0",
     "google-protobuf": "^3.11.2",
