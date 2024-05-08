@@ -192,6 +192,11 @@ class Client {
         }
       } catch (e) {
         error = e;
+
+        if (e instanceof common.errors.ServerError && e.message.includes(common.errors.rpcRespErrCodes.invalidMethod.toString())) {
+          break;
+        }
+
         continue;
       }
 
@@ -1520,6 +1525,8 @@ class Peer {
   }
 
   constructor(stunServerAddr) {
+    _defineProperty(this, "config", void 0);
+
     _defineProperty(this, "pc", void 0);
 
     _defineProperty(this, "dc", void 0);
@@ -1541,33 +1548,25 @@ class Peer {
         urls: stunServerAddr
       }]
     };
-    this.pc = new RTCPeerConnection(config);
+    this.config = config;
     this.isConnected = false;
   }
 
   async offer(label) {
     return new Promise(async (resolve, reject) => {
-      if (!this.pc) {
-        return false;
-      }
-
       try {
+        if (!this.pc || this.pc.signalingState === "closed") {
+          this.pc = new RTCPeerConnection(this.config);
+        }
+
         this.pc.oniceconnectionstatechange = () => {
           if (this.pc.iceConnectionState === "failed") {
             this.pc.restartIce();
           }
         };
 
-        await this.pc.createOffer();
-
-        this.pc.onnegotiationneeded = async () => {
-          await this.pc.setLocalDescription();
-          this.sdp = btoa(JSON.stringify(this.pc.localDescription));
-          resolve(this.sdp);
-        };
-
         this.dc = this.pc.createDataChannel(label);
-        this.dc.addEventListener("open", event => {
+        this.dc.addEventListener("open", () => {
           this.isConnected = true;
 
           if (this.onopen) {
@@ -1604,6 +1603,10 @@ class Peer {
             this.onerror(event);
           }
         });
+        await this.pc.createOffer();
+        await this.pc.setLocalDescription();
+        this.sdp = btoa(JSON.stringify(this.pc.localDescription));
+        resolve(this.sdp);
       } catch (err) {
         reject(err);
       }
@@ -1848,7 +1851,8 @@ exports.rpcRespErrCodes = exports.WrongPasswordError = exports.UnknownError = ex
 const rpcRespErrCodes = {
   success: 0,
   wrongNode: 48001,
-  appendTxnPool: 45021
+  appendTxnPool: 45021,
+  invalidMethod: 42001
 };
 exports.rpcRespErrCodes = rpcRespErrCodes;
 

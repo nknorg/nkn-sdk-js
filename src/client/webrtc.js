@@ -4,6 +4,7 @@ const PingData = "ping";
 const PongData = "pong";
 
 export default class Peer {
+  config;
   pc; // peer connection
   dc; // data channel
   sdp;
@@ -22,33 +23,26 @@ export default class Peer {
     const config = {
       iceServers: [{ urls: stunServerAddr }],
     };
-    this.pc = new RTCPeerConnection(config);
+    this.config = config;
     this.isConnected = false;
   }
 
   async offer(label) {
     return new Promise(async (resolve, reject) => {
-      if (!this.pc) {
-        return false;
-      }
-
       try {
+        if (!this.pc || this.pc.signalingState === "closed") {
+          this.pc = new RTCPeerConnection(this.config);
+        }
+
         this.pc.oniceconnectionstatechange = () => {
           if (this.pc.iceConnectionState === "failed") {
             this.pc.restartIce();
           }
         };
 
-        await this.pc.createOffer();
-        this.pc.onnegotiationneeded = async () => {
-          await this.pc.setLocalDescription();
-          this.sdp = btoa(JSON.stringify(this.pc.localDescription));
-          resolve(this.sdp);
-        };
-
         this.dc = this.pc.createDataChannel(label);
 
-        this.dc.addEventListener("open", (event) => {
+        this.dc.addEventListener("open", () => {
           this.isConnected = true;
           if (this.onopen) {
             this.onopen();
@@ -84,6 +78,14 @@ export default class Peer {
             this.onerror(event);
           }
         });
+
+        await this.pc.createOffer();
+
+        await this.pc.setLocalDescription();
+
+        this.sdp = btoa(JSON.stringify(this.pc.localDescription));
+
+        resolve(this.sdp);
       } catch (err) {
         reject(err);
       }

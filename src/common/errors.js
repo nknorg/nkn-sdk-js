@@ -4,6 +4,7 @@ export const rpcRespErrCodes = {
   success: 0,
   wrongNode: 48001,
   appendTxnPool: 45021,
+  invalidMethod: 42001,
 };
 
 export class AddrNotAllowedError extends Error {
