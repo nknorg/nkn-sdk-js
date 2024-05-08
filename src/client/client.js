@@ -191,6 +191,14 @@ export default class Client {
         }
       } catch (e) {
         error = e;
+        if (
+          e instanceof common.errors.ServerError &&
+          e.message.includes(
+            common.errors.rpcRespErrCodes.invalidMethod.toString(),
+          )
+        ) {
+          break;
+        }
         continue;
       }
       this._newWsAddr(res);
