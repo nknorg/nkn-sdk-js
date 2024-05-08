@@ -1,7 +1,10 @@
-'use strict';
+"use strict";
 
-import workify from './worker';
+import workify from "./worker";
 
-if (typeof WorkerGlobalScope !== 'undefined' && self instanceof WorkerGlobalScope) {
+if (
+  typeof WorkerGlobalScope !== "undefined" &&
+  self instanceof WorkerGlobalScope
+) {
   workify(self);
 }

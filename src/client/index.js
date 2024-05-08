@@ -1,3 +1,3 @@
-'use strict';
+"use strict";
 
-export { default } from './client';
+export { default } from "./client";

@@ -1,23 +1,27 @@
 // @flow
-'use strict';
+"use strict";
 
-import WebSocket from 'isomorphic-ws';
+import WebSocket from "isomorphic-ws";
 
-import Wallet from '../wallet';
-import * as common from '../common';
-import * as consts from './consts';
-import * as message from './message';
-import Peer from './webrtc';
+import Wallet from "../wallet";
+import * as common from "../common";
+import * as consts from "./consts";
+import * as message from "./message";
+import Peer from "./webrtc";
 
-import type { CreateTransactionOptions, TransactionOptions, TxnOrHash } from '../wallet';
-import * as crypto from '../common/crypto'
-import { waitForChallengeTimeout } from './consts'
+import type {
+  CreateTransactionOptions,
+  TransactionOptions,
+  TxnOrHash,
+} from "../wallet";
+import * as crypto from "../common/crypto";
+import { waitForChallengeTimeout } from "./consts";
 
 const Action = {
-  setClient: 'setClient',
-  updateSigChainBlockHash: 'updateSigChainBlockHash',
-  authChallenge: 'authChallenge'
-}
+  setClient: "setClient",
+  updateSigChainBlockHash: "updateSigChainBlockHash",
+  authChallenge: "authChallenge",
+};
 /**
  * NKN client that sends data to and receives data from other NKN clients.
  * Typically you might want to use [MultiClient](#multiclient) for better
@@ -44,7 +48,7 @@ export default class Client {
     encrypt: boolean,
     rpcServerAddr: string,
     tls?: boolean,
-    worker: boolean | () => Worker | Promise<Worker>,
+    worker: boolean | (() => Worker | Promise<Worker>),
     stunServerAddr?: string,
     webrtc?: boolean,
   };
@@ -89,27 +93,31 @@ export default class Client {
    */
   peer: Peer;
 
-  constructor(options: {
-    seed?: string,
-    identifier?: string,
-    reconnectIntervalMin?: number,
-    reconnectIntervalMax?: number,
-    responseTimeout?: number,
-    msgHoldingSeconds?: number,
-    encrypt?: boolean,
-    rpcServerAddr?: string,
-    tls?: boolean,
-    worker?: boolean | () => Worker | Promise<Worker>,
-    stunServerAddr?: string,
-    webrtc?: boolean,
-  } = {}) {
+  constructor(
+    options: {
+      seed?: string,
+      identifier?: string,
+      reconnectIntervalMin?: number,
+      reconnectIntervalMax?: number,
+      responseTimeout?: number,
+      msgHoldingSeconds?: number,
+      encrypt?: boolean,
+      rpcServerAddr?: string,
+      tls?: boolean,
+      worker?: boolean | (() => Worker | Promise<Worker>),
+      stunServerAddr?: string,
+      webrtc?: boolean,
+    } = {},
+  ) {
     options = common.util.assignDefined({}, consts.defaultOptions, options);
 
-    let key = new common.Key(options.seed, {worker: options.worker});
-    let identifier = options.identifier || '';
+    let key = new common.Key(options.seed, { worker: options.worker });
+    let identifier = options.identifier || "";
     let pubkey = key.publicKey;
-    let addr = (identifier ? identifier + '.' : '') + pubkey;
-    let wallet = new Wallet(Object.assign({}, options, {seed: key.seed, worker: false, version: 1}));
+    let addr = (identifier ? identifier + "." : "") + pubkey;
+    let wallet = new Wallet(
+      Object.assign({}, options, { seed: key.seed, worker: false, version: 1 }),
+    );
 
     delete options.seed;
 
@@ -158,14 +166,16 @@ export default class Client {
   }
 
   async _connect() {
-    let getAddr = this._shouldUseTls() ? common.rpc.getWssAddr : common.rpc.getWsAddr;
+    let getAddr = this._shouldUseTls()
+      ? common.rpc.getWssAddr
+      : common.rpc.getWsAddr;
     let res, error;
     for (let i = 0; i < 3; i++) {
       try {
         if (this.options.webrtc) {
           this.options.offer = await this.peer.offer(this.addr);
           res = await common.rpc.getPeerAddr(this.addr, this.options);
-        }else{
+        } else {
           res = await getAddr(this.addr, this.options);
         }
       } catch (e) {
@@ -175,36 +185,36 @@ export default class Client {
       this._newWsAddr(res);
       return;
     }
-    console.log('RPC call failed,', error);
+    console.log("RPC call failed,", error);
     if (this.shouldReconnect) {
       this._reconnect();
     } else if (!this.isClosed) {
       this._connectFailed();
     }
-  };
+  }
 
   _reconnect() {
-    console.log('Reconnecting in ' + this.reconnectInterval / 1000 + 's...');
+    console.log("Reconnecting in " + this.reconnectInterval / 1000 + "s...");
     setTimeout(() => this._connect(), this.reconnectInterval);
     this.reconnectInterval *= 2;
     if (this.reconnectInterval > this.options.reconnectIntervalMax) {
       this.reconnectInterval = this.options.reconnectIntervalMax;
     }
-  };
+  }
 
   _connectFailed() {
     if (!this.isFailed) {
       this.isFailed = true;
       if (this.eventListeners.connectFailed.length > 0) {
-        this.eventListeners.connectFailed.forEach(async f => {
+        this.eventListeners.connectFailed.forEach(async (f) => {
           try {
             await f();
           } catch (e) {
-            console.log('Connect failed handler error:', e);
+            console.log("Connect failed handler error:", e);
           }
         });
       } else {
-        console.log('Client connect failed');
+        console.log("Client connect failed");
       }
     }
   }
@@ -217,7 +227,7 @@ export default class Client {
       this.eventListeners[evt] = [];
     }
     this.eventListeners[evt].push(func);
-  };
+  }
 
   /**
    * Add event listener function that will be called when client is connected to
@@ -227,7 +237,7 @@ export default class Client {
    */
   onConnect(func: ConnectHandler) {
     this.eventListeners.connect.push(func);
-  };
+  }
 
   /**
    * Add event listener function that will be called when client fails to
@@ -237,7 +247,7 @@ export default class Client {
    */
   onConnectFailed(func: ConnectFailedHandler) {
     this.eventListeners.connectFailed.push(func);
-  };
+  }
 
   /**
    * Add event listener function that will be called when client websocket
@@ -246,7 +256,7 @@ export default class Client {
    */
   onWsError(func: WsErrorHandler) {
     this.eventListeners.wsError.push(func);
-  };
+  }
 
   /**
    * Add event listener function that will be called when client receives a
@@ -262,47 +272,53 @@ export default class Client {
    */
   onMessage(func: MessageHandler) {
     this.eventListeners.message.push(func);
-  };
+  }
 
   _wsSend(data: Uint8Array) {
     if (!this.ws) {
       throw new common.errors.ClientNotReadyError();
     }
     this.ws.send(data);
-  };
+  }
 
   async _processDest(dest: string): Promise<string> {
     if (dest.length === 0) {
-      throw new common.errors.InvalidDestinationError('destination is empty');
+      throw new common.errors.InvalidDestinationError("destination is empty");
     }
-    let addr = dest.split('.');
+    let addr = dest.split(".");
     if (addr[addr.length - 1].length < common.crypto.publicKeyLength * 2) {
       let res = await this.getRegistrant(addr[addr.length - 1]);
       if (res.registrant && res.registrant.length > 0) {
         addr[addr.length - 1] = res.registrant;
       } else {
-        throw new common.errors.InvalidDestinationError(dest + ' is neither a valid public key nor a registered name');
+        throw new common.errors.InvalidDestinationError(
+          dest + " is neither a valid public key nor a registered name",
+        );
       }
     }
-    return addr.join('.');
-  };
+    return addr.join(".");
+  }
 
   async _processDests(dest: Destination): Promise<Destination> {
     if (Array.isArray(dest)) {
       if (dest.length === 0) {
-        throw new common.errors.InvalidDestinationError('no destinations');
+        throw new common.errors.InvalidDestinationError("no destinations");
       }
-      dest = await Promise.all(dest.map(async (addr) => {
-        try {
-          return await this._processDest(addr);
-        } catch (e) {
-          console.warn(e.message);
-          return '';
-        }
-      }));
-      dest = dest.filter(addr => addr.length > 0);
+      dest = await Promise.all(
+        dest.map(async (addr) => {
+          try {
+            return await this._processDest(addr);
+          } catch (e) {
+            console.warn(e.message);
+            return "";
+          }
+        }),
+      );
+      dest = dest.filter((addr) => addr.length > 0);
       if (dest.length === 0) {
-        throw new common.errors.InvalidDestinationError('all destinations are invalid');
+        throw new common.errors.InvalidDestinationError(
+          "all destinations are invalid",
+        );
       }
     } else {
       dest = await this._processDest(dest);
@@ -310,7 +326,12 @@ export default class Client {
     return dest;
   }
 
-  async _send(dest: Destination, payload: common.pb.payloads.Payload, encrypt: boolean = true, maxHoldingSeconds: number = 0): Promise<Uint8Array | null> {
+  async _send(
+    dest: Destination,
+    payload: common.pb.payloads.Payload,
+    encrypt: boolean = true,
+    maxHoldingSeconds: number = 0,
+  ): Promise<Uint8Array | null> {
     if (Array.isArray(dest)) {
       if (dest.length === 0) {
         return null;
@@ -323,18 +344,33 @@ export default class Client {
     dest = await this._processDests(dest);
 
     let pldMsg = await this._messageFromPayload(payload, encrypt, dest);
-    pldMsg = pldMsg.map(pld => pld.serializeBinary());
+    pldMsg = pldMsg.map((pld) => pld.serializeBinary());
 
-    let msgs = [], destList = [], pldList = [];
+    let msgs = [],
+      destList = [],
+      pldList = [];
     if (pldMsg.length > 1) {
-      let totalSize = 0, size = 0;
+      let totalSize = 0,
+        size = 0;
       for (let i = 0; i < pldMsg.length; i++) {
-        size = pldMsg[i].length + dest[i].length + common.crypto.signatureLength;
+        size =
+          pldMsg[i].length + dest[i].length + common.crypto.signatureLength;
         if (size > message.maxClientMessageSize) {
-          throw new common.errors.DataSizeTooLargeError('encoded message is greater than ' + message.maxClientMessageSize + ' bytes');
+          throw new common.errors.DataSizeTooLargeError(
+            "encoded message is greater than " +
+              message.maxClientMessageSize +
+              " bytes",
+          );
         }
         if (totalSize + size > message.maxClientMessageSize) {
-          msgs.push(await message.newOutboundMessage(this, destList, pldList, maxHoldingSeconds));
+          msgs.push(
+            await message.newOutboundMessage(
+              this,
+              destList,
+              pldList,
+              maxHoldingSeconds,
+            ),
+          );
           destList = [];
           pldList = [];
           totalSize = 0;
@@ -353,15 +389,28 @@ export default class Client {
         size += dest.length + common.crypto.signatureLength;
       }
       if (size > message.maxClientMessageSize) {
-        throw new common.errors.DataSizeTooLargeError('encoded message is greater than ' + message.maxClientMessageSize + ' bytes');
+        throw new common.errors.DataSizeTooLargeError(
+          "encoded message is greater than " +
+            message.maxClientMessageSize +
+            " bytes",
+        );
       }
       destList = dest;
       pldList = pldMsg;
     }
-    msgs.push(await message.newOutboundMessage(this, destList, pldList, maxHoldingSeconds));
+    msgs.push(
+      await message.newOutboundMessage(
+        this,
+        destList,
+        pldList,
+        maxHoldingSeconds,
+      ),
+    );
 
     if (msgs.length > 1) {
-      console.log(`Client message size is greater than ${message.maxClientMessageSize} bytes, split into ${msgs.length} batches.`);
+      console.log(
+        `Client message size is greater than ${message.maxClientMessageSize} bytes, split into ${msgs.length} batches.`,
+      );
     }
 
     msgs.forEach((msg) => {
@@ -369,33 +418,63 @@ export default class Client {
     });
 
     return payload.getMessageId() || null;
-  };
+  }
 
   /**
    * Send byte or string data to a single or an array of destination.
    * @param options - Send options that will override client options.
    * @returns A promise that will be resolved when reply or ACK from destination is received, or reject if send fail or message timeout. If dest is an array with more than one element, or `options.noReply=true`, the promise will resolve with null as soon as send success.
    */
-  async send(dest: Destination, data: MessageData, options: SendOptions = {}): Promise<ReplyData> {
+  async send(
+    dest: Destination,
+    data: MessageData,
+    options: SendOptions = {},
+  ): Promise<ReplyData> {
     options = common.util.assignDefined({}, this.options, options);
     let payload;
-    if (typeof data === 'string') {
-      payload = message.newTextPayload(data, options.replyToId, options.messageId);
+    if (typeof data === "string") {
+      payload = message.newTextPayload(
+        data,
+        options.replyToId,
+        options.messageId,
+      );
     } else {
-      payload = message.newBinaryPayload(data, options.replyToId, options.messageId);
+      payload = message.newBinaryPayload(
+        data,
+        options.replyToId,
+        options.messageId,
+      );
     }
 
-    let messageId = await this._send(dest, payload, options.encrypt, options.msgHoldingSeconds);
+    let messageId = await this._send(
+      dest,
+      payload,
+      options.encrypt,
+      options.msgHoldingSeconds,
+    );
     if (messageId === null || options.noReply) {
       return null;
     }
 
-    return await new Promise((resolve: ResponseHandler, reject: TimeoutHandler) => {
-      this.responseManager.add(new ResponseProcessor(messageId, options.responseTimeout, resolve, reject));
-    });
-  };
+    return await new Promise(
+      (resolve: ResponseHandler, reject: TimeoutHandler) => {
+        this.responseManager.add(
+          new ResponseProcessor(
+            messageId,
+            options.responseTimeout,
+            resolve,
+            reject,
+          ),
+        );
+      },
+    );
+  }
 
-  async _sendACK(dest: Destination, messageId: Uint8Array, encrypt: boolean): Promise<void> {
+  async _sendACK(
+    dest: Destination,
+    messageId: Uint8Array,
+    encrypt: boolean,
+  ): Promise<void> {
     if (Array.isArray(dest)) {
       if (dest.length === 0) {
         return;
@@ -404,7 +483,9 @@ export default class Client {
         return await this._sendACK(dest[0], messageId, encrypt);
       }
       if (dest.length > 1 && encrypt) {
-        console.warn('Encrypted ACK with multicast is not supported, fallback to unicast.')
+        console.warn(
+          "Encrypted ACK with multicast is not supported, fallback to unicast.",
+        );
         for (let i = 0; i < dest.length; i++) {
           await this._sendACK(dest[i], messageId, encrypt);
         }
@@ -414,31 +495,58 @@ export default class Client {
 
     let payload = message.newAckPayload(messageId);
     let pldMsg = await this._messageFromPayload(payload, encrypt, dest);
-    let msg = await message.newOutboundMessage(this, dest, pldMsg[0].serializeBinary(), 0);
+    let msg = await message.newOutboundMessage(
+      this,
+      dest,
+      pldMsg[0].serializeBinary(),
+      0,
+    );
     this._wsSend(msg.serializeBinary());
-  };
+  }
 
   /**
    * Send byte or string data to all subscribers of a topic.
    * @returns A promise that will be resolved with null when send success.
    */
-  async publish(topic: string, data: MessageData, options: PublishOptions = {}): Promise<null> {
-    options = common.util.assignDefined({}, consts.defaultPublishOptions, options, {noReply: true});
+  async publish(
+    topic: string,
+    data: MessageData,
+    options: PublishOptions = {},
+  ): Promise<null> {
+    options = common.util.assignDefined(
+      {},
+      consts.defaultPublishOptions,
+      options,
+      { noReply: true },
+    );
     let offset = options.offset;
-    let res = await this.getSubscribers(topic, {offset, limit: options.limit, txPool: options.txPool});
+    let res = await this.getSubscribers(topic, {
+      offset,
+      limit: options.limit,
+      txPool: options.txPool,
+    });
     if (!(res.subscribers instanceof Array)) {
-      throw new common.errors.InvalidResponseError('subscribers should be an array');
+      throw new common.errors.InvalidResponseError(
+        "subscribers should be an array",
+      );
     }
-    if (res.subscribersInTxPool && !(res.subscribersInTxPool instanceof Array)) {
-      throw new common.errors.InvalidResponseError('subscribersInTxPool should be an array');
+    if (
+      res.subscribersInTxPool &&
+      !(res.subscribersInTxPool instanceof Array)
+    ) {
+      throw new common.errors.InvalidResponseError(
+        "subscribersInTxPool should be an array",
+      );
     }
     let subscribers = res.subscribers;
     let subscribersInTxPool = res.subscribersInTxPool;
     while (res.subscribers && res.subscribers.length >= options.limit) {
       offset += options.limit;
-      res = await this.getSubscribers(topic, {offset, limit: options.limit});
+      res = await this.getSubscribers(topic, { offset, limit: options.limit });
       if (!(res.subscribers instanceof Array)) {
-        throw new common.errors.InvalidResponseError('subscribers should be an array');
+        throw new common.errors.InvalidResponseError(
+          "subscribers should be an array",
+        );
       }
       subscribers = subscribers.concat(res.subscribers);
     }
@@ -457,12 +565,15 @@ export default class Client {
     this.shouldReconnect = false;
     try {
       this.ws && this.ws.close();
-    } catch (e) {
-    }
+    } catch (e) {}
     this.isClosed = true;
   }
 
-  async _messageFromPayload(payload: common.pb.payloads.Payload, encrypt: boolean, dest: Destination): Promise<Array<common.pb.payloads.Message>> {
+  async _messageFromPayload(
+    payload: common.pb.payloads.Payload,
+    encrypt: boolean,
+    dest: Destination,
+  ): Promise<Array<common.pb.payloads.Message>> {
     if (encrypt) {
       return await this._encryptPayload(payload.serializeBinary(), dest);
     }
@@ -506,13 +617,21 @@ export default class Client {
         data = textData.getText();
         break;
       case common.pb.payloads.PayloadType.ACK:
-        this.responseManager.respond(payload.getReplyToId(), null, payload.getType());
+        this.responseManager.respond(
+          payload.getReplyToId(),
+          null,
+          payload.getType(),
+        );
         return true;
     }
 
     // handle response if applicable
     if (payload.getReplyToId().length) {
-      this.responseManager.respond(payload.getReplyToId(), data, payload.getType());
+      this.responseManager.respond(
+        payload.getReplyToId(),
+        data,
+        payload.getType(),
+      );
       return true;
     }
 
@@ -522,21 +641,23 @@ export default class Client {
       case common.pb.payloads.PayloadType.BINARY:
       case common.pb.payloads.PayloadType.SESSION:
         if (this.eventListeners.message.length > 0) {
-          let responses = await Promise.all(this.eventListeners.message.map(async f => {
-            try {
-              return await f({
-                src: msg.getSrc(),
-                payload: data,
-                payloadType: payload.getType(),
-                isEncrypted: pldMsg.getEncrypted(),
-                messageId: payload.getMessageId(),
-                noReply: payload.getNoReply(),
-              });
-            } catch (e) {
-              console.log('Message handler error:', e);
-              return null;
-            }
-          }));
+          let responses = await Promise.all(
+            this.eventListeners.message.map(async (f) => {
+              try {
+                return await f({
+                  src: msg.getSrc(),
+                  payload: data,
+                  payloadType: payload.getType(),
+                  isEncrypted: pldMsg.getEncrypted(),
+                  messageId: payload.getMessageId(),
+                  noReply: payload.getNoReply(),
+                });
+              } catch (e) {
+                console.log("Message handler error:", e);
+                return null;
+              }
+            }),
+          );
           if (!payload.getNoReply()) {
             let responded = false;
             for (let response of responses) {
@@ -548,14 +669,18 @@ export default class Client {
                   msgHoldingSeconds: 0,
                   replyToId: payload.getMessageId(),
                 }).catch((e) => {
-                  console.log('Send response error:', e);
+                  console.log("Send response error:", e);
                 });
                 responded = true;
                 break;
               }
             }
             if (!responded) {
-              await this._sendACK(msg.getSrc(), payload.getMessageId(), pldMsg.getEncrypted());
+              await this._sendACK(
+                msg.getSrc(),
+                payload.getMessageId(),
+                pldMsg.getEncrypted(),
+              );
             }
           }
         }
@@ -569,10 +694,10 @@ export default class Client {
     if (this.options.tls !== undefined) {
       return !!this.options.tls;
     }
-    if (typeof window === 'undefined') {
+    if (typeof window === "undefined") {
       return false;
     }
-    if (window.location && window.location.protocol === 'https:') {
+    if (window.location && window.location.protocol === "https:") {
       return true;
     }
     return false;
@@ -580,7 +705,7 @@ export default class Client {
 
   async _newWsAddr(nodeInfo: { addr: string, rpcAddr: string, sdp?: string }) {
     if (!nodeInfo.addr) {
-      console.log('No address in node info', nodeInfo);
+      console.log("No address in node info", nodeInfo);
       if (this.shouldReconnect) {
         this._reconnect();
       } else if (!this.isClosed) {
@@ -596,11 +721,11 @@ export default class Client {
         ws = this.peer;
         this.peer.setRemoteDescription(nodeInfo.sdp);
       } else {
-        ws = new WebSocket((tls ? 'wss' : 'ws') + '://' + nodeInfo.addr);
-        ws.binaryType = 'arraybuffer';
+        ws = new WebSocket((tls ? "wss" : "ws") + "://" + nodeInfo.addr);
+        ws.binaryType = "arraybuffer";
       }
     } catch (e) {
-      console.log('Create WebSocket or WebRTC failed,', e);
+      console.log("Create WebSocket or WebRTC failed,", e);
       if (this.shouldReconnect) {
         this._reconnect();
       } else if (!this.isClosed) {
@@ -610,44 +735,45 @@ export default class Client {
     }
 
     if (this.ws) {
-      this.ws.onclose = () => {
-      };
+      this.ws.onclose = () => {};
       try {
         this.ws.close();
-      } catch (e) {
-      }
+      } catch (e) {}
     }
 
     if (this.isClosed) {
       try {
         ws.close();
-      } catch (e) {
-      }
+      } catch (e) {}
       return;
     }
 
     this.ws = ws;
     this.node = nodeInfo;
-    this.wallet.options.rpcServerAddr = '';
+    this.wallet.options.rpcServerAddr = "";
     if (nodeInfo.rpcAddr) {
-      let addr = (tls ? 'https' : 'http') + '://' + nodeInfo.rpcAddr;
-      common.rpc.getNodeState({ rpcServerAddr:addr }).then(nodeState => {
-        if (nodeState.syncState === 'PERSIST_FINISHED') {
-          this.wallet.options.rpcServerAddr = addr;
-        }
-      }).catch((e) => {
-        console.log(e);
-      });
+      let addr = (tls ? "https" : "http") + "://" + nodeInfo.rpcAddr;
+      common.rpc
+        .getNodeState({ rpcServerAddr: addr })
+        .then((nodeState) => {
+          if (nodeState.syncState === "PERSIST_FINISHED") {
+            this.wallet.options.rpcServerAddr = addr;
+          }
+        })
+        .catch((e) => {
+          console.log(e);
+        });
     }
 
     let challengeDone: Function;
-    let challengeHandler: Promise<SaltAndSignature> = new Promise<SaltAndSignature>((resolve, reject) => {
-      challengeDone = resolve;
-      setTimeout(() => {
-        // Some nodejs version might terminate the whole process if we call reject here
-        resolve(new common.errors.ChallengeTimeoutError());
-      }, waitForChallengeTimeout);
-    });
+    let challengeHandler: Promise<SaltAndSignature> =
+      new Promise<SaltAndSignature>((resolve, reject) => {
+        challengeDone = resolve;
+        setTimeout(() => {
+          // Some nodejs version might terminate the whole process if we call reject here
+          resolve(new common.errors.ChallengeTimeoutError());
+        }, waitForChallengeTimeout);
+      });
 
     ws.onopen = async () => {
       let data: any = {
@@ -669,7 +795,7 @@ export default class Client {
         try {
           let handled = await this._handleMsg(event.data);
           if (!handled) {
-            console.warn('Unhandled msg.');
+            console.warn("Unhandled msg.");
           }
         } catch (e) {
           console.log(e);
@@ -678,15 +804,17 @@ export default class Client {
       }
 
       let msg = JSON.parse(event.data);
-      if (msg.Error !== undefined && msg.Error !== common.errors.rpcRespErrCodes.success) {
+      if (
+        msg.Error !== undefined &&
+        msg.Error !== common.errors.rpcRespErrCodes.success
+      ) {
         console.log(msg);
         if (msg.Error === common.errors.rpcRespErrCodes.wrongNode) {
           this._newWsAddr(msg.Result);
         } else if (msg.Action === Action.setClient) {
           try {
             this.ws && this.ws.close();
-          } catch (e) {
-          }
+          } catch (e) {}
         }
         return;
       }
@@ -696,11 +824,11 @@ export default class Client {
           if (!this.isReady) {
             this.isReady = true;
             if (this.eventListeners.connect.length > 0) {
-              this.eventListeners.connect.forEach(async f => {
+              this.eventListeners.connect.forEach(async (f) => {
                 try {
                   await f(msg.Result);
                 } catch (e) {
-                  console.log('Connect handler error:', e);
+                  console.log("Connect handler error:", e);
                 }
               });
             }
@@ -713,8 +841,13 @@ export default class Client {
           let challenge = msg.Challenge;
           let byteChallenge = common.util.hexToBytes(challenge);
           let clientSalt = common.util.randomBytes(32);
-          byteChallenge = common.util.mergeTypedArrays(byteChallenge, clientSalt);
-          let hash = common.hash.sha256Hex(common.util.bytesToHex(byteChallenge));
+          byteChallenge = common.util.mergeTypedArrays(
+            byteChallenge,
+            clientSalt,
+          );
+          let hash = common.hash.sha256Hex(
+            common.util.bytesToHex(byteChallenge),
+          );
           let signature = await crypto.sign(this.key.privateKey, hash);
           challengeDone({
             ClientSalt: clientSalt,
@@ -722,13 +855,13 @@ export default class Client {
           });
           break;
         default:
-          console.warn('Unknown msg type:', msg.Action);
+          console.warn("Unknown msg type:", msg.Action);
       }
     };
 
     ws.onclose = () => {
       if (this.shouldReconnect) {
-        console.warn('WebSocket unexpectedly closed.');
+        console.warn("WebSocket unexpectedly closed.");
         this._reconnect();
       } else if (!this.isClosed) {
         this._connectFailed();
@@ -737,31 +870,46 @@ export default class Client {
 
     ws.onerror = (event) => {
       if (this.eventListeners.wsError.length > 0) {
-        this.eventListeners.wsError.forEach(async f => {
+        this.eventListeners.wsError.forEach(async (f) => {
           try {
             await f(event);
           } catch (e) {
-            console.log('WsError handler error:', e);
+            console.log("WsError handler error:", e);
           }
         });
       } else {
         console.log(event.message);
       }
-    }
+    };
   }
 
-  async _encryptPayload(payload: Uint8Array, dest: Destination): Promise<Array<common.pb.payloads.Message>> {
+  async _encryptPayload(
+    payload: Uint8Array,
+    dest: Destination,
+  ): Promise<Array<common.pb.payloads.Message>> {
     if (Array.isArray(dest)) {
       let nonce = common.util.randomBytes(common.crypto.nonceLength);
       let key = common.util.randomBytes(common.crypto.keyLength);
-      let encryptedPayload = await common.crypto.encryptSymmetric(payload, nonce, key);
+      let encryptedPayload = await common.crypto.encryptSymmetric(
+        payload,
+        nonce,
+        key,
+      );
 
       let msgs: Array<common.pb.payloads.Message> = [];
       for (let i = 0; i < dest.length; i++) {
         let pk = message.addrToPubkey(dest[i]);
         let encryptedKey = await this.key.encrypt(key, pk);
-        let mergedNonce = common.util.mergeTypedArrays(encryptedKey.nonce, nonce);
-        let msg = message.newMessage(encryptedPayload, true, mergedNonce, encryptedKey.message);
+        let mergedNonce = common.util.mergeTypedArrays(
+          encryptedKey.nonce,
+          nonce,
+        );
+        let msg = message.newMessage(
+          encryptedPayload,
+          true,
+          mergedNonce,
+          encryptedKey.message,
+        );
         msgs.push(msg);
       }
       return msgs;
@@ -772,7 +920,10 @@ export default class Client {
     }
   }
 
-  async _decryptPayload(msg: common.pb.payloads.Message, srcAddr: string): Promise<Uint8Array> {
+  async _decryptPayload(
+    msg: common.pb.payloads.Message,
+    srcAddr: string,
+  ): Promise<Uint8Array> {
     let rawPayload = msg.getPayload();
     let srcPubkey = message.addrToPubkey(srcAddr);
     let nonce = msg.getNonce();
@@ -780,23 +931,31 @@ export default class Client {
     let decryptedPayload;
     if (encryptedKey && encryptedKey.length > 0) {
       if (nonce.length != common.crypto.nonceLength * 2) {
-        throw new common.errors.DecryptionError('invalid nonce length');
+        throw new common.errors.DecryptionError("invalid nonce length");
       }
-      let sharedKey = await this.key.decrypt(encryptedKey, nonce.slice(0, common.crypto.nonceLength), srcPubkey);
+      let sharedKey = await this.key.decrypt(
+        encryptedKey,
+        nonce.slice(0, common.crypto.nonceLength),
+        srcPubkey,
+      );
       if (sharedKey === null) {
-        throw new common.errors.DecryptionError('decrypt shared key failed');
+        throw new common.errors.DecryptionError("decrypt shared key failed");
       }
-      decryptedPayload = await common.crypto.decryptSymmetric(rawPayload, nonce.slice(common.crypto.nonceLength), sharedKey)
+      decryptedPayload = await common.crypto.decryptSymmetric(
+        rawPayload,
+        nonce.slice(common.crypto.nonceLength),
+        sharedKey,
+      );
       if (decryptedPayload === null) {
-        throw new common.errors.DecryptionError('decrypt message failed');
+        throw new common.errors.DecryptionError("decrypt message failed");
       }
     } else {
       if (nonce.length != common.crypto.nonceLength) {
-        throw new common.errors.DecryptionError('invalid nonce length');
+        throw new common.errors.DecryptionError("invalid nonce length");
       }
       decryptedPayload = await this.key.decrypt(rawPayload, nonce, srcPubkey);
       if (decryptedPayload === null) {
-        throw new common.errors.DecryptionError('decrypt message failed');
+        throw new common.errors.DecryptionError("decrypt message failed");
       }
     }
     return decryptedPayload;
@@ -811,8 +970,7 @@ export default class Client {
     if (this.wallet.options.rpcServerAddr) {
       try {
         return await Wallet.getLatestBlock(this.options);
-      } catch (e) {
-      }
+      } catch (e) {}
     }
     return await Wallet.getLatestBlock(this.options);
   }
@@ -822,12 +980,13 @@ export default class Client {
    * client's connected node as rpcServerAddr, followed by this client's
    * rpcServerAddr if failed.
    */
-  async getRegistrant(name: string): Promise<{ registrant: string, expiresAt: number }> {
+  async getRegistrant(
+    name: string,
+  ): Promise<{ registrant: string, expiresAt: number }> {
     if (this.wallet.options.rpcServerAddr) {
       try {
         return await Wallet.getRegistrant(name, this.wallet.options);
-      } catch (e) {
-      }
+      } catch (e) {}
     }
     return await Wallet.getRegistrant(name, this.options);
   }
@@ -851,11 +1010,16 @@ export default class Client {
   }> {
     if (this.wallet.options.rpcServerAddr) {
       try {
-        return await Wallet.getSubscribers(topic, Object.assign({}, this.wallet.options, options));
-      } catch (e) {
-      }
+        return await Wallet.getSubscribers(
+          topic,
+          Object.assign({}, this.wallet.options, options),
+        );
+      } catch (e) {}
     }
-    return await Wallet.getSubscribers(topic, Object.assign({}, this.options, options));
+    return await Wallet.getSubscribers(
+      topic,
+      Object.assign({}, this.options, options),
+    );
   }
 
   /**
@@ -867,8 +1031,7 @@ export default class Client {
     if (this.wallet.options.rpcServerAddr) {
       try {
         return await Wallet.getSubscribersCount(topic, this.wallet.options);
-      } catch (e) {
-      }
+      } catch (e) {}
     }
     return await Wallet.getSubscribersCount(topic, this.options);
   }
@@ -878,12 +1041,18 @@ export default class Client {
    * client's connected node as rpcServerAddr, followed by this client's
    * rpcServerAddr if failed.
    */
-  async getSubscription(topic: string, subscriber: string): Promise<{ meta: string, expiresAt: number }> {
+  async getSubscription(
+    topic: string,
+    subscriber: string,
+  ): Promise<{ meta: string, expiresAt: number }> {
     if (this.wallet.options.rpcServerAddr) {
       try {
-        return await Wallet.getSubscription(topic, subscriber, this.wallet.options);
-      } catch (e) {
-      }
+        return await Wallet.getSubscription(
+          topic,
+          subscriber,
+          this.wallet.options,
+        );
+      } catch (e) {}
     }
     return await Wallet.getSubscription(topic, subscriber, this.options);
   }
@@ -896,11 +1065,16 @@ export default class Client {
   async getBalance(address: ?string): Promise<common.Amount> {
     if (this.wallet.options.rpcServerAddr) {
       try {
-        return await Wallet.getBalance(address || this.wallet.address, this.wallet.options);
-      } catch (e) {
-      }
+        return await Wallet.getBalance(
+          address || this.wallet.address,
+          this.wallet.options,
+        );
+      } catch (e) {}
     }
-    return await Wallet.getBalance(address || this.wallet.address, this.options);
+    return await Wallet.getBalance(
+      address || this.wallet.address,
+      this.options,
+    );
   }
 
   /**
@@ -908,14 +1082,22 @@ export default class Client {
    * client's connected node as rpcServerAddr, followed by this client's
    * rpcServerAddr if failed.
    */
-  async getNonce(address: ?string, options: { txPool: boolean } = {}): Promise<number> {
+  async getNonce(
+    address: ?string,
+    options: { txPool: boolean } = {},
+  ): Promise<number> {
     if (this.wallet.options.rpcServerAddr) {
       try {
-        return await Wallet.getNonce(address || this.wallet.address, Object.assign({}, this.wallet.options, options));
-      } catch (e) {
-      }
+        return await Wallet.getNonce(
+          address || this.wallet.address,
+          Object.assign({}, this.wallet.options, options),
+        );
+      } catch (e) {}
     }
-    return await Wallet.getNonce(address || this.wallet.address, Object.assign({}, this.options, options));
+    return await Wallet.getNonce(
+      address || this.wallet.address,
+      Object.assign({}, this.options, options),
+    );
   }
 
   /**
@@ -923,12 +1105,13 @@ export default class Client {
    * client's connected node as rpcServerAddr, followed by this client's
    * rpcServerAddr if failed.
    */
-  async sendTransaction(txn: common.pb.transaction.Transaction): Promise<string> {
+  async sendTransaction(
+    txn: common.pb.transaction.Transaction,
+  ): Promise<string> {
     if (this.wallet.options.rpcServerAddr) {
       try {
         return await Wallet.sendTransaction(txn, this.wallet.options);
-      } catch (e) {
-      }
+      } catch (e) {}
     }
     return await Wallet.sendTransaction(txn, this.options);
   }
@@ -938,7 +1121,11 @@ export default class Client {
    * client's connected node as rpcServerAddr, followed by this client's
    * rpcServerAddr if failed.
    */
-  transferTo(toAddress: string, amount: number | string | common.Amount, options: TransactionOptions = {}): Promise<TxnOrHash> {
+  transferTo(
+    toAddress: string,
+    amount: number | string | common.Amount,
+    options: TransactionOptions = {},
+  ): Promise<TxnOrHash> {
     return common.rpc.transferTo.call(this, toAddress, amount, options);
   }
 
@@ -947,7 +1134,10 @@ export default class Client {
    * client's connected node as rpcServerAddr, followed by this client's
    * rpcServerAddr if failed.
    */
-  registerName(name: string, options: TransactionOptions = {}): Promise<TxnOrHash> {
+  registerName(
+    name: string,
+    options: TransactionOptions = {},
+  ): Promise<TxnOrHash> {
     return common.rpc.registerName.call(this, name, options);
   }
 
@@ -956,7 +1146,11 @@ export default class Client {
    * client's connected node as rpcServerAddr, followed by this client's
    * rpcServerAddr if failed.
    */
-  transferName(name: string, recipient: string, options: TransactionOptions = {}): Promise<TxnOrHash> {
+  transferName(
+    name: string,
+    recipient: string,
+    options: TransactionOptions = {},
+  ): Promise<TxnOrHash> {
     return common.rpc.transferName.call(this, name, recipient, options);
   }
 
@@ -965,7 +1159,10 @@ export default class Client {
    * client's connected node as rpcServerAddr, followed by this client's
    * rpcServerAddr if failed.
    */
-  deleteName(name: string, options: TransactionOptions = {}): Promise<TxnOrHash> {
+  deleteName(
+    name: string,
+    options: TransactionOptions = {},
+  ): Promise<TxnOrHash> {
     return common.rpc.deleteName.call(this, name, options);
   }
 
@@ -974,8 +1171,21 @@ export default class Client {
    * client's connected node as rpcServerAddr, followed by this client's
    * rpcServerAddr if failed.
    */
-  subscribe(topic: string, duration: number, identifier: ?string = '', meta: ?string = '', options: TransactionOptions = {}): Promise<TxnOrHash> {
-    return common.rpc.subscribe.call(this, topic, duration, identifier, meta, options);
+  subscribe(
+    topic: string,
+    duration: number,
+    identifier: ?string = "",
+    meta: ?string = "",
+    options: TransactionOptions = {},
+  ): Promise<TxnOrHash> {
+    return common.rpc.subscribe.call(
+      this,
+      topic,
+      duration,
+      identifier,
+      meta,
+      options,
+    );
   }
 
   /**
@@ -983,11 +1193,19 @@ export default class Client {
    * client's connected node as rpcServerAddr, followed by this client's
    * rpcServerAddr if failed.
    */
-  unsubscribe(topic: string, identifier: string = '', options: TransactionOptions = {}): Promise<TxnOrHash> {
+  unsubscribe(
+    topic: string,
+    identifier: string = "",
+    options: TransactionOptions = {},
+  ): Promise<TxnOrHash> {
     return common.rpc.unsubscribe.call(this, topic, identifier, options);
   }
 
-  createTransaction(pld: common.pb.transaction.Payload, nonce: number, options: CreateTransactionOptions = {}): Promise<common.pb.transaction.Transaction> {
+  createTransaction(
+    pld: common.pb.transaction.Payload,
+    nonce: number,
+    options: CreateTransactionOptions = {},
+  ): Promise<common.pb.transaction.Transaction> {
     return this.wallet.createTransaction(pld, nonce, options);
   }
 }
@@ -1034,7 +1252,7 @@ class ResponseProcessor {
 
   handleTimeout() {
     if (this.timeoutHandler) {
-      this.timeoutHandler(new Error('Message timeout'));
+      this.timeoutHandler(new Error("Message timeout"));
     }
   }
 }
@@ -1065,7 +1283,11 @@ class ResponseManager {
     this.clear();
   }
 
-  respond(messageId: Uint8Array | string, data: ReplyData, payloadType?: common.pb.payloads.PayloadType) {
+  respond(
+    messageId: Uint8Array | string,
+    data: ReplyData,
+    payloadType?: common.pb.payloads.PayloadType,
+  ) {
     if (messageId instanceof Uint8Array) {
       messageId = common.util.bytesToHex(messageId);
     }
@@ -1085,12 +1307,15 @@ class ResponseManager {
       }
     }
 
-    timeoutProcessors.forEach(p => {
+    timeoutProcessors.forEach((p) => {
       p.handleTimeout();
       this.responseProcessors.delete(p.messageId);
-    })
+    });
 
-    this.timer = setTimeout(this.checkTimeout.bind(this), consts.checkTimeoutInterval);
+    this.timer = setTimeout(
+      this.checkTimeout.bind(this),
+      consts.checkTimeoutInterval,
+    );
   }
 }
 
@@ -1149,7 +1374,11 @@ export type ConnectFailedHandler = () => void;
 /**
  * Message handler function type.
  */
-export type MessageHandler = (Message) => ReplyData | false | void | Promise<ReplyData | false | void>;
+export type MessageHandler = (Message) =>
+  | ReplyData
+  | false
+  | void
+  | Promise<ReplyData | false | void>;
 
 /**
  * Websocket error handler function type.
@@ -1170,7 +1399,7 @@ export type SendOptions = {
   noReply?: boolean,
   messageId?: Uint8Array,
   replyToId?: Uint8Array,
-}
+};
 
 /**
  * Publish message options type.
@@ -1186,4 +1415,4 @@ export type PublishOptions = {
   txPool?: boolean,
   offset?: number,
   limit?: number,
-}
+};

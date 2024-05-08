@@ -1,5 +1,5 @@
 (function(f){if(typeof exports==="object"&&typeof module!=="undefined"){module.exports=f()}else if(typeof define==="function"&&define.amd){define([],f)}else{var g;if(typeof window!=="undefined"){g=window}else if(typeof global!=="undefined"){g=global}else if(typeof self!=="undefined"){g=self}else{g=this}g.nkn = f()}})(function(){var define,module,exports;return (function(){function r(e,n,t){function o(i,f){if(!n[i]){if(!e[i]){var c="function"==typeof require&&require;if(!f&&c)return c(i,!0);if(u)return u(i,!0);var a=new Error("Cannot find module '"+i+"'");throw a.code="MODULE_NOT_FOUND",a}var p=n[i]={exports:{}};e[i][0].call(p.exports,function(r){var n=e[i][1][r];return o(n||r)},p,p.exports,r,e,n,t)}return n[i].exports}for(var u="function"==typeof require&&require,i=0;i<t.length;i++)o(t[i]);return o}return r})()({1:[function(require,module,exports){
-'use strict';
+"use strict";
 
 Object.defineProperty(exports, "__esModule", {
   value: true
@@ -29,9 +29,9 @@ function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { de
 function _defineProperty(obj, key, value) { if (key in obj) { Object.defineProperty(obj, key, { value: value, enumerable: true, configurable: true, writable: true }); } else { obj[key] = value; } return obj; }
 
 const Action = {
-  setClient: 'setClient',
-  updateSigChainBlockHash: 'updateSigChainBlockHash',
-  authChallenge: 'authChallenge'
+  setClient: "setClient",
+  updateSigChainBlockHash: "updateSigChainBlockHash",
+  authChallenge: "authChallenge"
 };
 /**
  * NKN client that sends data to and receives data from other NKN clients.
@@ -112,9 +112,9 @@ class Client {
     let key = new common.Key(options.seed, {
       worker: options.worker
     });
-    let identifier = options.identifier || '';
+    let identifier = options.identifier || "";
     let pubkey = key.publicKey;
-    let addr = (identifier ? identifier + '.' : '') + pubkey;
+    let addr = (identifier ? identifier + "." : "") + pubkey;
     let wallet = new _wallet.default(Object.assign({}, options, {
       seed: key.seed,
       worker: false,
@@ -189,7 +189,7 @@ class Client {
       return;
     }
 
-    console.log('RPC call failed,', error);
+    console.log("RPC call failed,", error);
 
     if (this.shouldReconnect) {
       this._reconnect();
@@ -199,7 +199,7 @@ class Client {
   }
 
   _reconnect() {
-    console.log('Reconnecting in ' + this.reconnectInterval / 1000 + 's...');
+    console.log("Reconnecting in " + this.reconnectInterval / 1000 + "s...");
     setTimeout(() => this._connect(), this.reconnectInterval);
     this.reconnectInterval *= 2;
 
@@ -217,11 +217,11 @@ class Client {
           try {
             await f();
           } catch (e) {
-            console.log('Connect failed handler error:', e);
+            console.log("Connect failed handler error:", e);
           }
         });
       } else {
-        console.log('Client connect failed');
+        console.log("Client connect failed");
       }
     }
   }
@@ -237,36 +237,38 @@ class Client {
 
     this.eventListeners[evt].push(func);
   }
-
   /**
    * Add event listener function that will be called when client is connected to
    * node. Multiple listeners will be called sequentially in the order of added.
    * Note that listeners added after client is connected to node (i.e.
    * `client.isReady === true`) will not be called.
    */
+
+
   onConnect(func) {
     this.eventListeners.connect.push(func);
   }
-
   /**
    * Add event listener function that will be called when client fails to
    * connect to node. Multiple listeners will be called sequentially in the
    * order of added. Note that listeners added after client fails to connect to
    * node (i.e. `client.isFailed === true`) will not be called.
    */
+
+
   onConnectFailed(func) {
     this.eventListeners.connectFailed.push(func);
   }
-
   /**
    * Add event listener function that will be called when client websocket
    * connection throws an error. Multiple listeners will be called sequentially
    * in the order of added.
    */
+
+
   onWsError(func) {
     this.eventListeners.wsError.push(func);
   }
-
   /**
    * Add event listener function that will be called when client receives a
    * message. Multiple listeners will be called sequentially in the order of
@@ -279,6 +281,8 @@ class Client {
    * msg received will be sent back. Receiving reply or ACK will not trigger
    * the event listener.
    */
+
+
   onMessage(func) {
     this.eventListeners.message.push(func);
   }
@@ -293,10 +297,10 @@ class Client {
 
   async _processDest(dest) {
     if (dest.length === 0) {
-      throw new common.errors.InvalidDestinationError('destination is empty');
+      throw new common.errors.InvalidDestinationError("destination is empty");
     }
 
-    let addr = dest.split('.');
+    let addr = dest.split(".");
 
     if (addr[addr.length - 1].length < common.crypto.publicKeyLength * 2) {
       let res = await this.getRegistrant(addr[addr.length - 1]);
@@ -304,17 +308,17 @@ class Client {
       if (res.registrant && res.registrant.length > 0) {
         addr[addr.length - 1] = res.registrant;
       } else {
-        throw new common.errors.InvalidDestinationError(dest + ' is neither a valid public key nor a registered name');
+        throw new common.errors.InvalidDestinationError(dest + " is neither a valid public key nor a registered name");
       }
     }
 
-    return addr.join('.');
+    return addr.join(".");
   }
 
   async _processDests(dest) {
     if (Array.isArray(dest)) {
       if (dest.length === 0) {
-        throw new common.errors.InvalidDestinationError('no destinations');
+        throw new common.errors.InvalidDestinationError("no destinations");
       }
 
       dest = await Promise.all(dest.map(async addr => {
@@ -322,13 +326,13 @@ class Client {
           return await this._processDest(addr);
         } catch (e) {
           console.warn(e.message);
-          return '';
+          return "";
         }
       }));
       dest = dest.filter(addr => addr.length > 0);
 
       if (dest.length === 0) {
-        throw new common.errors.InvalidDestinationError('all destinations are invalid');
+        throw new common.errors.InvalidDestinationError("all destinations are invalid");
       }
     } else {
       dest = await this._processDest(dest);
@@ -363,7 +367,7 @@ class Client {
         size = pldMsg[i].length + dest[i].length + common.crypto.signatureLength;
 
         if (size > message.maxClientMessageSize) {
-          throw new common.errors.DataSizeTooLargeError('encoded message is greater than ' + message.maxClientMessageSize + ' bytes');
+          throw new common.errors.DataSizeTooLargeError("encoded message is greater than " + message.maxClientMessageSize + " bytes");
         }
 
         if (totalSize + size > message.maxClientMessageSize) {
@@ -389,7 +393,7 @@ class Client {
       }
 
       if (size > message.maxClientMessageSize) {
-        throw new common.errors.DataSizeTooLargeError('encoded message is greater than ' + message.maxClientMessageSize + ' bytes');
+        throw new common.errors.DataSizeTooLargeError("encoded message is greater than " + message.maxClientMessageSize + " bytes");
       }
 
       destList = dest;
@@ -407,17 +411,18 @@ class Client {
     });
     return payload.getMessageId() || null;
   }
-
   /**
    * Send byte or string data to a single or an array of destination.
    * @param options - Send options that will override client options.
    * @returns A promise that will be resolved when reply or ACK from destination is received, or reject if send fail or message timeout. If dest is an array with more than one element, or `options.noReply=true`, the promise will resolve with null as soon as send success.
    */
+
+
   async send(dest, data, options = {}) {
     options = common.util.assignDefined({}, this.options, options);
     let payload;
 
-    if (typeof data === 'string') {
+    if (typeof data === "string") {
       payload = message.newTextPayload(data, options.replyToId, options.messageId);
     } else {
       payload = message.newBinaryPayload(data, options.replyToId, options.messageId);
@@ -445,7 +450,7 @@ class Client {
       }
 
       if (dest.length > 1 && encrypt) {
-        console.warn('Encrypted ACK with multicast is not supported, fallback to unicast.');
+        console.warn("Encrypted ACK with multicast is not supported, fallback to unicast.");
 
         for (let i = 0; i < dest.length; i++) {
           await this._sendACK(dest[i], messageId, encrypt);
@@ -461,11 +466,12 @@ class Client {
 
     this._wsSend(msg.serializeBinary());
   }
-
   /**
    * Send byte or string data to all subscribers of a topic.
    * @returns A promise that will be resolved with null when send success.
    */
+
+
   async publish(topic, data, options = {}) {
     options = common.util.assignDefined({}, consts.defaultPublishOptions, options, {
       noReply: true
@@ -478,11 +484,11 @@ class Client {
     });
 
     if (!(res.subscribers instanceof Array)) {
-      throw new common.errors.InvalidResponseError('subscribers should be an array');
+      throw new common.errors.InvalidResponseError("subscribers should be an array");
     }
 
     if (res.subscribersInTxPool && !(res.subscribersInTxPool instanceof Array)) {
-      throw new common.errors.InvalidResponseError('subscribersInTxPool should be an array');
+      throw new common.errors.InvalidResponseError("subscribersInTxPool should be an array");
     }
 
     let subscribers = res.subscribers;
@@ -496,7 +502,7 @@ class Client {
       });
 
       if (!(res.subscribers instanceof Array)) {
-        throw new common.errors.InvalidResponseError('subscribers should be an array');
+        throw new common.errors.InvalidResponseError("subscribers should be an array");
       }
 
       subscribers = subscribers.concat(res.subscribers);
@@ -602,7 +608,7 @@ class Client {
                 noReply: payload.getNoReply()
               });
             } catch (e) {
-              console.log('Message handler error:', e);
+              console.log("Message handler error:", e);
               return null;
             }
           }));
@@ -619,7 +625,7 @@ class Client {
                   msgHoldingSeconds: 0,
                   replyToId: payload.getMessageId()
                 }).catch(e => {
-                  console.log('Send response error:', e);
+                  console.log("Send response error:", e);
                 });
                 responded = true;
                 break;
@@ -644,11 +650,11 @@ class Client {
       return !!this.options.tls;
     }
 
-    if (typeof window === 'undefined') {
+    if (typeof window === "undefined") {
       return false;
     }
 
-    if (window.location && window.location.protocol === 'https:') {
+    if (window.location && window.location.protocol === "https:") {
       return true;
     }
 
@@ -657,7 +663,7 @@ class Client {
 
   async _newWsAddr(nodeInfo) {
     if (!nodeInfo.addr) {
-      console.log('No address in node info', nodeInfo);
+      console.log("No address in node info", nodeInfo);
 
       if (this.shouldReconnect) {
         this._reconnect();
@@ -677,11 +683,11 @@ class Client {
         ws = this.peer;
         this.peer.setRemoteDescription(nodeInfo.sdp);
       } else {
-        ws = new _isomorphicWs.default((tls ? 'wss' : 'ws') + '://' + nodeInfo.addr);
-        ws.binaryType = 'arraybuffer';
+        ws = new _isomorphicWs.default((tls ? "wss" : "ws") + "://" + nodeInfo.addr);
+        ws.binaryType = "arraybuffer";
       }
     } catch (e) {
-      console.log('Create WebSocket or WebRTC failed,', e);
+      console.log("Create WebSocket or WebRTC failed,", e);
 
       if (this.shouldReconnect) {
         this._reconnect();
@@ -710,14 +716,14 @@ class Client {
 
     this.ws = ws;
     this.node = nodeInfo;
-    this.wallet.options.rpcServerAddr = '';
+    this.wallet.options.rpcServerAddr = "";
 
     if (nodeInfo.rpcAddr) {
-      let addr = (tls ? 'https' : 'http') + '://' + nodeInfo.rpcAddr;
+      let addr = (tls ? "https" : "http") + "://" + nodeInfo.rpcAddr;
       common.rpc.getNodeState({
         rpcServerAddr: addr
       }).then(nodeState => {
-        if (nodeState.syncState === 'PERSIST_FINISHED') {
+        if (nodeState.syncState === "PERSIST_FINISHED") {
           this.wallet.options.rpcServerAddr = addr;
         }
       }).catch(e => {
@@ -757,7 +763,7 @@ class Client {
           let handled = await this._handleMsg(event.data);
 
           if (!handled) {
-            console.warn('Unhandled msg.');
+            console.warn("Unhandled msg.");
           }
         } catch (e) {
           console.log(e);
@@ -794,7 +800,7 @@ class Client {
                 try {
                   await f(msg.Result);
                 } catch (e) {
-                  console.log('Connect handler error:', e);
+                  console.log("Connect handler error:", e);
                 }
               });
             }
@@ -820,13 +826,13 @@ class Client {
           break;
 
         default:
-          console.warn('Unknown msg type:', msg.Action);
+          console.warn("Unknown msg type:", msg.Action);
       }
     };
 
     ws.onclose = () => {
       if (this.shouldReconnect) {
-        console.warn('WebSocket unexpectedly closed.');
+        console.warn("WebSocket unexpectedly closed.");
 
         this._reconnect();
       } else if (!this.isClosed) {
@@ -840,7 +846,7 @@ class Client {
           try {
             await f(event);
           } catch (e) {
-            console.log('WsError handler error:', e);
+            console.log("WsError handler error:", e);
           }
         });
       } else {
@@ -881,29 +887,29 @@ class Client {
 
     if (encryptedKey && encryptedKey.length > 0) {
       if (nonce.length != common.crypto.nonceLength * 2) {
-        throw new common.errors.DecryptionError('invalid nonce length');
+        throw new common.errors.DecryptionError("invalid nonce length");
       }
 
       let sharedKey = await this.key.decrypt(encryptedKey, nonce.slice(0, common.crypto.nonceLength), srcPubkey);
 
       if (sharedKey === null) {
-        throw new common.errors.DecryptionError('decrypt shared key failed');
+        throw new common.errors.DecryptionError("decrypt shared key failed");
       }
 
       decryptedPayload = await common.crypto.decryptSymmetric(rawPayload, nonce.slice(common.crypto.nonceLength), sharedKey);
 
       if (decryptedPayload === null) {
-        throw new common.errors.DecryptionError('decrypt message failed');
+        throw new common.errors.DecryptionError("decrypt message failed");
       }
     } else {
       if (nonce.length != common.crypto.nonceLength) {
-        throw new common.errors.DecryptionError('invalid nonce length');
+        throw new common.errors.DecryptionError("invalid nonce length");
       }
 
       decryptedPayload = await this.key.decrypt(rawPayload, nonce, srcPubkey);
 
       if (decryptedPayload === null) {
-        throw new common.errors.DecryptionError('decrypt message failed');
+        throw new common.errors.DecryptionError("decrypt message failed");
       }
     }
 
@@ -1084,7 +1090,7 @@ class Client {
    */
 
 
-  subscribe(topic, duration, identifier = '', meta = '', options = {}) {
+  subscribe(topic, duration, identifier = "", meta = "", options = {}) {
     return common.rpc.subscribe.call(this, topic, duration, identifier, meta, options);
   }
   /**
@@ -1094,7 +1100,7 @@ class Client {
    */
 
 
-  unsubscribe(topic, identifier = '', options = {}) {
+  unsubscribe(topic, identifier = "", options = {}) {
     return common.rpc.unsubscribe.call(this, topic, identifier, options);
   }
 
@@ -1150,7 +1156,7 @@ class ResponseProcessor {
 
   handleTimeout() {
     if (this.timeoutHandler) {
-      this.timeoutHandler(new Error('Message timeout'));
+      this.timeoutHandler(new Error("Message timeout"));
     }
   }
 
@@ -1216,7 +1222,7 @@ class ResponseManager {
 
 }
 },{"../common":11,"../common/crypto":8,"../wallet":29,"./consts":2,"./message":4,"./webrtc":5,"isomorphic-ws":310}],2:[function(require,module,exports){
-'use strict';
+"use strict";
 
 Object.defineProperty(exports, "__esModule", {
   value: true
@@ -1228,9 +1234,9 @@ const defaultOptions = {
   responseTimeout: 5000,
   msgHoldingSeconds: 0,
   encrypt: true,
-  rpcServerAddr: 'https://mainnet-rpc-node-0001.nkn.org/mainnet/api/wallet',
+  rpcServerAddr: "https://mainnet-rpc-node-0001.nkn.org/mainnet/api/wallet",
   worker: false,
-  stunServerAddr: 'stun:stun.l.google.com:19302',
+  stunServerAddr: "stun:stun.l.google.com:19302",
   webrtc: false
 };
 exports.defaultOptions = defaultOptions;
@@ -1245,7 +1251,7 @@ exports.checkTimeoutInterval = checkTimeoutInterval;
 const waitForChallengeTimeout = 5000;
 exports.waitForChallengeTimeout = waitForChallengeTimeout;
 },{}],3:[function(require,module,exports){
-'use strict';
+"use strict";
 
 Object.defineProperty(exports, "__esModule", {
   value: true
@@ -1262,7 +1268,7 @@ var _client = _interopRequireDefault(require("./client"));
 function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
 },{"./client":1}],4:[function(require,module,exports){
 (function (Buffer){
-'use strict';
+"use strict";
 
 Object.defineProperty(exports, "__esModule", {
   value: true
@@ -1363,7 +1369,7 @@ function newClientMessage(messageType, message, compressionType) {
       break;
 
     default:
-      throw new common.errors.InvalidArgumentError('unknown compression type ' + compressionType);
+      throw new common.errors.InvalidArgumentError("unknown compression type " + compressionType);
   }
 
   msg.setMessage(message);
@@ -1376,7 +1382,7 @@ async function newOutboundMessage(client, dest, payload, maxHoldingSeconds) {
   }
 
   if (dest.length === 0) {
-    throw new common.errors.InvalidArgumentError('no destination');
+    throw new common.errors.InvalidArgumentError("no destination");
   }
 
   if (!Array.isArray(payload)) {
@@ -1384,31 +1390,31 @@ async function newOutboundMessage(client, dest, payload, maxHoldingSeconds) {
   }
 
   if (payload.length === 0) {
-    throw new common.errors.InvalidArgumentError('no payloads');
+    throw new common.errors.InvalidArgumentError("no payloads");
   }
 
   if (payload.length > 1 && payload.length !== dest.length) {
-    throw new common.errors.InvalidArgumentError('invalid payload array length');
+    throw new common.errors.InvalidArgumentError("invalid payload array length");
   }
 
   let sigChainElem = new common.pb.sigchain.SigChainElem();
-  sigChainElem.setNextPubkey(Buffer.from(client.node.pubkey, 'hex'));
+  sigChainElem.setNextPubkey(Buffer.from(client.node.pubkey, "hex"));
   let sigChainElemSerialized = serializeSigChainElem(sigChainElem);
   let sigChain = new common.pb.sigchain.SigChain();
   sigChain.setNonce(common.util.randomInt32());
 
   if (client.sigChainBlockHash) {
-    sigChain.setBlockHash(Buffer.from(client.sigChainBlockHash, 'hex'));
+    sigChain.setBlockHash(Buffer.from(client.sigChainBlockHash, "hex"));
   }
 
-  sigChain.setSrcId(Buffer.from(addrToID(client.addr), 'hex'));
-  sigChain.setSrcPubkey(Buffer.from(client.key.publicKey, 'hex'));
+  sigChain.setSrcId(Buffer.from(addrToID(client.addr), "hex"));
+  sigChain.setSrcPubkey(Buffer.from(client.key.publicKey, "hex"));
   let signatures = [];
   let hex, digest, signature;
 
   for (let i = 0; i < dest.length; i++) {
-    sigChain.setDestId(Buffer.from(addrToID(dest[i]), 'hex'));
-    sigChain.setDestPubkey(Buffer.from(addrToPubkey(dest[i]), 'hex'));
+    sigChain.setDestId(Buffer.from(addrToID(dest[i]), "hex"));
+    sigChain.setDestPubkey(Buffer.from(addrToPubkey(dest[i]), "hex"));
 
     if (payload.length > 1) {
       sigChain.setDataSize(payload[i].length);
@@ -1420,7 +1426,7 @@ async function newOutboundMessage(client, dest, payload, maxHoldingSeconds) {
     digest = common.hash.sha256Hex(hex);
     digest = common.hash.sha256Hex(digest + sigChainElemSerialized);
     signature = await client.key.sign(digest);
-    signatures.push(Buffer.from(signature, 'hex'));
+    signatures.push(Buffer.from(signature, "hex"));
   }
 
   let msg = new common.pb.messages.OutboundMessage();
@@ -1448,13 +1454,13 @@ async function newReceipt(client, prevSignature) {
   digest = common.hash.sha256Hex(digest + sigChainElemSerialized);
   let signature = await client.key.sign(digest);
   let msg = new common.pb.messages.Receipt();
-  msg.setPrevSignature(Buffer.from(prevSignature, 'hex'));
-  msg.setSignature(Buffer.from(signature, 'hex'));
+  msg.setPrevSignature(Buffer.from(prevSignature, "hex"));
+  msg.setSignature(Buffer.from(signature, "hex"));
   return newClientMessage(common.pb.messages.ClientMessageType.RECEIPT, msg.serializeBinary(), common.pb.messages.CompressionType.COMPRESSION_NONE);
 }
 
 function serializeSigChainMetadata(sigChain) {
-  let hex = '';
+  let hex = "";
   hex += common.serialize.encodeUint32(sigChain.getNonce());
   hex += common.serialize.encodeUint32(sigChain.getDataSize());
   hex += common.serialize.encodeBytes(sigChain.getBlockHash());
@@ -1466,7 +1472,7 @@ function serializeSigChainMetadata(sigChain) {
 }
 
 function serializeSigChainElem(sigChainElem) {
-  let hex = '';
+  let hex = "";
   hex += common.serialize.encodeBytes(sigChainElem.getId());
   hex += common.serialize.encodeBytes(sigChainElem.getNextPubkey());
   hex += common.serialize.encodeBool(sigChainElem.getMining());
@@ -1478,12 +1484,12 @@ function addrToID(addr) {
 }
 
 function addrToPubkey(addr) {
-  let s = addr.split('.');
+  let s = addr.split(".");
   return s[s.length - 1];
 }
 }).call(this,require("buffer").Buffer)
 },{"../common":11,"buffer":120,"pako":318}],5:[function(require,module,exports){
-'use strict';
+"use strict";
 
 Object.defineProperty(exports, "__esModule", {
   value: true
@@ -1537,7 +1543,7 @@ class Peer {
 
       try {
         this.pc.oniceconnectionstatechange = () => {
-          if (this.pc.iceConnectionState === 'failed') {
+          if (this.pc.iceConnectionState === "failed") {
             this.pc.restartIce();
           }
         };
@@ -1551,14 +1557,14 @@ class Peer {
         };
 
         this.dc = this.pc.createDataChannel(label);
-        this.dc.addEventListener('open', event => {
+        this.dc.addEventListener("open", event => {
           this.isConnected = true;
 
           if (this.onopen) {
             this.onopen();
           }
         });
-        this.dc.addEventListener('message', e => {
+        this.dc.addEventListener("message", e => {
           if (e.data == PongData) {
             if (this.pongHandler != null) {
               this.pongHandler(PongData);
@@ -1576,14 +1582,14 @@ class Peer {
             this.onmessage(e);
           }
         });
-        this.dc.addEventListener('close', event => {
+        this.dc.addEventListener("close", event => {
           this.isConnected = false;
 
           if (this.onclose) {
             this.onclose();
           }
         });
-        this.dc.addEventListener('error', event => {
+        this.dc.addEventListener("error", event => {
           if (this.onerror) {
             this.onerror(event);
           }
@@ -1612,7 +1618,7 @@ class Peer {
 
 exports.default = Peer;
 },{}],6:[function(require,module,exports){
-'use strict';
+"use strict";
 
 Object.defineProperty(exports, "__esModule", {
   value: true
@@ -1621,12 +1627,6 @@ exports.decrypt = decrypt;
 exports.encrypt = encrypt;
 
 var _cryptoJs = _interopRequireDefault(require("crypto-js"));
-
-var hash = _interopRequireWildcard(require("./hash"));
-
-function _getRequireWildcardCache(nodeInterop) { if (typeof WeakMap !== "function") return null; var cacheBabelInterop = new WeakMap(); var cacheNodeInterop = new WeakMap(); return (_getRequireWildcardCache = function (nodeInterop) { return nodeInterop ? cacheNodeInterop : cacheBabelInterop; })(nodeInterop); }
-
-function _interopRequireWildcard(obj, nodeInterop) { if (!nodeInterop && obj && obj.__esModule) { return obj; } if (obj === null || typeof obj !== "object" && typeof obj !== "function") { return { default: obj }; } var cache = _getRequireWildcardCache(nodeInterop); if (cache && cache.has(obj)) { return cache.get(obj); } var newObj = {}; var hasPropertyDescriptor = Object.defineProperty && Object.getOwnPropertyDescriptor; for (var key in obj) { if (key !== "default" && Object.prototype.hasOwnProperty.call(obj, key)) { var desc = hasPropertyDescriptor ? Object.getOwnPropertyDescriptor(obj, key) : null; if (desc && (desc.get || desc.set)) { Object.defineProperty(newObj, key, desc); } else { newObj[key] = obj[key]; } } } newObj.default = obj; if (cache) { cache.set(obj, newObj); } return newObj; }
 
 function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
 
@@ -1645,8 +1645,8 @@ function decrypt(ciphertext, password, iv) {
     padding: _cryptoJs.default.pad.NoPadding
   }).toString();
 }
-},{"./hash":10,"crypto-js":233}],7:[function(require,module,exports){
-'use strict';
+},{"crypto-js":233}],7:[function(require,module,exports){
+"use strict";
 
 Object.defineProperty(exports, "__esModule", {
   value: true
@@ -1675,10 +1675,10 @@ class Amount extends _decimal.Decimal {
 
 exports.default = Amount;
 
-_defineProperty(Amount, "unit", new _decimal.Decimal('100000000'));
+_defineProperty(Amount, "unit", new _decimal.Decimal("100000000"));
 },{"decimal.js":259}],8:[function(require,module,exports){
 (function (Buffer){
-'use strict';
+"use strict";
 
 Object.defineProperty(exports, "__esModule", {
   value: true
@@ -1769,7 +1769,7 @@ async function ed25519PkToCurve25519(pk) {
 }
 
 async function computeSharedKey(myCurvePrivateKey, otherPubkey) {
-  let otherCurvePubkey = await ed25519PkToCurve25519(Buffer.from(otherPubkey, 'hex'));
+  let otherCurvePubkey = await ed25519PkToCurve25519(Buffer.from(otherPubkey, "hex"));
   let sharedKey;
 
   try {
@@ -1819,17 +1819,17 @@ async function sign(privateKey, message) {
       isReady = true;
     }
 
-    sig = _libsodiumWrappers.default.crypto_sign_detached(Buffer.from(message, 'hex'), privateKey);
+    sig = _libsodiumWrappers.default.crypto_sign_detached(Buffer.from(message, "hex"), privateKey);
   } catch (e) {
     console.warn(e);
-    sig = _tweetnacl.default.sign.detached(Buffer.from(message, 'hex'), privateKey);
+    sig = _tweetnacl.default.sign.detached(Buffer.from(message, "hex"), privateKey);
   }
 
   return util.bytesToHex(sig);
 }
 }).call(this,require("buffer").Buffer)
 },{"./util":20,"buffer":120,"ed2curve":270,"libsodium-wrappers":311,"tweetnacl":384}],9:[function(require,module,exports){
-'use strict';
+"use strict";
 
 Object.defineProperty(exports, "__esModule", {
   value: true
@@ -1843,14 +1843,14 @@ const rpcRespErrCodes = {
 exports.rpcRespErrCodes = rpcRespErrCodes;
 
 class AddrNotAllowedError extends Error {
-  constructor(message = 'address not allowed', ...params) {
+  constructor(message = "address not allowed", ...params) {
     super(message, ...params);
 
     if (Error.captureStackTrace) {
       Error.captureStackTrace(this, AddrNotAllowedError);
     }
 
-    this.name = 'AddrNotAllowedError';
+    this.name = "AddrNotAllowedError";
   }
 
 }
@@ -1858,14 +1858,14 @@ class AddrNotAllowedError extends Error {
 exports.AddrNotAllowedError = AddrNotAllowedError;
 
 class ClientNotReadyError extends Error {
-  constructor(message = 'client not ready', ...params) {
+  constructor(message = "client not ready", ...params) {
     super(message, ...params);
 
     if (Error.captureStackTrace) {
       Error.captureStackTrace(this, ClientNotReadyError);
     }
 
-    this.name = 'ClientNotReadyError';
+    this.name = "ClientNotReadyError";
   }
 
 }
@@ -1873,14 +1873,14 @@ class ClientNotReadyError extends Error {
 exports.ClientNotReadyError = ClientNotReadyError;
 
 class DataSizeTooLargeError extends Error {
-  constructor(message = 'data size too large', ...params) {
+  constructor(message = "data size too large", ...params) {
     super(message, ...params);
 
     if (Error.captureStackTrace) {
       Error.captureStackTrace(this, DataSizeTooLargeError);
     }
 
-    this.name = 'DataSizeTooLargeError';
+    this.name = "DataSizeTooLargeError";
   }
 
 }
@@ -1888,14 +1888,14 @@ class DataSizeTooLargeError extends Error {
 exports.DataSizeTooLargeError = DataSizeTooLargeError;
 
 class DecryptionError extends Error {
-  constructor(message = 'decrypt message error', ...params) {
+  constructor(message = "decrypt message error", ...params) {
     super(message, ...params);
 
     if (Error.captureStackTrace) {
       Error.captureStackTrace(this, DecryptionError);
     }
 
-    this.name = 'DecryptionError';
+    this.name = "DecryptionError";
   }
 
 }
@@ -1903,14 +1903,14 @@ class DecryptionError extends Error {
 exports.DecryptionError = DecryptionError;
 
 class UnknownError extends Error {
-  constructor(message = 'unknown error', ...params) {
+  constructor(message = "unknown error", ...params) {
     super(message, ...params);
 
     if (Error.captureStackTrace) {
       Error.captureStackTrace(this, UnknownError);
     }
 
-    this.name = 'UnknownError';
+    this.name = "UnknownError";
   }
 
 }
@@ -1918,14 +1918,14 @@ class UnknownError extends Error {
 exports.UnknownError = UnknownError;
 
 class NotEnoughBalanceError extends Error {
-  constructor(message = 'not enough balance', ...params) {
+  constructor(message = "not enough balance", ...params) {
     super(message, ...params);
 
     if (Error.captureStackTrace) {
       Error.captureStackTrace(this, NotEnoughBalanceError);
     }
 
-    this.name = 'NotEnoughBalanceError';
+    this.name = "NotEnoughBalanceError";
   }
 
 }
@@ -1933,14 +1933,14 @@ class NotEnoughBalanceError extends Error {
 exports.NotEnoughBalanceError = NotEnoughBalanceError;
 
 class WrongPasswordError extends Error {
-  constructor(message = 'wrong password', ...params) {
+  constructor(message = "wrong password", ...params) {
     super(message, ...params);
 
     if (Error.captureStackTrace) {
       Error.captureStackTrace(this, WrongPasswordError);
     }
 
-    this.name = 'WrongPasswordError';
+    this.name = "WrongPasswordError";
   }
 
 }
@@ -1948,14 +1948,14 @@ class WrongPasswordError extends Error {
 exports.WrongPasswordError = WrongPasswordError;
 
 class InvalidAddressError extends Error {
-  constructor(message = 'invalid wallet address', ...params) {
+  constructor(message = "invalid wallet address", ...params) {
     super(message, ...params);
 
     if (Error.captureStackTrace) {
       Error.captureStackTrace(this, InvalidAddressError);
     }
 
-    this.name = 'InvalidAddressError';
+    this.name = "InvalidAddressError";
   }
 
 }
@@ -1963,14 +1963,14 @@ class InvalidAddressError extends Error {
 exports.InvalidAddressError = InvalidAddressError;
 
 class InvalidWalletFormatError extends Error {
-  constructor(message = 'invalid wallet format', ...params) {
+  constructor(message = "invalid wallet format", ...params) {
     super(message, ...params);
 
     if (Error.captureStackTrace) {
       Error.captureStackTrace(this, InvalidWalletFormatError);
     }
 
-    this.name = 'InvalidWalletFormatError';
+    this.name = "InvalidWalletFormatError";
   }
 
 }
@@ -1978,14 +1978,14 @@ class InvalidWalletFormatError extends Error {
 exports.InvalidWalletFormatError = InvalidWalletFormatError;
 
 class InvalidWalletVersionError extends Error {
-  constructor(message = 'invalid wallet version', ...params) {
+  constructor(message = "invalid wallet version", ...params) {
     super(message, ...params);
 
     if (Error.captureStackTrace) {
       Error.captureStackTrace(this, InvalidWalletVersionError);
     }
 
-    this.name = 'InvalidWalletVersionError';
+    this.name = "InvalidWalletVersionError";
   }
 
 }
@@ -1993,14 +1993,14 @@ class InvalidWalletVersionError extends Error {
 exports.InvalidWalletVersionError = InvalidWalletVersionError;
 
 class InvalidArgumentError extends Error {
-  constructor(message = 'invalid argument', ...params) {
+  constructor(message = "invalid argument", ...params) {
     super(message, ...params);
 
     if (Error.captureStackTrace) {
       Error.captureStackTrace(this, InvalidArgumentError);
     }
 
-    this.name = 'InvalidArgumentError';
+    this.name = "InvalidArgumentError";
   }
 
 }
@@ -2008,14 +2008,14 @@ class InvalidArgumentError extends Error {
 exports.InvalidArgumentError = InvalidArgumentError;
 
 class InvalidResponseError extends Error {
-  constructor(message = 'invalid response from RPC server', ...params) {
+  constructor(message = "invalid response from RPC server", ...params) {
     super(message, ...params);
 
     if (Error.captureStackTrace) {
       Error.captureStackTrace(this, InvalidResponseError);
     }
 
-    this.name = 'InvalidResponseError';
+    this.name = "InvalidResponseError";
   }
 
 }
@@ -2023,11 +2023,11 @@ class InvalidResponseError extends Error {
 exports.InvalidResponseError = InvalidResponseError;
 
 class ServerError extends Error {
-  constructor(error = 'error from RPC server', ...params) {
+  constructor(error = "error from RPC server", ...params) {
     let message;
 
-    if (typeof error === 'object') {
-      message = error.message + ': ' + error.data;
+    if (typeof error === "object") {
+      message = error.message + ": " + error.data;
     } else {
       message = error;
     }
@@ -2038,7 +2038,7 @@ class ServerError extends Error {
       Error.captureStackTrace(this, ServerError);
     }
 
-    this.name = 'ServerError';
+    this.name = "ServerError";
 
     if (error.code) {
       this.code = -error.code;
@@ -2050,14 +2050,14 @@ class ServerError extends Error {
 exports.ServerError = ServerError;
 
 class InvalidDestinationError extends Error {
-  constructor(message = 'invalid destination', ...params) {
+  constructor(message = "invalid destination", ...params) {
     super(message, ...params);
 
     if (Error.captureStackTrace) {
       Error.captureStackTrace(this, InvalidDestinationError);
     }
 
-    this.name = 'InvalidDestinationError';
+    this.name = "InvalidDestinationError";
   }
 
 }
@@ -2065,14 +2065,14 @@ class InvalidDestinationError extends Error {
 exports.InvalidDestinationError = InvalidDestinationError;
 
 class RpcTimeoutError extends Error {
-  constructor(message = 'rpc timeout', ...params) {
+  constructor(message = "rpc timeout", ...params) {
     super(message, ...params);
 
     if (Error.captureStackTrace) {
       Error.captureStackTrace(this, RpcTimeoutError);
     }
 
-    this.name = 'RpcTimeoutError';
+    this.name = "RpcTimeoutError";
   }
 
 }
@@ -2080,14 +2080,14 @@ class RpcTimeoutError extends Error {
 exports.RpcTimeoutError = RpcTimeoutError;
 
 class RpcError extends Error {
-  constructor(message = 'rpc error', ...params) {
+  constructor(message = "rpc error", ...params) {
     super(message, ...params);
 
     if (Error.captureStackTrace) {
       Error.captureStackTrace(this, RpcError);
     }
 
-    this.name = 'RpcError';
+    this.name = "RpcError";
   }
 
 }
@@ -2095,21 +2095,21 @@ class RpcError extends Error {
 exports.RpcError = RpcError;
 
 class ChallengeTimeoutError extends Error {
-  constructor(message = 'challenge timeout', ...params) {
+  constructor(message = "challenge timeout", ...params) {
     super(message, ...params);
 
     if (Error.captureStackTrace) {
       Error.captureStackTrace(this, ChallengeTimeoutError);
     }
 
-    this.name = 'ChallengeTimeoutError';
+    this.name = "ChallengeTimeoutError";
   }
 
 }
 
 exports.ChallengeTimeoutError = ChallengeTimeoutError;
 },{}],10:[function(require,module,exports){
-'use strict';
+"use strict";
 
 Object.defineProperty(exports, "__esModule", {
   value: true
@@ -2154,7 +2154,7 @@ function ripemd160Hex(hexStr) {
   return ripemd160(cryptoHexStringParse(hexStr));
 }
 },{"crypto-js":233}],11:[function(require,module,exports){
-'use strict';
+"use strict";
 
 Object.defineProperty(exports, "__esModule", {
   value: true
@@ -2218,7 +2218,7 @@ function _interopRequireWildcard(obj, nodeInterop) { if (!nodeInterop && obj && 
 function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
 },{"./aes":6,"./amount":7,"./crypto":8,"./errors":9,"./hash":10,"./key":12,"./pb":13,"./rpc":18,"./serialize":19,"./util":20}],12:[function(require,module,exports){
 (function (Buffer){
-'use strict';
+"use strict";
 
 Object.defineProperty(exports, "__esModule", {
   value: true
@@ -2279,18 +2279,18 @@ class Key {
     if (this.useWorker) {
       (async () => {
         try {
-          if (typeof options.worker === 'function') {
+          if (typeof options.worker === "function") {
             this.worker = await options.worker();
           } else {
             try {
-              this.worker = (0, _webworkify.default)(require('../worker/worker.js'));
+              this.worker = (0, _webworkify.default)(require("../worker/worker.js"));
             } catch (e) {
               try {
-                let Worker = require('../worker/webpack.worker.js');
+                let Worker = require("../worker/webpack.worker.js");
 
                 this.worker = new Worker();
               } catch (e) {
-                throw 'neither browserify nor webpack worker-loader is detected';
+                throw "neither browserify nor webpack worker-loader is detected";
               }
             }
           }
@@ -2310,11 +2310,11 @@ class Key {
           };
 
           await this._sendToWorker({
-            action: 'setSeed',
+            action: "setSeed",
             seed: this.seed
           });
         } catch (e) {
-          console.warn('Launch web worker failed:', e);
+          console.warn("Launch web worker failed:", e);
           this.useWorker = false;
         }
       })();
@@ -2326,7 +2326,7 @@ class Key {
       return false;
     }
 
-    if (typeof window === 'undefined') {
+    if (typeof window === "undefined") {
       return false;
     }
 
@@ -2355,11 +2355,11 @@ class Key {
     if (this.useWorker) {
       try {
         return await this._sendToWorker({
-          action: 'computeSharedKey',
+          action: "computeSharedKey",
           otherPubkey
         });
       } catch (e) {
-        console.warn('worker computeSharedKey failed, fallback to main thread:', e);
+        console.warn("worker computeSharedKey failed, fallback to main thread:", e);
       }
     }
 
@@ -2379,7 +2379,7 @@ class Key {
 
   async encrypt(message, destPubkey, options = {}) {
     let sharedKey = await this.getOrComputeSharedKey(destPubkey);
-    sharedKey = Buffer.from(sharedKey, 'hex');
+    sharedKey = Buffer.from(sharedKey, "hex");
     let nonce = options.nonce || util.randomBytes(crypto.nonceLength);
     return {
       message: await crypto.encryptSymmetric(message, nonce, sharedKey),
@@ -2389,7 +2389,7 @@ class Key {
 
   async decrypt(message, nonce, srcPubkey, options = {}) {
     let sharedKey = await this.getOrComputeSharedKey(srcPubkey);
-    sharedKey = Buffer.from(sharedKey, 'hex');
+    sharedKey = Buffer.from(sharedKey, "hex");
     return await crypto.decryptSymmetric(message, nonce, sharedKey);
   }
 
@@ -2397,11 +2397,11 @@ class Key {
     if (this.useWorker) {
       try {
         return await this._sendToWorker({
-          action: 'sign',
+          action: "sign",
           message
         });
       } catch (e) {
-        console.warn('worker sign failed, fallback to main thread:', e);
+        console.warn("worker sign failed, fallback to main thread:", e);
       }
     }
 
@@ -9792,7 +9792,7 @@ proto.transaction.PayloadType = {
 };
 goog.object.extend(exports, proto.transaction);
 },{"google-protobuf":289}],18:[function(require,module,exports){
-'use strict';
+"use strict";
 
 Object.defineProperty(exports, "__esModule", {
   value: true
@@ -9838,13 +9838,13 @@ function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { de
 const rpcTimeout = 10000;
 const methods = {
   getWsAddr: {
-    method: 'getwsaddr'
+    method: "getwsaddr"
   },
   getWssAddr: {
-    method: 'getwssaddr'
+    method: "getwssaddr"
   },
   getSubscribers: {
-    method: 'getsubscribers',
+    method: "getsubscribers",
     defaultParams: {
       offset: 0,
       limit: 1000,
@@ -9853,31 +9853,31 @@ const methods = {
     }
   },
   getSubscribersCount: {
-    method: 'getsubscriberscount'
+    method: "getsubscriberscount"
   },
   getSubscription: {
-    method: 'getsubscription'
+    method: "getsubscription"
   },
   getBalanceByAddr: {
-    method: 'getbalancebyaddr'
+    method: "getbalancebyaddr"
   },
   getNonceByAddr: {
-    method: 'getnoncebyaddr'
+    method: "getnoncebyaddr"
   },
   getRegistrant: {
-    method: 'getregistrant'
+    method: "getregistrant"
   },
   getLatestBlockHash: {
-    method: 'getlatestblockhash'
+    method: "getlatestblockhash"
   },
   sendRawTransaction: {
-    method: 'sendrawtransaction'
+    method: "sendrawtransaction"
   },
   getNodeState: {
-    method: 'getnodestate'
+    method: "getnodestate"
   },
   getPeerAddr: {
-    method: 'getpeeraddr'
+    method: "getpeeraddr"
   }
 };
 var rpc = {};
@@ -9897,19 +9897,19 @@ async function rpcCall(addr, method, params = {}) {
   let response = null;
   setTimeout(() => {
     if (response === null) {
-      source.cancel('rpc timeout');
+      source.cancel("rpc timeout");
     }
   }, rpcTimeout);
 
   try {
     response = await (0, _axios.default)({
       url: addr,
-      method: 'POST',
+      method: "POST",
       timeout: rpcTimeout,
       cancelToken: source.token,
       data: {
-        id: 'nkn-sdk-js',
-        jsonrpc: '2.0',
+        id: "nkn-sdk-js",
+        jsonrpc: "2.0",
         method: method,
         params: params
       }
@@ -9932,7 +9932,7 @@ async function rpcCall(addr, method, params = {}) {
     return data.result;
   }
 
-  throw new errors.InvalidResponseError('rpc response contains no result or error field');
+  throw new errors.InvalidResponseError("rpc response contains no result or error field");
 }
 
 async function getWsAddr(address, options = {}) {
@@ -9982,7 +9982,7 @@ async function getSubscription(topic, subscriber, options = {}) {
 
 async function getBalance(address, options = {}) {
   if (!address) {
-    throw new errors.InvalidArgumentError('address is empty');
+    throw new errors.InvalidArgumentError("address is empty");
   }
 
   let data = await rpc.getBalanceByAddr(options.rpcServerAddr, {
@@ -9990,7 +9990,7 @@ async function getBalance(address, options = {}) {
   });
 
   if (!data.amount) {
-    throw new errors.InvalidResponseError('amount is empty');
+    throw new errors.InvalidResponseError("amount is empty");
   }
 
   return new _amount.default(data.amount);
@@ -9998,7 +9998,7 @@ async function getBalance(address, options = {}) {
 
 async function getNonce(address, options = {}) {
   if (!address) {
-    throw new errors.InvalidArgumentError('address is empty');
+    throw new errors.InvalidArgumentError("address is empty");
   }
 
   options = util.assignDefined({
@@ -10008,8 +10008,8 @@ async function getNonce(address, options = {}) {
     address
   });
 
-  if (typeof data.nonce !== 'number') {
-    throw new errors.InvalidResponseError('nonce is not a number');
+  if (typeof data.nonce !== "number") {
+    throw new errors.InvalidResponseError("nonce is not a number");
   }
 
   let nonce = data.nonce;
@@ -10029,7 +10029,7 @@ async function sendTransaction(txn, options = {}) {
 
 async function transferTo(toAddress, amount, options = {}) {
   if (!address.verifyAddress(toAddress)) {
-    throw new errors.InvalidAddressError('invalid recipient address');
+    throw new errors.InvalidAddressError("invalid recipient address");
   }
 
   let nonce = options.nonce;
@@ -10117,7 +10117,7 @@ async function getPeerAddr(address, options = {}) {
 }
 },{"../wallet/address":27,"../wallet/transaction":30,"./amount":7,"./errors":9,"./util":20,"axios":57}],19:[function(require,module,exports){
 (function (Buffer){
-'use strict';
+"use strict";
 
 Object.defineProperty(exports, "__esModule", {
   value: true
@@ -10144,51 +10144,51 @@ exports.maxUint = maxUint;
 function encodeUint8(value) {
   let buf = Buffer.alloc(1, 0);
   buf.writeUInt8(value);
-  return buf.toString('hex');
+  return buf.toString("hex");
 }
 
 function encodeUint16(value) {
   let buf = Buffer.alloc(2, 0);
   buf.writeUInt16LE(value);
-  return buf.toString('hex');
+  return buf.toString("hex");
 }
 
 function encodeUint32(value) {
   let buf = Buffer.alloc(4, 0);
   buf.writeUInt32LE(value);
-  return buf.toString('hex');
+  return buf.toString("hex");
 }
 
 function encodeUint64(value) {
   if (value > maxUint) {
-    throw new RangeError('full 64 bit integer is not supported in JavaScript');
+    throw new RangeError("full 64 bit integer is not supported in JavaScript");
   }
 
   let buf = Buffer.alloc(8, 0);
   buf.writeUIntLE(value, 0, 6);
-  return buf.toString('hex');
+  return buf.toString("hex");
 }
 
 function encodeUint(value) {
   if (value < 0xfd) {
     return encodeUint8(value);
   } else if (value <= 0xffff) {
-    return 'fd' + encodeUint16(value);
+    return "fd" + encodeUint16(value);
   } else if (value <= 0xffffffff) {
-    return 'fe' + encodeUint32(value);
+    return "fe" + encodeUint32(value);
   } else {
-    return 'ff' + encodeUint64(value);
+    return "ff" + encodeUint64(value);
   }
 }
 
 function encodeBytes(value) {
   let buf = Buffer.from(value);
-  return encodeUint(buf.length) + buf.toString('hex');
+  return encodeUint(buf.length) + buf.toString("hex");
 }
 
 function encodeString(value) {
-  let buf = Buffer.from(value, 'utf8');
-  return encodeUint(buf.length) + buf.toString('hex');
+  let buf = Buffer.from(value, "utf8");
+  return encodeUint(buf.length) + buf.toString("hex");
 }
 
 function encodeBool(value) {
@@ -10197,7 +10197,7 @@ function encodeBool(value) {
 }).call(this,require("buffer").Buffer)
 },{"./errors":9,"buffer":120}],20:[function(require,module,exports){
 (function (Buffer){
-'use strict';
+"use strict";
 
 Object.defineProperty(exports, "__esModule", {
   value: true
@@ -10205,6 +10205,7 @@ Object.defineProperty(exports, "__esModule", {
 exports.assignDefined = assignDefined;
 exports.bytesToHex = bytesToHex;
 exports.hexToBytes = hexToBytes;
+exports.isBrowser = isBrowser;
 exports.mergeTypedArrays = mergeTypedArrays;
 exports.randomBytes = void 0;
 exports.randomBytesHex = randomBytesHex;
@@ -10225,11 +10226,11 @@ const hexRe = /^[0-9a-f]+$/i;
 
 function hexToBytes(hex) {
   if (hex.length % 2 === 1) {
-    throw new RangeError('invalid hex string length ' + hex.length);
+    throw new RangeError("invalid hex string length " + hex.length);
   }
 
   if (!hexRe.test(hex)) {
-    throw new RangeError('invalid hex string');
+    throw new RangeError("invalid hex string");
   }
 
   let bytes = [];
@@ -10244,11 +10245,11 @@ function hexToBytes(hex) {
 function bytesToHex(bytes) {
   return Array.from(bytes, b => {
     if (b < 0 || b > 255) {
-      throw new RangeError('invalid byte ' + b);
+      throw new RangeError("invalid byte " + b);
     }
 
-    return ('0' + (b & 0xFF).toString(16)).slice(-2);
-  }).join('');
+    return ("0" + (b & 0xff).toString(16)).slice(-2);
+  }).join("");
 }
 
 var randomBytes = _tweetnacl.default.randomBytes;
@@ -10299,22 +10300,26 @@ function utf8ToBytes(s) {
     return new Uint8Array();
   }
 
-  return new Uint8Array(Buffer.from(s, 'utf8'));
+  return new Uint8Array(Buffer.from(s, "utf8"));
 } // convert all keys to lowercase recursively
 
 
 function toLowerKeys(obj) {
   return Object.keys(obj).reduce((merged, key) => Object.assign(merged, {
-    [key.toLowerCase()]: typeof obj[key] === 'object' ? toLowerKeys(obj[key]) : obj[key]
+    [key.toLowerCase()]: typeof obj[key] === "object" ? toLowerKeys(obj[key]) : obj[key]
   }), {});
 }
 
 function sleep(duration) {
   return new Promise(resolve => setTimeout(resolve, duration));
 }
+
+function isBrowser() {
+  return ![typeof window, typeof document].includes("undefined");
+}
 }).call(this,require("buffer").Buffer)
 },{"./serialize":19,"buffer":120,"tweetnacl":384}],21:[function(require,module,exports){
-'use strict';
+"use strict";
 
 Object.defineProperty(exports, "__esModule", {
   value: true
@@ -10391,7 +10396,7 @@ nkn.setPRNG = setPRNG;
 var _default = nkn;
 exports.default = _default;
 },{"./client":3,"./common":11,"./multiclient":23,"./wallet":29,"libsodium-wrappers":311}],22:[function(require,module,exports){
-'use strict';
+"use strict";
 
 Object.defineProperty(exports, "__esModule", {
   value: true
@@ -10413,7 +10418,7 @@ exports.multiclientIdentifierRe = multiclientIdentifierRe;
 const sessionIDSize = 8;
 exports.sessionIDSize = sessionIDSize;
 },{}],23:[function(require,module,exports){
-'use strict';
+"use strict";
 
 Object.defineProperty(exports, "__esModule", {
   value: true
@@ -10429,7 +10434,7 @@ var _multiclient = _interopRequireDefault(require("./multiclient"));
 
 function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
 },{"./multiclient":24}],24:[function(require,module,exports){
-'use strict';
+"use strict";
 
 Object.defineProperty(exports, "__esModule", {
   value: true
@@ -10538,11 +10543,11 @@ class MultiClient {
     _defineProperty(this, "isClosed", void 0);
 
     options = common.util.assignDefined({}, consts.defaultOptions, options);
-    let baseIdentifier = options.identifier || '';
+    let baseIdentifier = options.identifier || "";
     let clients = {};
 
     if (options.originalClient) {
-      let clientID = util.addIdentifier('', '');
+      let clientID = util.addIdentifier("", "");
       clients[clientID] = new _client.default(options);
 
       if (!options.seed) {
@@ -10553,13 +10558,13 @@ class MultiClient {
     }
 
     for (let i = 0; i < options.numSubClients; i++) {
-      clients[util.addIdentifier('', i)] = new _client.default(common.util.assignDefined({}, options, {
+      clients[util.addIdentifier("", i)] = new _client.default(common.util.assignDefined({}, options, {
         identifier: util.addIdentifier(baseIdentifier, i)
       }));
 
       if (i === 0 && !options.seed) {
         options = common.util.assignDefined({}, options, {
-          seed: clients[util.addIdentifier('', i)].key.seed
+          seed: clients[util.addIdentifier("", i)].key.seed
         });
       }
     }
@@ -10567,7 +10572,7 @@ class MultiClient {
     let clientIDs = Object.keys(clients).sort();
 
     if (clientIDs.length === 0) {
-      throw new RangeError('should have at least one client');
+      throw new RangeError("should have at least one client");
     }
 
     this.options = options;
@@ -10575,7 +10580,7 @@ class MultiClient {
     this.defaultClient = clients[clientIDs[0]];
     this.key = this.defaultClient.key;
     this.identifier = baseIdentifier;
-    this.addr = (baseIdentifier ? baseIdentifier + '.' : '') + this.key.publicKey;
+    this.addr = (baseIdentifier ? baseIdentifier + "." : "") + this.key.publicKey;
     this.eventListeners = {
       connect: [],
       connectFailed: [],
@@ -10640,7 +10645,7 @@ class MultiClient {
                 noReply
               });
             } catch (e) {
-              console.log('Message handler error:', e);
+              console.log("Message handler error:", e);
               return null;
             }
           }));
@@ -10657,7 +10662,7 @@ class MultiClient {
                   msgHoldingSeconds: 0,
                   replyToId: messageId
                 }).catch(e => {
-                  console.log('Send response error:', e);
+                  console.log("Send response error:", e);
                 });
                 responded = true;
                 break;
@@ -10668,7 +10673,7 @@ class MultiClient {
               for (let clientID of Object.keys(clients)) {
                 if (clients[clientID].isReady) {
                   clients[clientID]._sendACK(util.addIdentifierPrefixAll(src, clientID), messageId, isEncrypted).catch(e => {
-                    console.log('Send ack error:', e);
+                    console.log("Send ack error:", e);
                   });
                 }
               }
@@ -10692,7 +10697,7 @@ class MultiClient {
           try {
             await f(r);
           } catch (e) {
-            console.log('Connect handler error:', e);
+            console.log("Connect handler error:", e);
           }
         });
       }
@@ -10710,11 +10715,11 @@ class MultiClient {
           try {
             await f();
           } catch (e) {
-            console.log('Connect failed handler error:', e);
+            console.log("Connect failed handler error:", e);
           }
         });
       } else {
-        console.log('All clients connect failed');
+        console.log("All clients connect failed");
       }
     });
 
@@ -10725,7 +10730,7 @@ class MultiClient {
             try {
               await f(event);
             } catch (e) {
-              console.log('WsError handler error:', e);
+              console.log("WsError handler error:", e);
             }
           });
         } else {
@@ -10792,7 +10797,7 @@ class MultiClient {
           try {
             return await f(session);
           } catch (e) {
-            console.log('Session handler error:', e);
+            console.log("Session handler error:", e);
             return;
           }
         }));
@@ -10825,7 +10830,7 @@ class MultiClient {
     let client = this.clients[clientID];
 
     if (!client) {
-      throw new common.errors.InvalidArgumentError('no such clientID');
+      throw new common.errors.InvalidArgumentError("no such clientID");
     }
 
     if (!client.isReady) {
@@ -10834,10 +10839,11 @@ class MultiClient {
 
     return await client.send(util.addIdentifierPrefixAll(dest, clientID), data, options);
   }
-
   /**
    * Get the list of clientID that are ready.
    */
+
+
   readyClientIDs() {
     return Object.keys(this.clients).filter(clientID => {
       return this.clients[clientID] && this.clients[clientID].isReady;
@@ -10867,15 +10873,16 @@ class MultiClient {
         return this.sendWithClient(clientID, dest, data, options);
       }));
     } catch (e) {
-      throw new Error('failed to send with any client: ' + e.errors);
+      throw new Error("failed to send with any client: " + e.errors);
     }
   }
-
   /**
    * Send byte or string data to all subscribers of a topic using all available
    * clients.
    * @returns A promise that will be resolved with null when send success.
    */
+
+
   async publish(topic, data, options = {}) {
     options = common.util.assignDefined({}, _consts.defaultPublishOptions, options, {
       noReply: true
@@ -10916,13 +10923,14 @@ class MultiClient {
 
     this.eventListeners[evt].push(func);
   }
-
   /**
    * Add event listener function that will be called when at least one sub
    * client is connected to node. Multiple listeners will be called sequentially
    * in the order of added. Note that listeners added after client is connected
    * to node (i.e. `multiclient.isReady === true`) will not be called.
    */
+
+
   onConnect(func) {
     this.eventListeners.connect.push(func);
   }
@@ -10931,7 +10939,7 @@ class MultiClient {
    * to connect to node. Multiple listeners will be called sequentially in the
    * order of added. Note that listeners added after client fails to connect to
    * node (i.e. `multiclient.isFailed === true`) will not be called.
-  */
+   */
 
 
   onConnectFailed(func) {
@@ -10941,13 +10949,12 @@ class MultiClient {
    * Add event listener function that will be called when any client websocket
    * connection throws an error. Multiple listeners will be called sequentially
    * in the order of added.
-  */
+   */
 
 
   onWsError(func) {
     this.eventListeners.wsError.push(func);
   }
-
   /**
    * Add event listener function that will be called when client receives a
    * message. Multiple listeners will be called sequentially in the order of
@@ -10960,6 +10967,8 @@ class MultiClient {
    * msg received will be sent back. Receiving reply or ACK will not trigger
    * the event listener.
    */
+
+
   onMessage(func) {
     this.eventListeners.message.push(func);
   }
@@ -11000,7 +11009,6 @@ class MultiClient {
     this.msgCache.clear();
     this.isClosed = true;
   }
-
   /**
    * Start accepting sessions from addresses, which could be one or an array of
    * RegExp. If addrs is a string or string array, each element will be
@@ -11008,6 +11016,8 @@ class MultiClient {
    * addrs will be allowed. When addrs is null or undefined, any address will be
    * accepted. Each function call will overwrite previous listening addresses.
    */
+
+
   listen(addrs) {
     if (addrs === null || addrs === undefined) {
       addrs = [consts.defaultSessionAllowAddr];
@@ -11239,7 +11249,7 @@ class MultiClient {
    */
 
 
-  subscribe(topic, duration, identifier = '', meta = '', options = {}) {
+  subscribe(topic, duration, identifier = "", meta = "", options = {}) {
     return common.rpc.subscribe.call(this, topic, duration, identifier, meta, options);
   }
   /**
@@ -11249,7 +11259,7 @@ class MultiClient {
    */
 
 
-  unsubscribe(topic, identifier = '', options = {}) {
+  unsubscribe(topic, identifier = "", options = {}) {
     return common.rpc.unsubscribe.call(this, topic, identifier, options);
   }
 
@@ -11265,7 +11275,7 @@ class MultiClient {
 
 exports.default = MultiClient;
 },{"../client":3,"../client/consts":2,"../client/message":4,"../common":11,"../wallet":29,"./consts":22,"./util":25,"@nkn/ncp":39,"core-js-pure/features/promise":123,"memory-cache":314}],25:[function(require,module,exports){
-'use strict';
+"use strict";
 
 Object.defineProperty(exports, "__esModule", {
   value: true
@@ -11283,38 +11293,38 @@ function _getRequireWildcardCache(nodeInterop) { if (typeof WeakMap !== "functio
 function _interopRequireWildcard(obj, nodeInterop) { if (!nodeInterop && obj && obj.__esModule) { return obj; } if (obj === null || typeof obj !== "object" && typeof obj !== "function") { return { default: obj }; } var cache = _getRequireWildcardCache(nodeInterop); if (cache && cache.has(obj)) { return cache.get(obj); } var newObj = {}; var hasPropertyDescriptor = Object.defineProperty && Object.getOwnPropertyDescriptor; for (var key in obj) { if (key !== "default" && Object.prototype.hasOwnProperty.call(obj, key)) { var desc = hasPropertyDescriptor ? Object.getOwnPropertyDescriptor(obj, key) : null; if (desc && (desc.get || desc.set)) { Object.defineProperty(newObj, key, desc); } else { newObj[key] = obj[key]; } } } newObj.default = obj; if (cache) { cache.set(obj, newObj); } return newObj; }
 
 function addIdentifierPrefix(base, prefix) {
-  if (base === '') {
-    return '' + prefix;
+  if (base === "") {
+    return "" + prefix;
   }
 
-  if (prefix === '') {
-    return '' + base;
+  if (prefix === "") {
+    return "" + base;
   }
 
-  return prefix + '.' + base;
+  return prefix + "." + base;
 }
 
 function addIdentifier(addr, id) {
-  if (id === '') {
+  if (id === "") {
     return addr;
   }
 
-  return addIdentifierPrefix(addr, '__' + id + '__');
+  return addIdentifierPrefix(addr, "__" + id + "__");
 }
 
 function removeIdentifier(src) {
-  let s = src.split('.');
+  let s = src.split(".");
 
   if (consts.multiclientIdentifierRe.test(s[0])) {
     return {
-      addr: s.slice(1).join('.'),
+      addr: s.slice(1).join("."),
       clientID: s[0]
     };
   }
 
   return {
     addr: src,
-    clientID: ''
+    clientID: ""
   };
 }
 
@@ -11330,7 +11340,7 @@ function sessionKey(remoteAddr, sessionID) {
   return remoteAddr + sessionID;
 }
 },{"./consts":22}],26:[function(require,module,exports){
-'use strict';
+"use strict";
 
 Object.defineProperty(exports, "__esModule", {
   value: true
@@ -11382,13 +11392,13 @@ exports.default = Account;
 
 function genAccountContractString(signatureRedeem, programHash) {
   let contract = address.prefixByteCountToHexString(signatureRedeem);
-  contract += address.prefixByteCountToHexString('00');
+  contract += address.prefixByteCountToHexString("00");
   contract += programHash;
   return contract;
 }
 },{"../common":11,"./address":27}],27:[function(require,module,exports){
 (function (Buffer){
-'use strict';
+"use strict";
 
 Object.defineProperty(exports, "__esModule", {
   value: true
@@ -11411,12 +11421,12 @@ function _getRequireWildcardCache(nodeInterop) { if (typeof WeakMap !== "functio
 
 function _interopRequireWildcard(obj, nodeInterop) { if (!nodeInterop && obj && obj.__esModule) { return obj; } if (obj === null || typeof obj !== "object" && typeof obj !== "function") { return { default: obj }; } var cache = _getRequireWildcardCache(nodeInterop); if (cache && cache.has(obj)) { return cache.get(obj); } var newObj = {}; var hasPropertyDescriptor = Object.defineProperty && Object.getOwnPropertyDescriptor; for (var key in obj) { if (key !== "default" && Object.prototype.hasOwnProperty.call(obj, key)) { var desc = hasPropertyDescriptor ? Object.getOwnPropertyDescriptor(obj, key) : null; if (desc && (desc.get || desc.set)) { Object.defineProperty(newObj, key, desc); } else { newObj[key] = obj[key]; } } } newObj.default = obj; if (cache) { cache.set(obj, newObj); } return newObj; }
 
-const BITCOIN_BASE58 = '123456789ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz';
+const BITCOIN_BASE58 = "123456789ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz";
 exports.BITCOIN_BASE58 = BITCOIN_BASE58;
 
-const base58 = require('base-x')(BITCOIN_BASE58);
+const base58 = require("base-x")(BITCOIN_BASE58);
 
-const ADDRESS_GEN_PREFIX = '02b825';
+const ADDRESS_GEN_PREFIX = "02b825";
 exports.ADDRESS_GEN_PREFIX = ADDRESS_GEN_PREFIX;
 const ADDRESS_GEN_PREFIX_LEN = ADDRESS_GEN_PREFIX.length / 2;
 exports.ADDRESS_GEN_PREFIX_LEN = ADDRESS_GEN_PREFIX_LEN;
@@ -11452,7 +11462,7 @@ function verifyAddress(address) {
 }
 
 function publicKeyToSignatureRedeem(publicKey) {
-  return '20' + publicKey + 'ac';
+  return "20" + publicKey + "ac";
 }
 
 function hexStringToProgramHash(hexStr) {
@@ -11489,18 +11499,18 @@ function getAddressStringVerifyCode(address) {
 }
 
 function signatureToParameter(signatureHex) {
-  return '40' + signatureHex;
+  return "40" + signatureHex;
 }
 
 function prefixByteCountToHexString(hexString) {
   let len = hexString.length;
 
   if (0 === len) {
-    return '00';
+    return "00";
   }
 
   if (1 === len % 2) {
-    hexString = '0' + hexString;
+    hexString = "0" + hexString;
     len += 1;
   }
 
@@ -11508,21 +11518,21 @@ function prefixByteCountToHexString(hexString) {
   byteCount = byteCount.toString(16);
 
   if (1 === byteCount.length % 2) {
-    byteCount = '0' + byteCount;
+    byteCount = "0" + byteCount;
   }
 
   return byteCount + hexString;
 }
 }).call(this,require("buffer").Buffer)
 },{"../common":11,"base-x":86,"buffer":120}],28:[function(require,module,exports){
-'use strict';
+"use strict";
 
 Object.defineProperty(exports, "__esModule", {
   value: true
 });
 exports.scryptParams = exports.defaultOptions = void 0;
 const defaultOptions = {
-  rpcServerAddr: 'https://mainnet-rpc-node-0001.nkn.org/mainnet/api/wallet',
+  rpcServerAddr: "https://mainnet-rpc-node-0001.nkn.org/mainnet/api/wallet",
   worker: false
 };
 exports.defaultOptions = defaultOptions;
@@ -11534,7 +11544,7 @@ const scryptParams = {
 };
 exports.scryptParams = scryptParams;
 },{}],29:[function(require,module,exports){
-'use strict';
+"use strict";
 
 Object.defineProperty(exports, "__esModule", {
   value: true
@@ -11551,7 +11561,7 @@ var _wallet = _interopRequireDefault(require("./wallet"));
 function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
 },{"./wallet":31}],30:[function(require,module,exports){
 (function (Buffer){
-'use strict';
+"use strict";
 
 Object.defineProperty(exports, "__esModule", {
   value: true
@@ -11577,13 +11587,13 @@ function _getRequireWildcardCache(nodeInterop) { if (typeof WeakMap !== "functio
 
 function _interopRequireWildcard(obj, nodeInterop) { if (!nodeInterop && obj && obj.__esModule) { return obj; } if (obj === null || typeof obj !== "object" && typeof obj !== "function") { return { default: obj }; } var cache = _getRequireWildcardCache(nodeInterop); if (cache && cache.has(obj)) { return cache.get(obj); } var newObj = {}; var hasPropertyDescriptor = Object.defineProperty && Object.getOwnPropertyDescriptor; for (var key in obj) { if (key !== "default" && Object.prototype.hasOwnProperty.call(obj, key)) { var desc = hasPropertyDescriptor ? Object.getOwnPropertyDescriptor(obj, key) : null; if (desc && (desc.get || desc.set)) { Object.defineProperty(newObj, key, desc); } else { newObj[key] = obj[key]; } } } newObj.default = obj; if (cache) { cache.set(obj, newObj); } return newObj; }
 
-const nameRegistrationFee = '10';
+const nameRegistrationFee = "10";
 exports.nameRegistrationFee = nameRegistrationFee;
 
 function newTransferPayload(sender, recipient, amount) {
   let transfer = new common.pb.transaction.TransferAsset();
-  transfer.setSender(Buffer.from(sender, 'hex'));
-  transfer.setRecipient(Buffer.from(recipient, 'hex'));
+  transfer.setSender(Buffer.from(sender, "hex"));
+  transfer.setRecipient(Buffer.from(recipient, "hex"));
   transfer.setAmount(new common.Amount(amount).value());
   let pld = new common.pb.transaction.Payload();
   pld.setType(common.pb.transaction.PayloadType.TRANSFER_ASSET_TYPE);
@@ -11593,7 +11603,7 @@ function newTransferPayload(sender, recipient, amount) {
 
 function newRegisterNamePayload(registrant, name, registrationFee = nameRegistrationFee) {
   let registerName = new common.pb.transaction.RegisterName();
-  registerName.setRegistrant(Buffer.from(registrant, 'hex'));
+  registerName.setRegistrant(Buffer.from(registrant, "hex"));
   registerName.setName(name);
   registerName.setRegistrationFee(new common.Amount(registrationFee).value());
   let pld = new common.pb.transaction.Payload();
@@ -11605,8 +11615,8 @@ function newRegisterNamePayload(registrant, name, registrationFee = nameRegistra
 function newTransferNamePayload(name, registrant, recipient) {
   let transferName = new common.pb.transaction.TransferName();
   transferName.setName(name);
-  transferName.setRegistrant(Buffer.from(registrant, 'hex'));
-  transferName.setRecipient(Buffer.from(recipient, 'hex'));
+  transferName.setRegistrant(Buffer.from(registrant, "hex"));
+  transferName.setRecipient(Buffer.from(recipient, "hex"));
   let pld = new common.pb.transaction.Payload();
   pld.setType(common.pb.transaction.PayloadType.TRANSFER_NAME_TYPE);
   pld.setData(transferName.serializeBinary());
@@ -11615,7 +11625,7 @@ function newTransferNamePayload(name, registrant, recipient) {
 
 function newDeleteNamePayload(registrant, name) {
   let deleteName = new common.pb.transaction.DeleteName();
-  deleteName.setRegistrant(Buffer.from(registrant, 'hex'));
+  deleteName.setRegistrant(Buffer.from(registrant, "hex"));
   deleteName.setName(name);
   let pld = new common.pb.transaction.Payload();
   pld.setType(common.pb.transaction.PayloadType.DELETE_NAME_TYPE);
@@ -11625,7 +11635,7 @@ function newDeleteNamePayload(registrant, name) {
 
 function newSubscribePayload(subscriber, identifier, topic, duration, meta) {
   let subscribe = new common.pb.transaction.Subscribe();
-  subscribe.setSubscriber(Buffer.from(subscriber, 'hex'));
+  subscribe.setSubscriber(Buffer.from(subscriber, "hex"));
   subscribe.setIdentifier(identifier);
   subscribe.setTopic(topic);
   subscribe.setDuration(duration);
@@ -11638,7 +11648,7 @@ function newSubscribePayload(subscriber, identifier, topic, duration, meta) {
 
 function newUnsubscribePayload(subscriber, identifier, topic) {
   let unsubscribe = new common.pb.transaction.Unsubscribe();
-  unsubscribe.setSubscriber(Buffer.from(subscriber, 'hex'));
+  unsubscribe.setSubscriber(Buffer.from(subscriber, "hex"));
   unsubscribe.setIdentifier(identifier);
   unsubscribe.setTopic(topic);
   let pld = new common.pb.transaction.Payload();
@@ -11649,8 +11659,8 @@ function newUnsubscribePayload(subscriber, identifier, topic) {
 
 function newNanoPayPayload(sender, recipient, id, amount, txnExpiration, nanoPayExpiration) {
   let nanoPay = new common.pb.transaction.NanoPay();
-  nanoPay.setSender(Buffer.from(sender, 'hex'));
-  nanoPay.setRecipient(Buffer.from(recipient, 'hex'));
+  nanoPay.setSender(Buffer.from(sender, "hex"));
+  nanoPay.setRecipient(Buffer.from(recipient, "hex"));
   nanoPay.setId(id);
   nanoPay.setAmount(new common.Amount(amount).value());
   nanoPay.setTxnExpiration(txnExpiration);
@@ -11662,18 +11672,18 @@ function newNanoPayPayload(sender, recipient, id, amount, txnExpiration, nanoPay
 }
 
 function serializePayload(payload) {
-  let hex = '';
+  let hex = "";
   hex += common.serialize.encodeUint32(payload.getType());
   hex += common.serialize.encodeBytes(payload.getData());
   return hex;
 }
 
-async function newTransaction(account, pld, nonce, fee = '0', attrs = '') {
+async function newTransaction(account, pld, nonce, fee = "0", attrs = "") {
   let unsignedTx = new common.pb.transaction.UnsignedTx();
   unsignedTx.setPayload(pld);
   unsignedTx.setNonce(nonce);
   unsignedTx.setFee(new common.Amount(fee).value());
-  unsignedTx.setAttributes(Buffer.from(attrs, 'hex'));
+  unsignedTx.setAttributes(Buffer.from(attrs, "hex"));
   let txn = new common.pb.transaction.Transaction();
   txn.setUnsignedTx(unsignedTx);
   await signTx(account, txn);
@@ -11681,7 +11691,7 @@ async function newTransaction(account, pld, nonce, fee = '0', attrs = '') {
 }
 
 function serializeUnsignedTx(unsignedTx) {
-  let hex = '';
+  let hex = "";
   hex += serializePayload(unsignedTx.getPayload());
   hex += common.serialize.encodeUint64(unsignedTx.getNonce());
   hex += common.serialize.encodeUint64(unsignedTx.getFee());
@@ -11696,13 +11706,13 @@ async function signTx(account, txn) {
   let signature = await account.key.sign(digest);
   txn.hash = common.hash.doubleSha256Hex(hex);
   let prgm = new common.pb.transaction.Program();
-  prgm.setCode(Buffer.from(account.signatureRedeem, 'hex'));
-  prgm.setParameter(Buffer.from(address.signatureToParameter(signature), 'hex'));
+  prgm.setCode(Buffer.from(account.signatureRedeem, "hex"));
+  prgm.setParameter(Buffer.from(address.signatureToParameter(signature), "hex"));
   txn.setProgramsList([prgm]);
 }
 }).call(this,require("buffer").Buffer)
 },{"../common":11,"./address":27,"buffer":120}],31:[function(require,module,exports){
-'use strict';
+"use strict";
 
 Object.defineProperty(exports, "__esModule", {
   value: true
@@ -11801,7 +11811,7 @@ class Wallet {
     options = common.util.toLowerKeys(options);
 
     if (!options.version) {
-      throw new common.errors.InvalidArgumentError('missing version field');
+      throw new common.errors.InvalidArgumentError("missing version field");
     }
 
     let passwordKey;
@@ -11816,11 +11826,11 @@ class Wallet {
 
       case 2:
         if (!options.scrypt) {
-          throw new common.errors.InvalidArgumentError('missing scrypt field');
+          throw new common.errors.InvalidArgumentError("missing scrypt field");
         }
 
         if (!options.scrypt.salt || !options.scrypt.n || !options.scrypt.r || !options.scrypt.p) {
-          throw new common.errors.InvalidArgumentError('incomplete scrypt parameters');
+          throw new common.errors.InvalidArgumentError("incomplete scrypt parameters");
         }
 
         if (options.async) {
@@ -11830,7 +11840,7 @@ class Wallet {
         }
 
       default:
-        throw new common.errors.InvalidWalletFormatError('unsupported wallet verison ' + options.version);
+        throw new common.errors.InvalidWalletFormatError("unsupported wallet verison " + options.version);
     }
   }
 
@@ -11882,20 +11892,20 @@ class Wallet {
 
     let passwordKey;
 
-    if (options.passwordKey && options.passwordKey['' + this.version]) {
-      passwordKey = options.passwordKey['' + this.version];
+    if (options.passwordKey && options.passwordKey["" + this.version]) {
+      passwordKey = options.passwordKey["" + this.version];
     } else {
       if (options.async) {
         return Wallet._computePasswordKey({
           version: this.version,
-          password: options.password || '',
+          password: options.password || "",
           scrypt: this.scryptParams,
           async: true
         }).then(completeWallet);
       } else {
         passwordKey = Wallet._computePasswordKey({
           version: this.version,
-          password: options.password || '',
+          password: options.password || "",
           scrypt: this.scryptParams,
           async: false
         });
@@ -11923,7 +11933,7 @@ class Wallet {
   static fromJSON(walletJson, options = {}) {
     let walletObj;
 
-    if (typeof walletJson === 'string') {
+    if (typeof walletJson === "string") {
       walletObj = JSON.parse(walletJson);
     } else {
       walletObj = walletJson;
@@ -11932,24 +11942,24 @@ class Wallet {
 
     walletObj = common.util.toLowerKeys(walletObj);
 
-    if (typeof walletObj.version !== 'number' || walletObj.version < Wallet.minCompatibleVersion || walletObj.version > Wallet.maxCompatibleVersion) {
-      throw new common.errors.InvalidWalletVersionError('invalid wallet version ' + walletObj.version + ', should be between ' + Wallet.minCompatibleVersion + ' and ' + Wallet.maxCompatibleVersion);
+    if (typeof walletObj.version !== "number" || walletObj.version < Wallet.minCompatibleVersion || walletObj.version > Wallet.maxCompatibleVersion) {
+      throw new common.errors.InvalidWalletVersionError("invalid wallet version " + walletObj.version + ", should be between " + Wallet.minCompatibleVersion + " and " + Wallet.maxCompatibleVersion);
     }
 
     if (!walletObj.masterkey) {
-      throw new common.errors.InvalidWalletFormatError('missing masterKey field');
+      throw new common.errors.InvalidWalletFormatError("missing masterKey field");
     }
 
     if (!walletObj.iv) {
-      throw new common.errors.InvalidWalletFormatError('missing iv field');
+      throw new common.errors.InvalidWalletFormatError("missing iv field");
     }
 
     if (!walletObj.seedencrypted) {
-      throw new common.errors.InvalidWalletFormatError('missing seedEncrypted field');
+      throw new common.errors.InvalidWalletFormatError("missing seedEncrypted field");
     }
 
     if (!walletObj.address) {
-      throw new common.errors.InvalidWalletFormatError('missing address field');
+      throw new common.errors.InvalidWalletFormatError("missing address field");
     }
 
     if (options.async) {
@@ -12288,7 +12298,7 @@ class Wallet {
    */
 
 
-  subscribe(topic, duration, identifier = '', meta = '', options = {}) {
+  subscribe(topic, duration, identifier = "", meta = "", options = {}) {
     return common.rpc.subscribe.call(this, topic, duration, identifier, meta, options);
   }
   /**
@@ -12298,7 +12308,7 @@ class Wallet {
    */
 
 
-  unsubscribe(topic, identifier = '', options = {}) {
+  unsubscribe(topic, identifier = "", options = {}) {
     return common.rpc.unsubscribe.call(this, topic, identifier, options);
   }
   /**
@@ -12311,7 +12321,7 @@ class Wallet {
 
   async createOrUpdateNanoPay(toAddress, amount, expiration, id, options = {}) {
     if (!address.verifyAddress(toAddress)) {
-      throw new common.errors.InvalidAddressError('invalid recipient address');
+      throw new common.errors.InvalidAddressError("invalid recipient address");
     }
 
     if (!id) {
@@ -12346,17 +12356,17 @@ _defineProperty(Wallet, "minCompatibleVersion", 1);
 
 _defineProperty(Wallet, "maxCompatibleVersion", 2);
 },{"../common":11,"./account":26,"./address":27,"./consts":28,"./transaction":30,"scrypt-js":372}],32:[function(require,module,exports){
-'use strict';
+"use strict";
 
 var _worker = _interopRequireDefault(require("./worker"));
 
 function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
 
-if (typeof WorkerGlobalScope !== 'undefined' && self instanceof WorkerGlobalScope) {
+if (typeof WorkerGlobalScope !== "undefined" && self instanceof WorkerGlobalScope) {
   (0, _worker.default)(self);
 }
 },{"./worker":33}],33:[function(require,module,exports){
-'use strict';
+"use strict";
 
 var crypto = _interopRequireWildcard(require("../common/crypto"));
 
@@ -12374,35 +12384,35 @@ module.exports = function (self) {
       let result = null;
 
       switch (e.data.action) {
-        case 'setSeed':
+        case "setSeed":
           if (!key) {
             key = crypto.keyPair(e.data.seed);
           } else if (e.data.seed !== key.seed) {
-            throw 'cannot set to different seed';
+            throw "cannot set to different seed";
           }
 
           break;
 
-        case 'computeSharedKey':
+        case "computeSharedKey":
           if (key) {
             result = await crypto.computeSharedKey(key.curvePrivateKey, e.data.otherPubkey);
           } else {
-            throw 'worker key not created';
+            throw "worker key not created";
           }
 
           break;
 
-        case 'sign':
+        case "sign":
           if (key) {
             result = await crypto.sign(key.privateKey, e.data.message);
           } else {
-            throw 'worker key not created';
+            throw "worker key not created";
           }
 
           break;
 
         default:
-          throw 'unknown action: ' + e.data.action;
+          throw "unknown action: " + e.data.action;
       }
 
       self.postMessage({
