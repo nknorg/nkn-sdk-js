@@ -39,7 +39,7 @@
   ],
   "dependencies": {
     "@nkn/ncp": "^1.1.1",
-    "axios": "^0.21.1",
+    "axios": "^0.28.0",
     "base-x": "^3.0.7",
     "buffer": "^5.4.3",
     "core-js-pure": "^3.6.4",
