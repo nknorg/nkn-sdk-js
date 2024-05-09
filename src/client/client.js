@@ -810,9 +810,13 @@ export default class Client {
     };
 
     ws.onmessage = async (event) => {
-      if (event.data instanceof ArrayBuffer) {
+      if (event.data instanceof ArrayBuffer || event.data instanceof Blob) {
         try {
-          let handled = await this._handleMsg(event.data);
+          let data = event.data;
+          if (event.data instanceof Blob) {
+            data = new Uint8Array(await event.data.arrayBuffer());
+          }
+          let handled = await this._handleMsg(data);
           if (!handled) {
             console.warn("Unhandled msg.");
           }

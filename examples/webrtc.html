@@ -6,105 +6,121 @@
         <meta name="viewport" content="width=device-width, initial-scale=1" />
         <title>WebRTC example</title>
         <script src="../dist/nkn.js"></script>
-        <body>
-            <h1>WebRTC example</h1>
-            <button onclick="startClients()">
-                Start WebRTC Clients, Alice and Bob
-            </button>
-            <div id="output" style="margin-top: 2rem"></div>
-        </body>
-
-        <script>
-            log = function () {
-                const msg = Array.from(arguments)
-                    .map((arg) => {
-                        if (typeof arg === "object") {
-                            return JSON.stringify(arg);
-                        } else {
-                            return arg;
-                        }
-                    })
-                    .join(" ");
-                document.getElementById("output").innerHTML += msg + "<br>";
-            };
-
-            const useMultiClient = true;
-            async function startClients() {
-                let Client = useMultiClient ? nkn.MultiClient : nkn.Client;
-                let alice = new Client({
-                    identifier: "alice",
-                    webrtc: true,
-                });
-                let bob = new Client({
-                    identifier: "bob",
-                    webrtc: true,
-                });
-
-                alice.onConnectFailed(() => {
-                    log("Alice connect failed");
-                });
-
-                if (useMultiClient) {
-                    for (let clientID of Object.keys(alice.clients)) {
-                        alice.clients[clientID].onConnectFailed(() => {
-                            log("Alice client", clientID, "connect failed");
-                        });
-                    }
-                }
-
-                log("Alice connecting...");
-                log("Bob connecting...");
-                await Promise.all([
-                    new Promise((resolve, reject) => alice.onConnect(resolve)),
-                    new Promise((resolve, reject) => bob.onConnect(resolve)),
-                ]);
-                log("Alice connected");
-                log("Bob connected");
-
-                await new Promise((resolve, reject) =>
-                    setTimeout(resolve, 1000),
-                );
-
-                let timeSent = Date.now();
-
-                bob.onMessage(async ({ src, payload, isEncrypted }) => {
-                    log(
-                        "Receive",
-                        isEncrypted ? "encrypted" : "unencrypted",
-                        "message",
-                        '"' + payload + '"',
-                        "from",
-                        src,
-                        "after",
-                        Date.now() - timeSent,
-                        "ms",
-                    );
-                    // For byte array response:
-                    // return Uint8Array.from([1,2,3,4,5])
-                    return "Well received!";
-                });
-
-                try {
-                    log("Send message from", alice.addr, "to", bob.addr);
-                    // For byte array data:
-                    // let reply = await alice.send(bob.addr, Uint8Array.from([1,2,3,4,5]));
-                    let reply = await alice.send(bob.addr, "Hello world!");
-                    log(
-                        "Receive reply",
-                        '"' + reply + '"',
-                        "from",
-                        bob.addr,
-                        "after",
-                        Date.now() - timeSent,
-                        "ms",
-                    );
-                } catch (e) {
-                    log(e);
-                }
-
-                alice.close();
-                bob.close();
+        <style>
+            p {
+                font-size: smaller;
             }
-        </script>
+        </style>
     </head>
+    <body>
+        <h1>WebRTC example</h1>
+        <p>
+            This example demonstrates how to use WebRTC to send messages between
+            two clients, Alice and Bob.
+        </p>
+        <p>
+            If connect to locak NKN node, please uncomment the line of <b>rpcServerAddr</b> in the code.
+        </p>
+        
+        <button onclick="startClients()" style="padding: 10px; background-color: green; color: white;">
+            Start WebRTC Clients, Alice and Bob
+        </button>
+        <div id="output" style="margin-top: 2rem"></div>
+    </body>
+
+    <script>
+        log = function () {
+            const msg = Array.from(arguments)
+                .map((arg) => {
+                    if (typeof arg === "object") {
+                        return JSON.stringify(arg);
+                    } else {
+                        return arg;
+                    }
+                })
+                .join(" ");
+            document.getElementById("output").innerHTML += msg + "<br>";
+        };
+
+        const useMultiClient = true;
+        async function startClients() {
+            let Client = useMultiClient ? nkn.MultiClient : nkn.Client;
+            let alice = new Client({
+                identifier: "alice",
+                // rpcServerAddr: 'http://127.0.0.1:30003', // Connect to local NKN node
+                webrtc: true,
+            });
+            let bob = new Client({
+                identifier: "bob",
+                // rpcServerAddr: 'http://127.0.0.1:30003', // Connect to local NKN node
+                webrtc: true,
+            });
+
+            alice.onConnectFailed(() => {
+                log("Alice connect failed");
+            });
+
+            if (useMultiClient) {
+                for (let clientID of Object.keys(alice.clients)) {
+                    alice.clients[clientID].onConnectFailed(() => {
+                        log("Alice client", clientID, "connect failed");
+                    });
+                }
+            }
+
+            log("Alice connecting...");
+            log("Bob connecting...");
+            await Promise.all([
+                new Promise((resolve, reject) => alice.onConnect(resolve)),
+                new Promise((resolve, reject) => bob.onConnect(resolve)),
+            ]);
+            log("Alice connected");
+            log("Bob connected");
+
+            await new Promise((resolve, reject) =>
+                setTimeout(resolve, 1000),
+            );
+
+            let timeSent = Date.now();
+
+            bob.onMessage(async ({ src, payload, isEncrypted }) => {
+                log(
+                    "Receive",
+                    isEncrypted ? "encrypted" : "unencrypted",
+                    "message",
+                    '"' + payload + '"',
+                    "from",
+                    src,
+                    "after",
+                    Date.now() - timeSent,
+                    "ms",
+                );
+                // For byte array response:
+                // return Uint8Array.from([1,2,3,4,5])
+                return "Well received!";
+            });
+
+            try {
+                log("Send message from", alice.addr, "to", bob.addr);
+                // For byte array data:
+                // let reply = await alice.send(bob.addr, Uint8Array.from([1,2,3,4,5]));
+                let reply = await alice.send(bob.addr, "Hello world!");
+                log(
+                    "Receive reply",
+                    '"' + reply + '"',
+                    "from",
+                    bob.addr,
+                    "after",
+                    Date.now() - timeSent,
+                    "ms",
+                );
+            } catch (e) {
+                log(e);
+            }
+
+            alice.close();
+            bob.close();
+            log("Alice and Bob closed, done!");
+        }
+    </script>
 </html>

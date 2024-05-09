@@ -774,9 +774,15 @@ class Client {
     };
 
     ws.onmessage = async event => {
-      if (event.data instanceof ArrayBuffer) {
+      if (event.data instanceof ArrayBuffer || event.data instanceof Blob) {
         try {
-          let handled = await this._handleMsg(event.data);
+          let data = event.data;
+
+          if (event.data instanceof Blob) {
+            data = new Uint8Array(await event.data.arrayBuffer());
+          }
+
+          let handled = await this._handleMsg(data);
 
           if (!handled) {
             console.warn("Unhandled msg.");
@@ -1237,6 +1243,59 @@ class ResponseManager {
   }
 
 }
+/**
+ * One or multiple NKN address type. Each NKN address should either be the form
+ * of 'identifier.publicKey', or a name registered using wallet.
+ */
+
+/**
+ * Message data type.
+ */
+
+/**
+ * Reply data type, `null` means ACK instead of reply is received.
+ */
+
+/**
+ * Message type.
+ * @property {string} src - Message sender address.
+ * @property {MessageData} payload - Message payload.
+ * @property {nkn.pb.payloads.PayloadType} payloadType - Message payload type.
+ * @property {boolean} isEncrypted - Whether message is end to end encrypted.
+ * @property {Uint8Array} messageId - Unique message ID.
+ * @property {boolean} noReply - Indicating no reply should be sent back as sender will not process it.
+ */
+
+/**
+ * Connect handler function type.
+ */
+
+/**
+ * Connect Failed handler function type.
+ */
+
+/**
+ * Message handler function type.
+ */
+
+/**
+ * Websocket error handler function type.
+ */
+
+/**
+ * Send message options type.
+ * @property {number} [responseTimeout] - Message response timeout in ms. Zero disables timeout.
+ * @property {boolean} [encrypt] - Whether to end to end encrypt message.
+ * @property {number} [msgHoldingSeconds] - Maximal message holding time in second. Message might be cached and held by node up to this duration if destination client is not online. Zero disables cache.
+ * @property {boolean} [noReply=false] - Do not allocate any resources to wait for reply. Returned promise will resolve with null immediately when send success.
+ */
+
+/**
+ * Publish message options type.
+ * @property {boolean} [txPool=false] - Whether to send message to subscribers whose subscribe transaction is still in txpool. Enabling this will cause subscribers to receive message sooner after sending subscribe transaction, but might affect the correctness of subscribers because transactions in txpool is not guaranteed to be packed into a block.
+ * @property {boolean} [encrypt] - Whether to end to end encrypt message.
+ * @property {number} [msgHoldingSeconds] - Maximal message holding time in second. Message might be cached and held by node up to this duration if destination client is not online. Zero disables cache.
+ */
 },{"../common":11,"../common/crypto":8,"../wallet":29,"./consts":2,"./message":4,"./webrtc":5,"isomorphic-ws":367}],2:[function(require,module,exports){
 "use strict";
 
@@ -11288,6 +11347,11 @@ class MultiClient {
  * Accept session handler function type.
  */
 
+/**
+ * Dial session options type.
+ * @property {number} [dialTimeout] - Dial timeout in ms. Zero disables timeout.
+ */
+
 
 exports.default = MultiClient;
 },{"../client":3,"../client/consts":2,"../client/message":4,"../common":11,"../wallet":29,"./consts":22,"./util":25,"@nkn/ncp":39,"core-js-pure/features/promise":177,"memory-cache":371}],25:[function(require,module,exports){
@@ -12371,6 +12435,24 @@ _defineProperty(Wallet, "version", 2);
 _defineProperty(Wallet, "minCompatibleVersion", 1);
 
 _defineProperty(Wallet, "maxCompatibleVersion", 2);
+/**
+ * Create transaction options type.
+ * @property {(number|string)} [fee=0] - Transaction fee.
+ * @property {string} [attrs=''] - Transaction attributes, cannot exceed 100 bytes.
+ * @property {boolean} [buildOnly=false] - Whether to only build transaction but not send it.
+ */
+
+/**
+ * Transaction options type.
+ * @property {(number|string)} [fee=0] - Transaction fee.
+ * @property {string} [attrs=''] - Transaction attributes, cannot exceed 100 bytes.
+ * @property {boolean} [buildOnly=false] - Whether to only build transaction but not send it.
+ * @property {number} [nonce] - Transaction nonce, will get from RPC node if not provided.
+ */
+
+/**
+ * Transaction hash if `options.buildOnly=false`, otherwise the transaction object.
+ */
 },{"../common":11,"./account":26,"./address":27,"./consts":28,"./transaction":30,"scrypt-js":429}],32:[function(require,module,exports){
 "use strict";
 
