@@ -810,11 +810,11 @@ export default class Client {
     };
 
     ws.onmessage = async (event) => {
-      if (event.data instanceof ArrayBuffer || event.data instanceof Blob) {
+      let data = event.data;
+      if (data instanceof ArrayBuffer || data instanceof Blob) {
         try {
-          let data = event.data;
-          if (event.data instanceof Blob) {
-            data = new Uint8Array(await event.data.arrayBuffer());
+          if (data instanceof Blob) {
+            data = new Uint8Array(await data.arrayBuffer());
           }
           let handled = await this._handleMsg(data);
           if (!handled) {
@@ -826,7 +826,7 @@ export default class Client {
         return;
       }
 
-      let msg = JSON.parse(event.data);
+      let msg = JSON.parse(data);
       if (
         msg.Error !== undefined &&
         msg.Error !== common.errors.rpcRespErrCodes.success
