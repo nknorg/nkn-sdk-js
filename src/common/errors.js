@@ -185,3 +185,13 @@ export class ChallengeTimeoutError extends Error {
     this.name = "ChallengeTimeoutError";
   }
 }
+
+export class ConnectToNodeTimeoutError extends Error {
+  constructor(message = "connect to node timeout", ...params) {
+    super(message, ...params);
+    if (Error.captureStackTrace) {
+      Error.captureStackTrace(this, ConnectToNodeTimeoutError);
+    }
+    this.name = "ConnectToNodeTimeoutError";
+  }
+}

@@ -97,10 +97,6 @@ export default class Peer {
     return this.pc.setRemoteDescription(answer);
   }
 
-  setSdpReadyHandler(handler) {
-    this.sdpReadyHandler = handler;
-  }
-
   close() {
     this.dc.close();
     this.pc.close();
