@@ -43,6 +43,7 @@ const Action = {
  * @param {number} [options.reconnectIntervalMin=1000] - Minimal reconnect interval in ms.
  * @param {number} [options.reconnectIntervalMax=64000] - Maximal reconnect interval in ms.
  * @param {number} [options.responseTimeout=5000] - Message response timeout in ms. Zero disables timeout.
+ * @param {number} [options.connectTimeout=10000] - Websocket/webrtc connect timeout in ms. Zero disables timeout.
  * @param {number} [options.msgHoldingSeconds=0] - Maximal message holding time in second. Message might be cached and held by node up to this duration if destination client is not online. Zero disables cache.
  * @param {boolean} [options.encrypt=true] - Whether to end to end encrypt message.
  * @param {string} [options.rpcServerAddr='https://mainnet-rpc-node-0001.nkn.org/mainnet/api/wallet'] - RPC server address used to join the network.
@@ -747,16 +748,42 @@ class Client {
       });
     }
 
+    let wsConnectResolve, wsConnectTimer;
+    new Promise((resolve, reject) => {
+      wsConnectResolve = resolve;
+      wsConnectTimer = setTimeout(() => {
+        if (this.ws === ws) {
+          reject(new common.errors.ConnectToNodeTimeoutError());
+        } else {
+          resolve();
+        }
+      }, this.options.connectTimeout);
+    }).then(() => {
+      clearTimeout(wsConnectTimer);
+    }).catch(e => {
+      if (!this.isClosed) {
+        console.log("WebSocket or WebRTC connect timeout,", e);
+      }
+
+      if (this.shouldReconnect) {
+        this._reconnect();
+      } else if (!this.isClosed) {
+        this._connectFailed();
+      }
+    });
     let challengeDone;
     let challengeHandler = new Promise((resolve, reject) => {
       challengeDone = resolve;
       setTimeout(() => {
-        // Some nodejs version might terminate the whole process if we call reject here
-        resolve(new common.errors.ChallengeTimeoutError());
+        if (this.ws === ws) {
+          // Some nodejs version might terminate the whole process if we call reject here
+          resolve(new common.errors.ChallengeTimeoutError());
+        }
       }, consts.waitForChallengeTimeout);
     });
 
     ws.onopen = async () => {
+      wsConnectResolve();
       let data = {
         Action: Action.setClient,
         Addr: this.addr
@@ -1254,6 +1281,7 @@ const defaultOptions = {
   reconnectIntervalMin: 1000,
   reconnectIntervalMax: 64000,
   responseTimeout: 5000,
+  connectTimeout: 10000,
   msgHoldingSeconds: 0,
   encrypt: true,
   rpcServerAddr: "https://mainnet-rpc-node-0001.nkn.org/mainnet/api/wallet",
@@ -1624,10 +1652,6 @@ class Peer {
     return this.pc.setRemoteDescription(answer);
   }
 
-  setSdpReadyHandler(handler) {
-    this.sdpReadyHandler = handler;
-  }
-
   close() {
     this.dc.close();
     this.pc.close();
@@ -1853,7 +1877,7 @@ async function sign(privateKey, message) {
 Object.defineProperty(exports, "__esModule", {
   value: true
 });
-exports.rpcRespErrCodes = exports.WrongPasswordError = exports.UnknownError = exports.ServerError = exports.RpcTimeoutError = exports.RpcError = exports.NotEnoughBalanceError = exports.InvalidWalletVersionError = exports.InvalidWalletFormatError = exports.InvalidResponseError = exports.InvalidDestinationError = exports.InvalidArgumentError = exports.InvalidAddressError = exports.DecryptionError = exports.DataSizeTooLargeError = exports.ClientNotReadyError = exports.ChallengeTimeoutError = exports.AddrNotAllowedError = void 0;
+exports.rpcRespErrCodes = exports.WrongPasswordError = exports.UnknownError = exports.ServerError = exports.RpcTimeoutError = exports.RpcError = exports.NotEnoughBalanceError = exports.InvalidWalletVersionError = exports.InvalidWalletFormatError = exports.InvalidResponseError = exports.InvalidDestinationError = exports.InvalidArgumentError = exports.InvalidAddressError = exports.DecryptionError = exports.DataSizeTooLargeError = exports.ConnectToNodeTimeoutError = exports.ClientNotReadyError = exports.ChallengeTimeoutError = exports.AddrNotAllowedError = void 0;
 const rpcRespErrCodes = {
   success: 0,
   wrongNode: 48001,
@@ -2128,6 +2152,21 @@ class ChallengeTimeoutError extends Error {
 }
 
 exports.ChallengeTimeoutError = ChallengeTimeoutError;
+
+class ConnectToNodeTimeoutError extends Error {
+  constructor(message = "connect to node timeout", ...params) {
+    super(message, ...params);
+
+    if (Error.captureStackTrace) {
+      Error.captureStackTrace(this, ConnectToNodeTimeoutError);
+    }
+
+    this.name = "ConnectToNodeTimeoutError";
+  }
+
+}
+
+exports.ConnectToNodeTimeoutError = ConnectToNodeTimeoutError;
 },{}],10:[function(require,module,exports){
 "use strict";
 

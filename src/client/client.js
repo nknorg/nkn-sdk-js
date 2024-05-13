@@ -32,6 +32,7 @@ const Action = {
  * @param {number} [options.reconnectIntervalMin=1000] - Minimal reconnect interval in ms.
  * @param {number} [options.reconnectIntervalMax=64000] - Maximal reconnect interval in ms.
  * @param {number} [options.responseTimeout=5000] - Message response timeout in ms. Zero disables timeout.
+ * @param {number} [options.connectTimeout=10000] - Websocket/webrtc connect timeout in ms. Zero disables timeout.
  * @param {number} [options.msgHoldingSeconds=0] - Maximal message holding time in second. Message might be cached and held by node up to this duration if destination client is not online. Zero disables cache.
  * @param {boolean} [options.encrypt=true] - Whether to end to end encrypt message.
  * @param {string} [options.rpcServerAddr='https://mainnet-rpc-node-0001.nkn.org/mainnet/api/wallet'] - RPC server address used to join the network.
@@ -46,6 +47,7 @@ export default class Client {
     reconnectIntervalMin: number,
     reconnectIntervalMax: number,
     responseTimeout: number,
+    connectTimeout: number,
     msgHoldingSeconds: number,
     encrypt: boolean,
     rpcServerAddr: string,
@@ -102,6 +104,7 @@ export default class Client {
       reconnectIntervalMin?: number,
       reconnectIntervalMax?: number,
       responseTimeout?: number,
+      connectTimeout?: number,
       msgHoldingSeconds?: number,
       encrypt?: boolean,
       rpcServerAddr?: string,
@@ -784,17 +787,45 @@ export default class Client {
         });
     }
 
+    let wsConnectResolve, wsConnectTimer;
+    new Promise((resolve, reject) => {
+      wsConnectResolve = resolve;
+      wsConnectTimer = setTimeout(() => {
+        if (this.ws === ws) {
+          reject(new common.errors.ConnectToNodeTimeoutError());
+        } else {
+          resolve();
+        }
+      }, this.options.connectTimeout);
+    })
+      .then(() => {
+        clearTimeout(wsConnectTimer);
+      })
+      .catch((e) => {
+        if (!this.isClosed) {
+          console.log("WebSocket or WebRTC connect timeout,", e);
+        }
+        if (this.shouldReconnect) {
+          this._reconnect();
+        } else if (!this.isClosed) {
+          this._connectFailed();
+        }
+      });
+
     let challengeDone: Function;
     let challengeHandler: Promise<SaltAndSignature> =
       new Promise<SaltAndSignature>((resolve, reject) => {
         challengeDone = resolve;
         setTimeout(() => {
-          // Some nodejs version might terminate the whole process if we call reject here
-          resolve(new common.errors.ChallengeTimeoutError());
+          if (this.ws === ws) {
+            // Some nodejs version might terminate the whole process if we call reject here
+            resolve(new common.errors.ChallengeTimeoutError());
+          }
         }, waitForChallengeTimeout);
       });
 
     ws.onopen = async () => {
+      wsConnectResolve();
       let data: any = {
         Action: Action.setClient,
         Addr: this.addr,
