@@ -6,11 +6,6 @@
         <meta name="viewport" content="width=device-width, initial-scale=1" />
         <title>WebRTC example</title>
         <script src="../dist/nkn.js"></script>
-        <style>
-            p {
-                font-size: smaller;
-            }
-        </style>
     </head>
     <body>
         <h1>WebRTC example</h1>
@@ -19,10 +14,14 @@
             two clients, Alice and Bob.
         </p>
         <p>
-            If connect to locak NKN node, please uncomment the line of <b>rpcServerAddr</b> in the code.
+            If connect to local NKN node, please uncomment the line of
+            <b>rpcServerAddr</b> in the code.
         </p>
-        
-        <button onclick="startClients()" style="padding: 10px; background-color: green; color: white;">
+
+        <button
+            onclick="startClients()"
+            style="padding: 10px; background-color: green; color: white"
+        >
             Start WebRTC Clients, Alice and Bob
         </button>
         <div id="output" style="margin-top: 2rem"></div>
@@ -57,13 +56,15 @@
             });
 
             alice.onConnectFailed(() => {
+                // will be triggered when the multiclient fails to connect
                 log("Alice connect failed");
             });
 
             if (useMultiClient) {
                 for (let clientID of Object.keys(alice.clients)) {
                     alice.clients[clientID].onConnectFailed(() => {
-                        log("Alice client", clientID, "connect failed");
+                        // will be triggered when a single client fails to connect
+                        // log("Alice client", clientID, "connect failed");
                     });
                 }
             }
@@ -77,9 +78,7 @@
             log("Alice connected");
             log("Bob connected");
 
-            await new Promise((resolve, reject) =>
-                setTimeout(resolve, 1000),
-            );
+            await new Promise((resolve, reject) => setTimeout(resolve, 1000));
 
             let timeSent = Date.now();
 
