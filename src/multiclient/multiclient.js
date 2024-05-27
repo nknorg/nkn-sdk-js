@@ -66,6 +66,8 @@ export default class MultiClient {
     originalClient: boolean,
     msgCacheExpiration: number,
     sessionConfig: {},
+    stunServerAddr?: string | Array<string>,
+    webrtc?: boolean,
   };
   key: common.Key;
   /**
@@ -123,6 +125,8 @@ export default class MultiClient {
       originalClient?: boolean,
       msgCacheExpiration?: number,
       sessionConfig?: {},
+      stunServerAddr?: string | Array<string>,
+      webrtc?: boolean,
     } = {},
   ) {
     options = common.util.assignDefined({}, consts.defaultOptions, options);
