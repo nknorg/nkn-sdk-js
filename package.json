@@ -6,6 +6,7 @@
   "exports": {
     ".": {
       "import": "./lib/index.js",
+      "require": "./lib/index.js",
       "types": "./index.d.ts"
     },
     "./": "./lib/"
