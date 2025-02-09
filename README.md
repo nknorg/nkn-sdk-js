@@ -442,6 +442,14 @@ nkn.setPRNG(function(x, n) {
 Note that `setPRNG` *completely replaces* internal random byte generator
 with the one provided.
 
+## Disable WASM
+
+You can disable WASM and use pure JavaScript implementation by:
+
+```javascript
+nkn.setDisableWASM(true);
+```
+
 ## Contributing
 
 **Can I submit a bug, suggestion or feature request?**
