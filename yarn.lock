@@ -2166,10 +2166,10 @@
   resolved "https://registry.yarnpkg.com/@nicolo-ribaudo/chokidar-2/-/chokidar-2-2.1.8-no-fsevents.3.tgz#323d72dd25103d0c4fbdce89dadf574a787b1f9b"
   integrity sha512-s88O1aVtXftvp5bCPB7WnmXc5IwOZZ7YPuwNPt+GtOOXpPvad1LfbmjYv+qII7zP6RU2QGnqve27dnLycEnyEQ==
 
-"@nkn/ncp@^1.1.1":
-  version "1.1.1"
-  resolved "https://registry.yarnpkg.com/@nkn/ncp/-/ncp-1.1.1.tgz#e95f131b7da6eb638264998fe9d990c0e1ef142b"
-  integrity sha512-NXORafn/bg8+bttvHAZta3YMpBJ2w2k/j3d4mOcjQMS91D0UbriTknvuPRCpgYzxTvpsksxUgYxb+D0CJwEklA==
+"@nkn/ncp@^1.1.2":
+  version "1.1.2"
+  resolved "https://registry.yarnpkg.com/@nkn/ncp/-/ncp-1.1.2.tgz#02387c7e92f8b2c6eb60548dea86398396ea61cb"
+  integrity sha512-HNQtIdAx/fQERvRQxIMZ2YrDqH9iDI/VhBSBfI0fp1owqawOP3996M7f/td4hjEgjh3Q72A9N/QYdu07AFLEEw==
   dependencies:
     core-js-pure "^3.6.4"
     google-protobuf "^3.11.2"

@@ -1270,6 +1270,59 @@ class ResponseManager {
   }
 
 }
+/**
+ * One or multiple NKN address type. Each NKN address should either be the form
+ * of 'identifier.publicKey', or a name registered using wallet.
+ */
+
+/**
+ * Message data type.
+ */
+
+/**
+ * Reply data type, `null` means ACK instead of reply is received.
+ */
+
+/**
+ * Message type.
+ * @property {string} src - Message sender address.
+ * @property {MessageData} payload - Message payload.
+ * @property {nkn.pb.payloads.PayloadType} payloadType - Message payload type.
+ * @property {boolean} isEncrypted - Whether message is end to end encrypted.
+ * @property {Uint8Array} messageId - Unique message ID.
+ * @property {boolean} noReply - Indicating no reply should be sent back as sender will not process it.
+ */
+
+/**
+ * Connect handler function type.
+ */
+
+/**
+ * Connect Failed handler function type.
+ */
+
+/**
+ * Message handler function type.
+ */
+
+/**
+ * Websocket error handler function type.
+ */
+
+/**
+ * Send message options type.
+ * @property {number} [responseTimeout] - Message response timeout in ms. Zero disables timeout.
+ * @property {boolean} [encrypt] - Whether to end to end encrypt message.
+ * @property {number} [msgHoldingSeconds] - Maximal message holding time in second. Message might be cached and held by node up to this duration if destination client is not online. Zero disables cache.
+ * @property {boolean} [noReply=false] - Do not allocate any resources to wait for reply. Returned promise will resolve with null immediately when send success.
+ */
+
+/**
+ * Publish message options type.
+ * @property {boolean} [txPool=false] - Whether to send message to subscribers whose subscribe transaction is still in txpool. Enabling this will cause subscribers to receive message sooner after sending subscribe transaction, but might affect the correctness of subscribers because transactions in txpool is not guaranteed to be packed into a block.
+ * @property {boolean} [encrypt] - Whether to end to end encrypt message.
+ * @property {number} [msgHoldingSeconds] - Maximal message holding time in second. Message might be cached and held by node up to this duration if destination client is not online. Zero disables cache.
+ */
 },{"../common":11,"../common/crypto":8,"../wallet":29,"./consts":2,"./message":4,"./webrtc":5,"isomorphic-ws":367}],2:[function(require,module,exports){
 "use strict";
 
@@ -11731,6 +11784,11 @@ class MultiClient {
  * Accept session handler function type.
  */
 
+/**
+ * Dial session options type.
+ * @property {number} [dialTimeout] - Dial timeout in ms. Zero disables timeout.
+ */
+
 
 exports.default = MultiClient;
 },{"../client":3,"../client/consts":2,"../client/message":4,"../common":11,"../wallet":29,"./consts":22,"./util":25,"@nkn/ncp":39,"core-js-pure/features/promise":177,"memory-cache":371}],25:[function(require,module,exports){
@@ -12814,6 +12872,24 @@ _defineProperty(Wallet, "version", 2);
 _defineProperty(Wallet, "minCompatibleVersion", 1);
 
 _defineProperty(Wallet, "maxCompatibleVersion", 2);
+/**
+ * Create transaction options type.
+ * @property {(number|string)} [fee=0] - Transaction fee.
+ * @property {string} [attrs=''] - Transaction attributes, cannot exceed 100 bytes.
+ * @property {boolean} [buildOnly=false] - Whether to only build transaction but not send it.
+ */
+
+/**
+ * Transaction options type.
+ * @property {(number|string)} [fee=0] - Transaction fee.
+ * @property {string} [attrs=''] - Transaction attributes, cannot exceed 100 bytes.
+ * @property {boolean} [buildOnly=false] - Whether to only build transaction but not send it.
+ * @property {number} [nonce] - Transaction nonce, will get from RPC node if not provided.
+ */
+
+/**
+ * Transaction hash if `options.buildOnly=false`, otherwise the transaction object.
+ */
 },{"../common":11,"./account":26,"./address":27,"./consts":28,"./transaction":30,"scrypt-js":429}],32:[function(require,module,exports){
 "use strict";
 
@@ -14044,18 +14120,28 @@ function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { de
 },{"./connection":35,"./consts":36,"./context":37,"./errors":38,"./session":41,"./util":42}],40:[function(require,module,exports){
 "use strict";
 
+// source: src/pb/packet.proto
+
 /**
  * @fileoverview
  * @enhanceable
+ * @suppress {missingRequire} reports error on implicit type usages.
  * @suppress {messageConventions} JS Compiler reports an error if a variable or
  *     field starts with 'MSG_' and isn't a translatable message.
  * @public
  */
 // GENERATED CODE -- DO NOT EDIT!
+
+/* eslint-disable */
+// @ts-nocheck
 var jspb = require('google-protobuf');
 
 var goog = jspb;
-var global = Function('return this')();
+
+var global = typeof globalThis !== 'undefined' && globalThis || typeof window !== 'undefined' && window || typeof global !== 'undefined' && global || typeof self !== 'undefined' && self || function () {
+  return this;
+}.call(null) || Function('return this')();
+
 goog.exportSymbol('proto.Packet', null, global);
 /**
  * Generated by JsPbCodeGenerator.
@@ -14092,13 +14178,15 @@ proto.Packet.repeatedFields_ = [3, 4, 6];
 
 if (jspb.Message.GENERATE_TO_OBJECT) {
   /**
-   * Creates an object representation of this proto suitable for use in Soy templates.
+   * Creates an object representation of this proto.
    * Field names that are reserved in JavaScript and will be renamed to pb_name.
+   * Optional fields that are not set will be set to undefined.
    * To access a reserved field use, foo.pb_<name>, eg, foo.pb_default.
    * For the list of reserved names please see:
-   *     com.google.apps.jspb.JsClassTemplate.JS_RESERVED_WORDS.
-   * @param {boolean=} opt_includeInstance Whether to include the JSPB instance
-   *     for transitional soy proto support: http://goto/soy-param-migration
+   *     net/proto2/compiler/js/internal/generator.cc#kKeyword.
+   * @param {boolean=} opt_includeInstance Deprecated. whether to include the
+   *     JSPB instance for transitional soy proto support:
+   *     http://goto/soy-param-migration
    * @return {!Object}
    */
   proto.Packet.prototype.toObject = function (opt_includeInstance) {
@@ -14106,8 +14194,8 @@ if (jspb.Message.GENERATE_TO_OBJECT) {
   };
   /**
    * Static version of the {@see toObject} method.
-   * @param {boolean|undefined} includeInstance Whether to include the JSPB
-   *     instance for transitional soy proto support:
+   * @param {boolean|undefined} includeInstance Deprecated. Whether to include
+   *     the JSPB instance for transitional soy proto support:
    *     http://goto/soy-param-migration
    * @param {!proto.Packet} msg The msg instance to transform.
    * @return {!Object}
@@ -14120,14 +14208,14 @@ if (jspb.Message.GENERATE_TO_OBJECT) {
         obj = {
       sequenceId: jspb.Message.getFieldWithDefault(msg, 1, 0),
       data: msg.getData_asB64(),
-      ackStartSeqList: jspb.Message.getRepeatedField(msg, 3),
-      ackSeqCountList: jspb.Message.getRepeatedField(msg, 4),
+      ackStartSeqList: (f = jspb.Message.getRepeatedField(msg, 3)) == null ? undefined : f,
+      ackSeqCountList: (f = jspb.Message.getRepeatedField(msg, 4)) == null ? undefined : f,
       bytesRead: jspb.Message.getFieldWithDefault(msg, 5, 0),
-      clientIdsList: jspb.Message.getRepeatedField(msg, 6),
+      clientIdsList: (f = jspb.Message.getRepeatedField(msg, 6)) == null ? undefined : f,
       windowSize: jspb.Message.getFieldWithDefault(msg, 7, 0),
       mtu: jspb.Message.getFieldWithDefault(msg, 8, 0),
-      close: jspb.Message.getFieldWithDefault(msg, 9, false),
-      handshake: jspb.Message.getFieldWithDefault(msg, 10, false)
+      close: jspb.Message.getBooleanFieldWithDefault(msg, 9, false),
+      handshake: jspb.Message.getBooleanFieldWithDefault(msg, 10, false)
     };
 
     if (includeInstance) {
@@ -14182,17 +14270,25 @@ proto.Packet.deserializeBinaryFromReader = function (msg, reader) {
         break;
 
       case 3:
-        var value =
+        var values =
         /** @type {!Array<number>} */
-        reader.readPackedUint32();
-        msg.setAckStartSeqList(value);
+        reader.isDelimited() ? reader.readPackedUint32() : [reader.readUint32()];
+
+        for (var i = 0; i < values.length; i++) {
+          msg.addAckStartSeq(values[i]);
+        }
+
         break;
 
       case 4:
-        var value =
+        var values =
         /** @type {!Array<number>} */
-        reader.readPackedUint32();
-        msg.setAckSeqCountList(value);
+        reader.isDelimited() ? reader.readPackedUint32() : [reader.readUint32()];
+
+        for (var i = 0; i < values.length; i++) {
+          msg.addAckSeqCount(values[i]);
+        }
+
         break;
 
       case 5:
@@ -14339,11 +14435,14 @@ proto.Packet.prototype.getSequenceId = function () {
     jspb.Message.getFieldWithDefault(this, 1, 0)
   );
 };
-/** @param {number} value */
+/**
+ * @param {number} value
+ * @return {!proto.Packet} returns this
+ */
 
 
 proto.Packet.prototype.setSequenceId = function (value) {
-  jspb.Message.setProto3IntField(this, 1, value);
+  return jspb.Message.setProto3IntField(this, 1, value);
 };
 /**
  * optional bytes data = 2;
@@ -14385,11 +14484,14 @@ proto.Packet.prototype.getData_asU8 = function () {
     jspb.Message.bytesAsU8(this.getData())
   );
 };
-/** @param {!(string|Uint8Array)} value */
+/**
+ * @param {!(string|Uint8Array)} value
+ * @return {!proto.Packet} returns this
+ */
 
 
 proto.Packet.prototype.setData = function (value) {
-  jspb.Message.setProto3BytesField(this, 2, value);
+  return jspb.Message.setProto3BytesField(this, 2, value);
 };
 /**
  * repeated uint32 ack_start_seq = 3;
@@ -14403,28 +14505,33 @@ proto.Packet.prototype.getAckStartSeqList = function () {
     jspb.Message.getRepeatedField(this, 3)
   );
 };
-/** @param {!Array<number>} value */
+/**
+ * @param {!Array<number>} value
+ * @return {!proto.Packet} returns this
+ */
 
 
 proto.Packet.prototype.setAckStartSeqList = function (value) {
-  jspb.Message.setField(this, 3, value || []);
+  return jspb.Message.setField(this, 3, value || []);
 };
 /**
  * @param {number} value
  * @param {number=} opt_index
+ * @return {!proto.Packet} returns this
  */
 
 
 proto.Packet.prototype.addAckStartSeq = function (value, opt_index) {
-  jspb.Message.addToRepeatedField(this, 3, value, opt_index);
+  return jspb.Message.addToRepeatedField(this, 3, value, opt_index);
 };
 /**
  * Clears the list making it empty but non-null.
+ * @return {!proto.Packet} returns this
  */
 
 
 proto.Packet.prototype.clearAckStartSeqList = function () {
-  this.setAckStartSeqList([]);
+  return this.setAckStartSeqList([]);
 };
 /**
  * repeated uint32 ack_seq_count = 4;
@@ -14438,28 +14545,33 @@ proto.Packet.prototype.getAckSeqCountList = function () {
     jspb.Message.getRepeatedField(this, 4)
   );
 };
-/** @param {!Array<number>} value */
+/**
+ * @param {!Array<number>} value
+ * @return {!proto.Packet} returns this
+ */
 
 
 proto.Packet.prototype.setAckSeqCountList = function (value) {
-  jspb.Message.setField(this, 4, value || []);
+  return jspb.Message.setField(this, 4, value || []);
 };
 /**
  * @param {number} value
  * @param {number=} opt_index
+ * @return {!proto.Packet} returns this
  */
 
 
 proto.Packet.prototype.addAckSeqCount = function (value, opt_index) {
-  jspb.Message.addToRepeatedField(this, 4, value, opt_index);
+  return jspb.Message.addToRepeatedField(this, 4, value, opt_index);
 };
 /**
  * Clears the list making it empty but non-null.
+ * @return {!proto.Packet} returns this
  */
 
 
 proto.Packet.prototype.clearAckSeqCountList = function () {
-  this.setAckSeqCountList([]);
+  return this.setAckSeqCountList([]);
 };
 /**
  * optional uint64 bytes_read = 5;
@@ -14473,11 +14585,14 @@ proto.Packet.prototype.getBytesRead = function () {
     jspb.Message.getFieldWithDefault(this, 5, 0)
   );
 };
-/** @param {number} value */
+/**
+ * @param {number} value
+ * @return {!proto.Packet} returns this
+ */
 
 
 proto.Packet.prototype.setBytesRead = function (value) {
-  jspb.Message.setProto3IntField(this, 5, value);
+  return jspb.Message.setProto3IntField(this, 5, value);
 };
 /**
  * repeated string client_ids = 6;
@@ -14491,28 +14606,33 @@ proto.Packet.prototype.getClientIdsList = function () {
     jspb.Message.getRepeatedField(this, 6)
   );
 };
-/** @param {!Array<string>} value */
+/**
+ * @param {!Array<string>} value
+ * @return {!proto.Packet} returns this
+ */
 
 
 proto.Packet.prototype.setClientIdsList = function (value) {
-  jspb.Message.setField(this, 6, value || []);
+  return jspb.Message.setField(this, 6, value || []);
 };
 /**
  * @param {string} value
  * @param {number=} opt_index
+ * @return {!proto.Packet} returns this
  */
 
 
 proto.Packet.prototype.addClientIds = function (value, opt_index) {
-  jspb.Message.addToRepeatedField(this, 6, value, opt_index);
+  return jspb.Message.addToRepeatedField(this, 6, value, opt_index);
 };
 /**
  * Clears the list making it empty but non-null.
+ * @return {!proto.Packet} returns this
  */
 
 
 proto.Packet.prototype.clearClientIdsList = function () {
-  this.setClientIdsList([]);
+  return this.setClientIdsList([]);
 };
 /**
  * optional uint32 window_size = 7;
@@ -14526,11 +14646,14 @@ proto.Packet.prototype.getWindowSize = function () {
     jspb.Message.getFieldWithDefault(this, 7, 0)
   );
 };
-/** @param {number} value */
+/**
+ * @param {number} value
+ * @return {!proto.Packet} returns this
+ */
 
 
 proto.Packet.prototype.setWindowSize = function (value) {
-  jspb.Message.setProto3IntField(this, 7, value);
+  return jspb.Message.setProto3IntField(this, 7, value);
 };
 /**
  * optional uint32 mtu = 8;
@@ -14544,16 +14667,17 @@ proto.Packet.prototype.getMtu = function () {
     jspb.Message.getFieldWithDefault(this, 8, 0)
   );
 };
-/** @param {number} value */
+/**
+ * @param {number} value
+ * @return {!proto.Packet} returns this
+ */
 
 
 proto.Packet.prototype.setMtu = function (value) {
-  jspb.Message.setProto3IntField(this, 8, value);
+  return jspb.Message.setProto3IntField(this, 8, value);
 };
 /**
  * optional bool close = 9;
- * Note that Boolean fields may be set to 0/1 when serialized from a Java server.
- * You should avoid comparisons like {@code val === true/false} in those cases.
  * @return {boolean}
  */
 
@@ -14561,19 +14685,20 @@ proto.Packet.prototype.setMtu = function (value) {
 proto.Packet.prototype.getClose = function () {
   return (
     /** @type {boolean} */
-    jspb.Message.getFieldWithDefault(this, 9, false)
+    jspb.Message.getBooleanFieldWithDefault(this, 9, false)
   );
 };
-/** @param {boolean} value */
+/**
+ * @param {boolean} value
+ * @return {!proto.Packet} returns this
+ */
 
 
 proto.Packet.prototype.setClose = function (value) {
-  jspb.Message.setProto3BooleanField(this, 9, value);
+  return jspb.Message.setProto3BooleanField(this, 9, value);
 };
 /**
  * optional bool handshake = 10;
- * Note that Boolean fields may be set to 0/1 when serialized from a Java server.
- * You should avoid comparisons like {@code val === true/false} in those cases.
  * @return {boolean}
  */
 
@@ -14581,14 +14706,17 @@ proto.Packet.prototype.setClose = function (value) {
 proto.Packet.prototype.getHandshake = function () {
   return (
     /** @type {boolean} */
-    jspb.Message.getFieldWithDefault(this, 10, false)
+    jspb.Message.getBooleanFieldWithDefault(this, 10, false)
   );
 };
-/** @param {boolean} value */
+/**
+ * @param {boolean} value
+ * @return {!proto.Packet} returns this
+ */
 
 
 proto.Packet.prototype.setHandshake = function (value) {
-  jspb.Message.setProto3BooleanField(this, 10, value);
+  return jspb.Message.setProto3BooleanField(this, 10, value);
 };
 
 goog.object.extend(exports, proto);
