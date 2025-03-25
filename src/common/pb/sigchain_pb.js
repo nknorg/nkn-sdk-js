@@ -1,15 +1,25 @@
+// source: src/common/pb/sigchain.proto
 /**
  * @fileoverview
  * @enhanceable
+ * @suppress {missingRequire} reports error on implicit type usages.
  * @suppress {messageConventions} JS Compiler reports an error if a variable or
  *     field starts with 'MSG_' and isn't a translatable message.
  * @public
  */
 // GENERATED CODE -- DO NOT EDIT!
+/* eslint-disable */
+// @ts-nocheck
 
 var jspb = require('google-protobuf');
 var goog = jspb;
-var global = Function('return this')();
+var global =
+    (typeof globalThis !== 'undefined' && globalThis) ||
+    (typeof window !== 'undefined' && window) ||
+    (typeof global !== 'undefined' && global) ||
+    (typeof self !== 'undefined' && self) ||
+    (function () { return this; }).call(null) ||
+    Function('return this')();
 
 goog.exportSymbol('proto.sigchain.SigAlgo', null, global);
 goog.exportSymbol('proto.sigchain.SigChain', null, global);
@@ -61,13 +71,15 @@ if (goog.DEBUG && !COMPILED) {
 
 if (jspb.Message.GENERATE_TO_OBJECT) {
 /**
- * Creates an object representation of this proto suitable for use in Soy templates.
+ * Creates an object representation of this proto.
  * Field names that are reserved in JavaScript and will be renamed to pb_name.
+ * Optional fields that are not set will be set to undefined.
  * To access a reserved field use, foo.pb_<name>, eg, foo.pb_default.
  * For the list of reserved names please see:
- *     com.google.apps.jspb.JsClassTemplate.JS_RESERVED_WORDS.
- * @param {boolean=} opt_includeInstance Whether to include the JSPB instance
- *     for transitional soy proto support: http://goto/soy-param-migration
+ *     net/proto2/compiler/js/internal/generator.cc#kKeyword.
+ * @param {boolean=} opt_includeInstance Deprecated. whether to include the
+ *     JSPB instance for transitional soy proto support:
+ *     http://goto/soy-param-migration
  * @return {!Object}
  */
 proto.sigchain.SigChainElem.prototype.toObject = function(opt_includeInstance) {
@@ -77,8 +89,8 @@ proto.sigchain.SigChainElem.prototype.toObject = function(opt_includeInstance) {
 
 /**
  * Static version of the {@see toObject} method.
- * @param {boolean|undefined} includeInstance Whether to include the JSPB
- *     instance for transitional soy proto support:
+ * @param {boolean|undefined} includeInstance Deprecated. Whether to include
+ *     the JSPB instance for transitional soy proto support:
  *     http://goto/soy-param-migration
  * @param {!proto.sigchain.SigChainElem} msg The msg instance to transform.
  * @return {!Object}
@@ -86,13 +98,13 @@ proto.sigchain.SigChainElem.prototype.toObject = function(opt_includeInstance) {
  */
 proto.sigchain.SigChainElem.toObject = function(includeInstance, msg) {
   var f, obj = {
-    id: msg.getId_asB64(),
-    nextPubkey: msg.getNextPubkey_asB64(),
-    mining: jspb.Message.getFieldWithDefault(msg, 3, false),
-    signature: msg.getSignature_asB64(),
-    sigAlgo: jspb.Message.getFieldWithDefault(msg, 5, 0),
-    vrf: msg.getVrf_asB64(),
-    proof: msg.getProof_asB64()
+id: msg.getId_asB64(),
+nextPubkey: msg.getNextPubkey_asB64(),
+mining: jspb.Message.getBooleanFieldWithDefault(msg, 3, false),
+signature: msg.getSignature_asB64(),
+sigAlgo: jspb.Message.getFieldWithDefault(msg, 5, 0),
+vrf: msg.getVrf_asB64(),
+proof: msg.getProof_asB64()
   };
 
   if (includeInstance) {
@@ -271,9 +283,12 @@ proto.sigchain.SigChainElem.prototype.getId_asU8 = function() {
 };
 
 
-/** @param {!(string|Uint8Array)} value */
+/**
+ * @param {!(string|Uint8Array)} value
+ * @return {!proto.sigchain.SigChainElem} returns this
+ */
 proto.sigchain.SigChainElem.prototype.setId = function(value) {
-  jspb.Message.setProto3BytesField(this, 1, value);
+  return jspb.Message.setProto3BytesField(this, 1, value);
 };
 
 
@@ -310,26 +325,30 @@ proto.sigchain.SigChainElem.prototype.getNextPubkey_asU8 = function() {
 };
 
 
-/** @param {!(string|Uint8Array)} value */
+/**
+ * @param {!(string|Uint8Array)} value
+ * @return {!proto.sigchain.SigChainElem} returns this
+ */
 proto.sigchain.SigChainElem.prototype.setNextPubkey = function(value) {
-  jspb.Message.setProto3BytesField(this, 2, value);
+  return jspb.Message.setProto3BytesField(this, 2, value);
 };
 
 
 /**
  * optional bool mining = 3;
- * Note that Boolean fields may be set to 0/1 when serialized from a Java server.
- * You should avoid comparisons like {@code val === true/false} in those cases.
  * @return {boolean}
  */
 proto.sigchain.SigChainElem.prototype.getMining = function() {
-  return /** @type {boolean} */ (jspb.Message.getFieldWithDefault(this, 3, false));
+  return /** @type {boolean} */ (jspb.Message.getBooleanFieldWithDefault(this, 3, false));
 };
 
 
-/** @param {boolean} value */
+/**
+ * @param {boolean} value
+ * @return {!proto.sigchain.SigChainElem} returns this
+ */
 proto.sigchain.SigChainElem.prototype.setMining = function(value) {
-  jspb.Message.setProto3BooleanField(this, 3, value);
+  return jspb.Message.setProto3BooleanField(this, 3, value);
 };
 
 
@@ -366,9 +385,12 @@ proto.sigchain.SigChainElem.prototype.getSignature_asU8 = function() {
 };
 
 
-/** @param {!(string|Uint8Array)} value */
+/**
+ * @param {!(string|Uint8Array)} value
+ * @return {!proto.sigchain.SigChainElem} returns this
+ */
 proto.sigchain.SigChainElem.prototype.setSignature = function(value) {
-  jspb.Message.setProto3BytesField(this, 4, value);
+  return jspb.Message.setProto3BytesField(this, 4, value);
 };
 
 
@@ -381,9 +403,12 @@ proto.sigchain.SigChainElem.prototype.getSigAlgo = function() {
 };
 
 
-/** @param {!proto.sigchain.SigAlgo} value */
+/**
+ * @param {!proto.sigchain.SigAlgo} value
+ * @return {!proto.sigchain.SigChainElem} returns this
+ */
 proto.sigchain.SigChainElem.prototype.setSigAlgo = function(value) {
-  jspb.Message.setProto3EnumField(this, 5, value);
+  return jspb.Message.setProto3EnumField(this, 5, value);
 };
 
 
@@ -420,9 +445,12 @@ proto.sigchain.SigChainElem.prototype.getVrf_asU8 = function() {
 };
 
 
-/** @param {!(string|Uint8Array)} value */
+/**
+ * @param {!(string|Uint8Array)} value
+ * @return {!proto.sigchain.SigChainElem} returns this
+ */
 proto.sigchain.SigChainElem.prototype.setVrf = function(value) {
-  jspb.Message.setProto3BytesField(this, 6, value);
+  return jspb.Message.setProto3BytesField(this, 6, value);
 };
 
 
@@ -459,9 +487,12 @@ proto.sigchain.SigChainElem.prototype.getProof_asU8 = function() {
 };
 
 
-/** @param {!(string|Uint8Array)} value */
+/**
+ * @param {!(string|Uint8Array)} value
+ * @return {!proto.sigchain.SigChainElem} returns this
+ */
 proto.sigchain.SigChainElem.prototype.setProof = function(value) {
-  jspb.Message.setProto3BytesField(this, 7, value);
+  return jspb.Message.setProto3BytesField(this, 7, value);
 };
 
 
@@ -477,13 +508,15 @@ proto.sigchain.SigChain.repeatedFields_ = [8];
 
 if (jspb.Message.GENERATE_TO_OBJECT) {
 /**
- * Creates an object representation of this proto suitable for use in Soy templates.
+ * Creates an object representation of this proto.
  * Field names that are reserved in JavaScript and will be renamed to pb_name.
+ * Optional fields that are not set will be set to undefined.
  * To access a reserved field use, foo.pb_<name>, eg, foo.pb_default.
  * For the list of reserved names please see:
- *     com.google.apps.jspb.JsClassTemplate.JS_RESERVED_WORDS.
- * @param {boolean=} opt_includeInstance Whether to include the JSPB instance
- *     for transitional soy proto support: http://goto/soy-param-migration
+ *     net/proto2/compiler/js/internal/generator.cc#kKeyword.
+ * @param {boolean=} opt_includeInstance Deprecated. whether to include the
+ *     JSPB instance for transitional soy proto support:
+ *     http://goto/soy-param-migration
  * @return {!Object}
  */
 proto.sigchain.SigChain.prototype.toObject = function(opt_includeInstance) {
@@ -493,8 +526,8 @@ proto.sigchain.SigChain.prototype.toObject = function(opt_includeInstance) {
 
 /**
  * Static version of the {@see toObject} method.
- * @param {boolean|undefined} includeInstance Whether to include the JSPB
- *     instance for transitional soy proto support:
+ * @param {boolean|undefined} includeInstance Deprecated. Whether to include
+ *     the JSPB instance for transitional soy proto support:
  *     http://goto/soy-param-migration
  * @param {!proto.sigchain.SigChain} msg The msg instance to transform.
  * @return {!Object}
@@ -502,14 +535,14 @@ proto.sigchain.SigChain.prototype.toObject = function(opt_includeInstance) {
  */
 proto.sigchain.SigChain.toObject = function(includeInstance, msg) {
   var f, obj = {
-    nonce: jspb.Message.getFieldWithDefault(msg, 1, 0),
-    dataSize: jspb.Message.getFieldWithDefault(msg, 2, 0),
-    blockHash: msg.getBlockHash_asB64(),
-    srcId: msg.getSrcId_asB64(),
-    srcPubkey: msg.getSrcPubkey_asB64(),
-    destId: msg.getDestId_asB64(),
-    destPubkey: msg.getDestPubkey_asB64(),
-    elemsList: jspb.Message.toObjectList(msg.getElemsList(),
+nonce: jspb.Message.getFieldWithDefault(msg, 1, 0),
+dataSize: jspb.Message.getFieldWithDefault(msg, 2, 0),
+blockHash: msg.getBlockHash_asB64(),
+srcId: msg.getSrcId_asB64(),
+srcPubkey: msg.getSrcPubkey_asB64(),
+destId: msg.getDestId_asB64(),
+destPubkey: msg.getDestPubkey_asB64(),
+elemsList: jspb.Message.toObjectList(msg.getElemsList(),
     proto.sigchain.SigChainElem.toObject, includeInstance)
   };
 
@@ -678,9 +711,12 @@ proto.sigchain.SigChain.prototype.getNonce = function() {
 };
 
 
-/** @param {number} value */
+/**
+ * @param {number} value
+ * @return {!proto.sigchain.SigChain} returns this
+ */
 proto.sigchain.SigChain.prototype.setNonce = function(value) {
-  jspb.Message.setProto3IntField(this, 1, value);
+  return jspb.Message.setProto3IntField(this, 1, value);
 };
 
 
@@ -693,9 +729,12 @@ proto.sigchain.SigChain.prototype.getDataSize = function() {
 };
 
 
-/** @param {number} value */
+/**
+ * @param {number} value
+ * @return {!proto.sigchain.SigChain} returns this
+ */
 proto.sigchain.SigChain.prototype.setDataSize = function(value) {
-  jspb.Message.setProto3IntField(this, 2, value);
+  return jspb.Message.setProto3IntField(this, 2, value);
 };
 
 
@@ -732,9 +771,12 @@ proto.sigchain.SigChain.prototype.getBlockHash_asU8 = function() {
 };
 
 
-/** @param {!(string|Uint8Array)} value */
+/**
+ * @param {!(string|Uint8Array)} value
+ * @return {!proto.sigchain.SigChain} returns this
+ */
 proto.sigchain.SigChain.prototype.setBlockHash = function(value) {
-  jspb.Message.setProto3BytesField(this, 3, value);
+  return jspb.Message.setProto3BytesField(this, 3, value);
 };
 
 
@@ -771,9 +813,12 @@ proto.sigchain.SigChain.prototype.getSrcId_asU8 = function() {
 };
 
 
-/** @param {!(string|Uint8Array)} value */
+/**
+ * @param {!(string|Uint8Array)} value
+ * @return {!proto.sigchain.SigChain} returns this
+ */
 proto.sigchain.SigChain.prototype.setSrcId = function(value) {
-  jspb.Message.setProto3BytesField(this, 4, value);
+  return jspb.Message.setProto3BytesField(this, 4, value);
 };
 
 
@@ -810,9 +855,12 @@ proto.sigchain.SigChain.prototype.getSrcPubkey_asU8 = function() {
 };
 
 
-/** @param {!(string|Uint8Array)} value */
+/**
+ * @param {!(string|Uint8Array)} value
+ * @return {!proto.sigchain.SigChain} returns this
+ */
 proto.sigchain.SigChain.prototype.setSrcPubkey = function(value) {
-  jspb.Message.setProto3BytesField(this, 5, value);
+  return jspb.Message.setProto3BytesField(this, 5, value);
 };
 
 
@@ -849,9 +897,12 @@ proto.sigchain.SigChain.prototype.getDestId_asU8 = function() {
 };
 
 
-/** @param {!(string|Uint8Array)} value */
+/**
+ * @param {!(string|Uint8Array)} value
+ * @return {!proto.sigchain.SigChain} returns this
+ */
 proto.sigchain.SigChain.prototype.setDestId = function(value) {
-  jspb.Message.setProto3BytesField(this, 6, value);
+  return jspb.Message.setProto3BytesField(this, 6, value);
 };
 
 
@@ -888,9 +939,12 @@ proto.sigchain.SigChain.prototype.getDestPubkey_asU8 = function() {
 };
 
 
-/** @param {!(string|Uint8Array)} value */
+/**
+ * @param {!(string|Uint8Array)} value
+ * @return {!proto.sigchain.SigChain} returns this
+ */
 proto.sigchain.SigChain.prototype.setDestPubkey = function(value) {
-  jspb.Message.setProto3BytesField(this, 7, value);
+  return jspb.Message.setProto3BytesField(this, 7, value);
 };
 
 
@@ -904,9 +958,12 @@ proto.sigchain.SigChain.prototype.getElemsList = function() {
 };
 
 
-/** @param {!Array<!proto.sigchain.SigChainElem>} value */
+/**
+ * @param {!Array<!proto.sigchain.SigChainElem>} value
+ * @return {!proto.sigchain.SigChain} returns this
+*/
 proto.sigchain.SigChain.prototype.setElemsList = function(value) {
-  jspb.Message.setRepeatedWrapperField(this, 8, value);
+  return jspb.Message.setRepeatedWrapperField(this, 8, value);
 };
 
 
@@ -922,9 +979,10 @@ proto.sigchain.SigChain.prototype.addElems = function(opt_value, opt_index) {
 
 /**
  * Clears the list making it empty but non-null.
+ * @return {!proto.sigchain.SigChain} returns this
  */
 proto.sigchain.SigChain.prototype.clearElemsList = function() {
-  this.setElemsList([]);
+  return this.setElemsList([]);
 };
 
 
