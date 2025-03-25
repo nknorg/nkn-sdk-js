@@ -1,15 +1,25 @@
+// source: src/common/pb/payloads.proto
 /**
  * @fileoverview
  * @enhanceable
+ * @suppress {missingRequire} reports error on implicit type usages.
  * @suppress {messageConventions} JS Compiler reports an error if a variable or
  *     field starts with 'MSG_' and isn't a translatable message.
  * @public
  */
 // GENERATED CODE -- DO NOT EDIT!
+/* eslint-disable */
+// @ts-nocheck
 
 var jspb = require('google-protobuf');
 var goog = jspb;
-var global = Function('return this')();
+var global =
+    (typeof globalThis !== 'undefined' && globalThis) ||
+    (typeof window !== 'undefined' && window) ||
+    (typeof global !== 'undefined' && global) ||
+    (typeof self !== 'undefined' && self) ||
+    (function () { return this; }).call(null) ||
+    Function('return this')();
 
 goog.exportSymbol('proto.payloads.Message', null, global);
 goog.exportSymbol('proto.payloads.Payload', null, global);
@@ -83,13 +93,15 @@ if (goog.DEBUG && !COMPILED) {
 
 if (jspb.Message.GENERATE_TO_OBJECT) {
 /**
- * Creates an object representation of this proto suitable for use in Soy templates.
+ * Creates an object representation of this proto.
  * Field names that are reserved in JavaScript and will be renamed to pb_name.
+ * Optional fields that are not set will be set to undefined.
  * To access a reserved field use, foo.pb_<name>, eg, foo.pb_default.
  * For the list of reserved names please see:
- *     com.google.apps.jspb.JsClassTemplate.JS_RESERVED_WORDS.
- * @param {boolean=} opt_includeInstance Whether to include the JSPB instance
- *     for transitional soy proto support: http://goto/soy-param-migration
+ *     net/proto2/compiler/js/internal/generator.cc#kKeyword.
+ * @param {boolean=} opt_includeInstance Deprecated. whether to include the
+ *     JSPB instance for transitional soy proto support:
+ *     http://goto/soy-param-migration
  * @return {!Object}
  */
 proto.payloads.Message.prototype.toObject = function(opt_includeInstance) {
@@ -99,8 +111,8 @@ proto.payloads.Message.prototype.toObject = function(opt_includeInstance) {
 
 /**
  * Static version of the {@see toObject} method.
- * @param {boolean|undefined} includeInstance Whether to include the JSPB
- *     instance for transitional soy proto support:
+ * @param {boolean|undefined} includeInstance Deprecated. Whether to include
+ *     the JSPB instance for transitional soy proto support:
  *     http://goto/soy-param-migration
  * @param {!proto.payloads.Message} msg The msg instance to transform.
  * @return {!Object}
@@ -108,10 +120,10 @@ proto.payloads.Message.prototype.toObject = function(opt_includeInstance) {
  */
 proto.payloads.Message.toObject = function(includeInstance, msg) {
   var f, obj = {
-    payload: msg.getPayload_asB64(),
-    encrypted: jspb.Message.getFieldWithDefault(msg, 2, false),
-    nonce: msg.getNonce_asB64(),
-    encryptedKey: msg.getEncryptedKey_asB64()
+payload: msg.getPayload_asB64(),
+encrypted: jspb.Message.getBooleanFieldWithDefault(msg, 2, false),
+nonce: msg.getNonce_asB64(),
+encryptedKey: msg.getEncryptedKey_asB64()
   };
 
   if (includeInstance) {
@@ -257,26 +269,30 @@ proto.payloads.Message.prototype.getPayload_asU8 = function() {
 };
 
 
-/** @param {!(string|Uint8Array)} value */
+/**
+ * @param {!(string|Uint8Array)} value
+ * @return {!proto.payloads.Message} returns this
+ */
 proto.payloads.Message.prototype.setPayload = function(value) {
-  jspb.Message.setProto3BytesField(this, 1, value);
+  return jspb.Message.setProto3BytesField(this, 1, value);
 };
 
 
 /**
  * optional bool encrypted = 2;
- * Note that Boolean fields may be set to 0/1 when serialized from a Java server.
- * You should avoid comparisons like {@code val === true/false} in those cases.
  * @return {boolean}
  */
 proto.payloads.Message.prototype.getEncrypted = function() {
-  return /** @type {boolean} */ (jspb.Message.getFieldWithDefault(this, 2, false));
+  return /** @type {boolean} */ (jspb.Message.getBooleanFieldWithDefault(this, 2, false));
 };
 
 
-/** @param {boolean} value */
+/**
+ * @param {boolean} value
+ * @return {!proto.payloads.Message} returns this
+ */
 proto.payloads.Message.prototype.setEncrypted = function(value) {
-  jspb.Message.setProto3BooleanField(this, 2, value);
+  return jspb.Message.setProto3BooleanField(this, 2, value);
 };
 
 
@@ -313,9 +329,12 @@ proto.payloads.Message.prototype.getNonce_asU8 = function() {
 };
 
 
-/** @param {!(string|Uint8Array)} value */
+/**
+ * @param {!(string|Uint8Array)} value
+ * @return {!proto.payloads.Message} returns this
+ */
 proto.payloads.Message.prototype.setNonce = function(value) {
-  jspb.Message.setProto3BytesField(this, 3, value);
+  return jspb.Message.setProto3BytesField(this, 3, value);
 };
 
 
@@ -352,9 +371,12 @@ proto.payloads.Message.prototype.getEncryptedKey_asU8 = function() {
 };
 
 
-/** @param {!(string|Uint8Array)} value */
+/**
+ * @param {!(string|Uint8Array)} value
+ * @return {!proto.payloads.Message} returns this
+ */
 proto.payloads.Message.prototype.setEncryptedKey = function(value) {
-  jspb.Message.setProto3BytesField(this, 4, value);
+  return jspb.Message.setProto3BytesField(this, 4, value);
 };
 
 
@@ -363,13 +385,15 @@ proto.payloads.Message.prototype.setEncryptedKey = function(value) {
 
 if (jspb.Message.GENERATE_TO_OBJECT) {
 /**
- * Creates an object representation of this proto suitable for use in Soy templates.
+ * Creates an object representation of this proto.
  * Field names that are reserved in JavaScript and will be renamed to pb_name.
+ * Optional fields that are not set will be set to undefined.
  * To access a reserved field use, foo.pb_<name>, eg, foo.pb_default.
  * For the list of reserved names please see:
- *     com.google.apps.jspb.JsClassTemplate.JS_RESERVED_WORDS.
- * @param {boolean=} opt_includeInstance Whether to include the JSPB instance
- *     for transitional soy proto support: http://goto/soy-param-migration
+ *     net/proto2/compiler/js/internal/generator.cc#kKeyword.
+ * @param {boolean=} opt_includeInstance Deprecated. whether to include the
+ *     JSPB instance for transitional soy proto support:
+ *     http://goto/soy-param-migration
  * @return {!Object}
  */
 proto.payloads.Payload.prototype.toObject = function(opt_includeInstance) {
@@ -379,8 +403,8 @@ proto.payloads.Payload.prototype.toObject = function(opt_includeInstance) {
 
 /**
  * Static version of the {@see toObject} method.
- * @param {boolean|undefined} includeInstance Whether to include the JSPB
- *     instance for transitional soy proto support:
+ * @param {boolean|undefined} includeInstance Deprecated. Whether to include
+ *     the JSPB instance for transitional soy proto support:
  *     http://goto/soy-param-migration
  * @param {!proto.payloads.Payload} msg The msg instance to transform.
  * @return {!Object}
@@ -388,11 +412,11 @@ proto.payloads.Payload.prototype.toObject = function(opt_includeInstance) {
  */
 proto.payloads.Payload.toObject = function(includeInstance, msg) {
   var f, obj = {
-    type: jspb.Message.getFieldWithDefault(msg, 1, 0),
-    messageId: msg.getMessageId_asB64(),
-    data: msg.getData_asB64(),
-    replyToId: msg.getReplyToId_asB64(),
-    noReply: jspb.Message.getFieldWithDefault(msg, 5, false)
+type: jspb.Message.getFieldWithDefault(msg, 1, 0),
+messageId: msg.getMessageId_asB64(),
+data: msg.getData_asB64(),
+replyToId: msg.getReplyToId_asB64(),
+noReply: jspb.Message.getBooleanFieldWithDefault(msg, 5, false)
   };
 
   if (includeInstance) {
@@ -525,9 +549,12 @@ proto.payloads.Payload.prototype.getType = function() {
 };
 
 
-/** @param {!proto.payloads.PayloadType} value */
+/**
+ * @param {!proto.payloads.PayloadType} value
+ * @return {!proto.payloads.Payload} returns this
+ */
 proto.payloads.Payload.prototype.setType = function(value) {
-  jspb.Message.setProto3EnumField(this, 1, value);
+  return jspb.Message.setProto3EnumField(this, 1, value);
 };
 
 
@@ -564,9 +591,12 @@ proto.payloads.Payload.prototype.getMessageId_asU8 = function() {
 };
 
 
-/** @param {!(string|Uint8Array)} value */
+/**
+ * @param {!(string|Uint8Array)} value
+ * @return {!proto.payloads.Payload} returns this
+ */
 proto.payloads.Payload.prototype.setMessageId = function(value) {
-  jspb.Message.setProto3BytesField(this, 2, value);
+  return jspb.Message.setProto3BytesField(this, 2, value);
 };
 
 
@@ -603,9 +633,12 @@ proto.payloads.Payload.prototype.getData_asU8 = function() {
 };
 
 
-/** @param {!(string|Uint8Array)} value */
+/**
+ * @param {!(string|Uint8Array)} value
+ * @return {!proto.payloads.Payload} returns this
+ */
 proto.payloads.Payload.prototype.setData = function(value) {
-  jspb.Message.setProto3BytesField(this, 3, value);
+  return jspb.Message.setProto3BytesField(this, 3, value);
 };
 
 
@@ -642,26 +675,30 @@ proto.payloads.Payload.prototype.getReplyToId_asU8 = function() {
 };
 
 
-/** @param {!(string|Uint8Array)} value */
+/**
+ * @param {!(string|Uint8Array)} value
+ * @return {!proto.payloads.Payload} returns this
+ */
 proto.payloads.Payload.prototype.setReplyToId = function(value) {
-  jspb.Message.setProto3BytesField(this, 4, value);
+  return jspb.Message.setProto3BytesField(this, 4, value);
 };
 
 
 /**
  * optional bool no_reply = 5;
- * Note that Boolean fields may be set to 0/1 when serialized from a Java server.
- * You should avoid comparisons like {@code val === true/false} in those cases.
  * @return {boolean}
  */
 proto.payloads.Payload.prototype.getNoReply = function() {
-  return /** @type {boolean} */ (jspb.Message.getFieldWithDefault(this, 5, false));
+  return /** @type {boolean} */ (jspb.Message.getBooleanFieldWithDefault(this, 5, false));
 };
 
 
-/** @param {boolean} value */
+/**
+ * @param {boolean} value
+ * @return {!proto.payloads.Payload} returns this
+ */
 proto.payloads.Payload.prototype.setNoReply = function(value) {
-  jspb.Message.setProto3BooleanField(this, 5, value);
+  return jspb.Message.setProto3BooleanField(this, 5, value);
 };
 
 
@@ -670,13 +707,15 @@ proto.payloads.Payload.prototype.setNoReply = function(value) {
 
 if (jspb.Message.GENERATE_TO_OBJECT) {
 /**
- * Creates an object representation of this proto suitable for use in Soy templates.
+ * Creates an object representation of this proto.
  * Field names that are reserved in JavaScript and will be renamed to pb_name.
+ * Optional fields that are not set will be set to undefined.
  * To access a reserved field use, foo.pb_<name>, eg, foo.pb_default.
  * For the list of reserved names please see:
- *     com.google.apps.jspb.JsClassTemplate.JS_RESERVED_WORDS.
- * @param {boolean=} opt_includeInstance Whether to include the JSPB instance
- *     for transitional soy proto support: http://goto/soy-param-migration
+ *     net/proto2/compiler/js/internal/generator.cc#kKeyword.
+ * @param {boolean=} opt_includeInstance Deprecated. whether to include the
+ *     JSPB instance for transitional soy proto support:
+ *     http://goto/soy-param-migration
  * @return {!Object}
  */
 proto.payloads.TextData.prototype.toObject = function(opt_includeInstance) {
@@ -686,8 +725,8 @@ proto.payloads.TextData.prototype.toObject = function(opt_includeInstance) {
 
 /**
  * Static version of the {@see toObject} method.
- * @param {boolean|undefined} includeInstance Whether to include the JSPB
- *     instance for transitional soy proto support:
+ * @param {boolean|undefined} includeInstance Deprecated. Whether to include
+ *     the JSPB instance for transitional soy proto support:
  *     http://goto/soy-param-migration
  * @param {!proto.payloads.TextData} msg The msg instance to transform.
  * @return {!Object}
@@ -695,7 +734,7 @@ proto.payloads.TextData.prototype.toObject = function(opt_includeInstance) {
  */
 proto.payloads.TextData.toObject = function(includeInstance, msg) {
   var f, obj = {
-    text: jspb.Message.getFieldWithDefault(msg, 1, "")
+text: jspb.Message.getFieldWithDefault(msg, 1, "")
   };
 
   if (includeInstance) {
@@ -784,9 +823,12 @@ proto.payloads.TextData.prototype.getText = function() {
 };
 
 
-/** @param {string} value */
+/**
+ * @param {string} value
+ * @return {!proto.payloads.TextData} returns this
+ */
 proto.payloads.TextData.prototype.setText = function(value) {
-  jspb.Message.setProto3StringField(this, 1, value);
+  return jspb.Message.setProto3StringField(this, 1, value);
 };
 
 
