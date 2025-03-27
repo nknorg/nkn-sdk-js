@@ -468,7 +468,15 @@ declare namespace nkn {
     sign(message: string): string;
   }
 
-  export type ConnectHandler = (params: { addr: string }) => void;
+  export type ConnectHandler = (params: {
+    node: {
+      addr: string,
+      id: string,
+      pubkey: string,
+      rpcAddr: string,
+      sdp: string
+    }
+  }) => void;
 
   export type ConnectFailedHandler = () => void;
 
