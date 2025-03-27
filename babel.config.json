@@ -1,11 +1,9 @@
 {
   "presets": [
     [
-      "@babel/env",
+      "@babel/preset-env",
       {
-        "targets": {
-          "node": "8"
-        }
+        "modules": "commonjs"
       }
     ],
     "@babel/preset-flow"
